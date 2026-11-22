@@ -311,7 +311,7 @@ namespace Sealbound.Dev
             Shot("23b_shrine_bound", s + front * 5f + right * 2f + Vector3.up * 2.4f, s + Vector3.up * 1.6f, 55f);
 
             // Merge, out in the training yard among the dummies.
-            motor.Teleport(new Vector3(7f, 0.2f, -6.5f));
+            motor.Teleport(new Vector3(7f, 0.2f, -2.5f));
             yield return new WaitForSeconds(0.6f);
             float baseMax = health.maxHealth, baseSpeed = motor.runSpeed;
             Line($"Merge with an empty gauge: {merge.TryMerge()} (should be False)");
@@ -323,12 +323,17 @@ namespace Sealbound.Dev
 
             // Fortress Stance: a heavy hit hurts but does not knock you back.
             var hit = new Sealbound.Combat.DamageInfo { Amount = 10f, Point = p.position + Vector3.up, Direction = -p.forward, Source = gameObject, Impact = 1f };
+            var oldCheck = health.InvulnerableCheck;
+            health.InvulnerableCheck = null; // the golem tour made the hero untouchable for its photos
             float before = health.Current;
             health.TryDamage(hit, out float dealt);
+            health.InvulnerableCheck = oldCheck;
             yield return null;
             Line($"Fortress Stance: took {dealt:0.0} of 10 ({before:0} -> {health.Current:0}), knocked down {motor.IsStunned} (should be False)");
 
             // Rune Quake next to the dummies.
+            motor.Teleport(new Vector3(7f, 0.2f, -6.5f));
+            yield return new WaitForSeconds(0.3f);
             float dummyBefore = 0f;
             var dummies = FindObjectsByType<Sealbound.Combat.TrainingDummy>(FindObjectsSortMode.None);
             foreach (var d in dummies) { var h = d.GetComponent<Sealbound.Combat.Health>(); if (h != null) dummyBefore += h.Current; }

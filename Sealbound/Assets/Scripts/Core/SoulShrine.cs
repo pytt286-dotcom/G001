@@ -22,9 +22,9 @@ namespace Sealbound.Core
 
         public bool InReach { get; private set; }
 
-        static readonly Color SpiritBlue = new Color(0.55f, 0.8f, 1.6f, 0.85f);
+        static readonly Color SpiritBlue = new Color(0.9f, 1.7f, 3.4f, 1f);
 
-        Transform _seal, _player;
+        Transform _seal, _sealRing, _player;
         Glow _sealGlow, _ring;
         Light _light;
         float _pulse;
@@ -55,7 +55,7 @@ namespace Sealbound.Core
                 float h = 2.1f + (i % 2) * 0.6f;
                 var st = Piece(t, PrimitiveType.Cube, "Standing Stone", p + Vector3.up * h * 0.5f, new Vector3(0.7f, h, 0.45f), stone, true);
                 st.transform.localRotation = Quaternion.Euler(Random.Range(-4f, 4f), a, Random.Range(-5f, 5f));
-                Glow.Make(t, p + Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, -0.3f) + Vector3.up * h * 0.6f, 0.35f, new Color(0.5f, 0.75f, 1.4f, 0.6f)); // a rune cut into each stone
+                Glow.Make(t, p + Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, -0.3f) + Vector3.up * h * 0.6f, 0.35f, new Color(0.8f, 1.5f, 3f, 0.9f)); // a rune cut into each stone
             }
 
             // The floating seal the spirit is bound through.
@@ -63,8 +63,21 @@ namespace Sealbound.Core
             seal.SetParent(t, false);
             seal.localPosition = new Vector3(0f, 2f, 0f);
             s._seal = seal;
-            s._sealGlow = Glow.Make(seal, Vector3.zero, 1.1f, SpiritBlue);
-            s._ring = Glow.MakeRing(t, new Vector3(0f, 0.14f, 0f), 4.6f, new Color(0.45f, 0.7f, 1.3f, 0.55f));
+            s._sealGlow = Glow.Make(seal, Vector3.zero, 1.6f, SpiritBlue);
+            // A ring of glowing rune bars, so the seal reads even in daylight.
+            var ring = new GameObject("Seal Ring").transform;
+            ring.SetParent(seal, false);
+            s._sealRing = ring;
+            Color runeLight = new Color(0.55f, 0.85f, 1f);
+            for (int i = 0; i < 12; i++)
+            {
+                float a = i * 30f;
+                var bar = Shapes.Make(PrimitiveType.Cube, ring, "Seal Rune", Quaternion.Euler(0f, 0f, a) * Vector3.up * 0.62f,
+                    new Vector3(i % 3 == 0 ? 0.2f : 0.12f, 0.06f, 0.05f), runeLight, false, true);
+                bar.transform.localRotation = Quaternion.Euler(0f, 0f, a);
+            }
+            Shapes.Make(PrimitiveType.Cube, ring, "Seal Core", Vector3.zero, new Vector3(0.16f, 0.16f, 0.16f), runeLight, false, true).transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
+            s._ring = Glow.MakeRing(t, new Vector3(0f, 0.14f, 0f), 4.6f, new Color(0.7f, 1.3f, 2.6f, 0.9f));
 
             var lightGo = new GameObject("Shrine Light");
             lightGo.transform.SetParent(t, false);
@@ -125,6 +138,7 @@ namespace Sealbound.Core
             {
                 _seal.localPosition = new Vector3(0f, 2f + Mathf.Sin(t * 1.3f) * 0.12f, 0f);
                 _seal.localScale = Vector3.one * (1f + _pulse * 0.8f);
+                if (_sealRing != null) _sealRing.localRotation = Quaternion.Euler(0f, t * 25f, t * (bound ? 60f : 20f));
             }
             float breathe = 0.6f + 0.25f * Mathf.Sin(t * 2f) + _pulse;
             if (_sealGlow != null) _sealGlow.SetStrength(bound ? breathe : breathe * 0.6f);

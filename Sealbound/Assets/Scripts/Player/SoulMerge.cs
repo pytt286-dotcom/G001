@@ -235,11 +235,13 @@ namespace Sealbound.Player
                 }
                 // Runes glowing through the stone, and a rune circle under the feet.
                 _runes.Clear();
-                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.25f, 0.22f), 0.45f, new Color(0.5f, 0.8f, 1.5f, 0.85f)));
-                _runes.Add(Glow.Make(visual, new Vector3(-0.28f, 1.42f, 0.05f), 0.25f, new Color(0.5f, 0.8f, 1.5f, 0.7f)));
-                _runes.Add(Glow.Make(visual, new Vector3(0.28f, 1.42f, 0.05f), 0.25f, new Color(0.5f, 0.8f, 1.5f, 0.7f)));
-                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.62f, 0.18f), 0.2f, new Color(0.6f, 0.85f, 1.6f, 0.8f)));
-                _ring = Glow.MakeRing(transform, new Vector3(0f, 0.06f, 0f), 2.4f, new Color(0.45f, 0.75f, 1.3f, 0.5f));
+                Color rune = new Color(0.8f, 1.5f, 3.2f, 1f);
+                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.25f, 0.3f), 0.5f, rune));    // the heart rune, front
+                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.3f, -0.3f), 0.45f, rune));   // and through the back
+                _runes.Add(Glow.Make(visual, new Vector3(-0.36f, 1.45f, 0f), 0.3f, rune));  // shoulders
+                _runes.Add(Glow.Make(visual, new Vector3(0.36f, 1.45f, 0f), 0.3f, rune));
+                _runes.Add(Glow.Make(visual, new Vector3(0f, 0.95f, 0.26f), 0.3f, rune));   // belt
+                _ring = Glow.MakeRing(transform, new Vector3(0f, 0.06f, 0f), 2.6f, new Color(0.7f, 1.3f, 2.6f, 0.9f));
                 return;
             }
 
