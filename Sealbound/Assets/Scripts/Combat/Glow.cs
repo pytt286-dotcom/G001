@@ -144,8 +144,7 @@ namespace Sealbound.Combat
             m.name = "Trail";
             m.mainTexture = _streak;
             if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", _streak);
-            if (m.HasProperty("_ColorMode")) m.SetFloat("_ColorMode", 0f); // multiply by the trail's own colours
-            m.EnableKeyword("_COLORCOLOR_ON");
+            if (m.HasProperty("_ColorMode")) m.SetFloat("_ColorMode", 0f); // multiply by the trail's own colours (the default)
             return m;
         }
 
