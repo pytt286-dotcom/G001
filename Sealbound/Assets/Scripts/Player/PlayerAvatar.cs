@@ -27,7 +27,12 @@ namespace Sealbound.Player
             public Transform pivot, weapon;
             public Quaternion align = Quaternion.identity; // turns the weapon's blade onto the pivot's forward
             public float scale = 1f;
+            public HeroBodies.Profile profile = HeroBodies.KayKit;
+            public Transform index, pinky, middle; // realistic hands: where the grip is and which way the blade leaves the fist
         }
+
+        /// <summary>True when the heroes are the realistic Quaternius bodies (no cartoon ink outline).</summary>
+        public bool IsRealistic => _swordBody != null && _swordBody.profile.realistic;
 
         PlayerMotor _motor;
         PlayerCombat _combat;
@@ -35,6 +40,7 @@ namespace Sealbound.Player
         Health _health;
         Body _swordBody, _mageBody, _active;
         float _armWeight, _airTime;
+        bool _wasDodging;
 
         /// <summary>
         /// Builds both class bodies under <paramref name="visual"/> and fills the two weapon pivots with
@@ -60,30 +66,58 @@ namespace Sealbound.Player
 
         Body BuildBody(string className, Transform visual, Transform pivot, string weaponProp)
         {
-            var go = ArtLibrary.Spawn(ArtLibrary.Characters + className, visual, ArtLibrary.ClassTexture(className));
-            if (go == null) return null;
-            go.name = className + " (KayKit)";
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
-            var b = new Body { root = go };
-            b.scale = ArtLibrary.FitHeight(go, modelHeight);
-            Shapes.SetLayerRecursive(go, 2);
+            bool sword = className == "Knight";
+            var b = HeroBodies.Has ? BuildRealisticBody(sword, visual) : null;
+            if (b == null)
+            {
+                var go = ArtLibrary.Spawn(ArtLibrary.Characters + className, visual, ArtLibrary.ClassTexture(className));
+                if (go == null) return null;
+                go.name = className + " (KayKit)";
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = Quaternion.identity;
+                b = new Body { root = go, profile = HeroBodies.KayKit };
+                b.scale = ArtLibrary.FitHeight(go, modelHeight);
+                b.anim = CharacterAnimator.Attach(go, ArtLibrary.AllClips());
+            }
+            Shapes.SetLayerRecursive(b.root, 2);
 
-            var t = go.transform;
-            b.upperArm = ArtLibrary.FindDeep(t, "upperarm.r");
-            b.lowerArm = ArtLibrary.FindDeep(t, "lowerarm.r");
-            b.handSlot = ArtLibrary.FindDeep(t, "handslot.r");
-            b.chest = ArtLibrary.FindDeep(t, "chest");
+            var t = b.root.transform;
+            var pr = b.profile;
+            b.upperArm = ArtLibrary.FindDeep(t, pr.upperArmR);
+            b.lowerArm = ArtLibrary.FindDeep(t, pr.lowerArmR);
+            b.handSlot = ArtLibrary.FindDeep(t, pr.handR);
+            b.chest = ArtLibrary.FindDeep(t, pr.chest);
             if (b.handSlot == null) b.handSlot = ArtLibrary.FindDeep(t, "hand.r");
-            b.anim = CharacterAnimator.Attach(go, ArtLibrary.AllClips());
-            b.anim.SetBase("Idle_A");
+            if (pr.realistic)
+            {
+                b.index = ArtLibrary.FindDeep(t, "index_01_r");
+                b.pinky = ArtLibrary.FindDeep(t, "pinky_01_r");
+                b.middle = ArtLibrary.FindDeep(t, "middle_01_r");
+            }
+            b.anim.SetBase(sword ? pr.combatIdle : pr.idle);
 
             b.pivot = pivot;
-            b.weapon = BuildWeapon(pivot, weaponProp, go.transform.localScale.x, className == "Knight", out b.align);
+            // Realistic bodies: weapons sized in metres (a 1 m sword, a 1.7 m staff); cartoon bodies: the pack's own scale.
+            float length = pr.realistic ? (sword ? 1.05f : 1.7f) : 0f;
+            b.weapon = BuildWeapon(pivot, weaponProp, b.root.transform.localScale.x, sword, length, out b.align);
             return b;
         }
 
-        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, out Quaternion align)
+        /// <summary>The Quaternius hero: the Sword recruit with the hood up, the Mage with the hood down.</summary>
+        Body BuildRealisticBody(bool sword, Transform visual)
+        {
+            var go = HeroBodies.Build(visual, female: !sword, hood: sword, outfitColour: sword ? "T_Ranger_BaseColor" : "T_Ranger_3_BaseColor");
+            if (go == null) return null;
+            go.name = sword ? "Sword Sealer (Quaternius)" : "Mage Sealer (Quaternius)";
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            var b = new Body { root = go, profile = HeroBodies.Universal };
+            b.scale = ArtLibrary.FitHeight(go, sword ? modelHeight : modelHeight * 0.97f);
+            b.anim = CharacterAnimator.Attach(go, HeroBodies.Clips());
+            return b;
+        }
+
+        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, out Quaternion align)
         {
             align = Quaternion.identity;
             var go = ArtLibrary.Spawn(ArtLibrary.Props + prop, pivot);
@@ -93,6 +127,14 @@ namespace Sealbound.Player
             t.localPosition = Vector3.zero;
             t.localRotation = Quaternion.identity;
             t.localScale = Vector3.one * scale;
+            if (length > 0f)
+            {
+                t.localScale = Vector3.one;
+                Bounds raw = BoneAim.LocalMeshBounds(t);
+                float longest = Mathf.Max(raw.size.x, Mathf.Max(raw.size.y, raw.size.z));
+                scale = longest > 0.0001f ? length / longest : 1f;
+                t.localScale = Vector3.one * scale;
+            }
 
             // Find which way the blade (or staff) points in the model's own space: its longest side,
             // away from the grip at the model's origin.
@@ -102,9 +144,9 @@ namespace Sealbound.Player
             float max = lb.max[axis], min = lb.min[axis];
             Vector3 dir = Vector3.zero;
             dir[axis] = Mathf.Abs(max) >= Mathf.Abs(min) ? 1f : -1f;
-            float length = Mathf.Max(Mathf.Abs(max), Mathf.Abs(min));
+            float reach = Mathf.Max(Mathf.Abs(max), Mathf.Abs(min));
             align = Quaternion.FromToRotation(dir, Vector3.forward);
-            Vector3 tipLocal = dir * length;
+            Vector3 tipLocal = dir * reach;
 
             if (isSword)
             {
@@ -165,12 +207,12 @@ namespace Sealbound.Player
             if (_health != null) _health.Damaged += OnDamaged;
             if (_vitals != null)
             {
-                _vitals.Fell += () => { if (_active != null) _active.anim.PlayOnce("Death_A", 1f, 0.08f, true); };
+                _vitals.Fell += () => { if (_active != null) _active.anim.PlayOnce(_active.profile.death, 1f, 0.08f, true); };
                 _vitals.Respawned += () =>
                 {
                     if (_active == null) return;
                     _active.anim.StopOnce(0.05f);
-                    _active.anim.PlayOnce("Spawn_Ground", 1.6f, 0.05f);
+                    _active.anim.PlayOnce(_active.profile.respawn, 1.6f, 0.05f);
                 };
             }
         }
@@ -183,7 +225,7 @@ namespace Sealbound.Player
         void OnDamaged(DamageInfo info, float dealt)
         {
             if (_active == null || dealt <= 0f || (_vitals != null && _vitals.IsDown)) return;
-            _active.anim.PlayOnce(Random.value < 0.5f ? "Hit_A" : "Hit_B", 1.8f, 0.05f);
+            _active.anim.PlayOnce(Random.value < 0.5f ? _active.profile.hitA : _active.profile.hitB, 1.8f, 0.05f);
         }
 
         Body Wanted => _combat == null || _combat.Kit == _combat.swordKit ? _swordBody : _mageBody;
@@ -202,6 +244,7 @@ namespace Sealbound.Player
             if (_vitals != null && _vitals.IsDown) return;
 
             var a = _active.anim;
+            var pr = _active.profile;
             float dt = Time.deltaTime;
             float speed = _motor.PlanarVelocity.magnitude;
             bool grounded = _motor.IsGrounded;
@@ -209,20 +252,29 @@ namespace Sealbound.Player
             if (!grounded) _airTime += dt;
             else
             {
-                if (_airTime > 0.45f && speed < 2f && !_combat.IsAttacking) a.PlayOnce("Jump_Land", 2.2f, 0.05f);
+                if (_airTime > 0.45f && speed < 2f && !_combat.IsAttacking) a.PlayOnce(pr.jumpLand, 2.2f, 0.05f);
                 _airTime = 0f;
             }
 
-            if (_motor.IsDodging || _motor.IsDashing)
-                a.SetBase("Running_B", 2.4f, 0.05f);
+            // A real roll for the dodge when the body has one.
+            bool dodging = _motor.IsDodging;
+            if (dodging && !_wasDodging && pr.dodge != null && a.Has(pr.dodge))
+                a.PlayOnce(pr.dodge, a.Length(pr.dodge) / 0.5f, 0.04f);
+            _wasDodging = dodging;
+
+            float walkRef = pr.realistic ? pr.walkSpeed : walkClipSpeed;
+            float runRef = pr.realistic ? pr.runSpeed : runClipSpeed;
+            if ((dodging && pr.dodge == null) || _motor.IsDashing)
+                a.SetBase(pr.sprint, 2.4f, 0.05f);
             else if (!grounded && _airTime > 0.08f)
-                a.SetBase("Jump_Idle", 1f, 0.12f);
+                a.SetBase(pr.jumpLoop, 1f, 0.12f);
             else if (speed > 0.5f)
             {
-                if (speed < 3.2f) a.SetBase("Walking_A", Mathf.Clamp(speed / walkClipSpeed, 0.6f, 1.8f), 0.12f);
-                else a.SetBase(_motor.IsSprinting ? "Running_B" : "Running_A", Mathf.Clamp(speed / runClipSpeed, 0.8f, 2.4f), 0.1f);
+                if (speed < 3.2f) a.SetBase(pr.walk, Mathf.Clamp(speed / walkRef, 0.6f, 1.8f), 0.12f);
+                else if (_motor.IsSprinting && pr.realistic) a.SetBase(pr.sprint, Mathf.Clamp(speed / pr.sprintSpeed, 0.8f, 1.8f), 0.1f);
+                else a.SetBase(_motor.IsSprinting ? pr.sprint : pr.run, Mathf.Clamp(speed / runRef, 0.8f, 2.4f), 0.1f);
             }
-            else a.SetBase("Idle_A", 1f, 0.15f);
+            else a.SetBase(_active == _swordBody ? pr.combatIdle : pr.idle, 1f, 0.15f);
         }
 
         void LateUpdate()
@@ -251,8 +303,18 @@ namespace Sealbound.Player
 
             // Held in the hand normally; during a swing it follows the combat system's swing arc.
             Quaternion swing = b.pivot.rotation * b.align;
-            b.weapon.position = b.handSlot.position;
-            b.weapon.rotation = _armWeight >= 0.999f ? swing : Quaternion.Slerp(b.handSlot.rotation, swing, _armWeight);
+            Vector3 grip = b.handSlot.position;
+            Quaternion held = b.handSlot.rotation;
+            if (b.profile.realistic && b.index != null && b.pinky != null && b.middle != null)
+            {
+                // In a fist the grip sits in the palm and the blade leaves on the thumb side, across the knuckles.
+                Vector3 fingers = (b.middle.position - b.handSlot.position);
+                grip = b.handSlot.position + fingers * 0.75f;
+                Vector3 across = (b.index.position - b.pinky.position).normalized;
+                held = Quaternion.LookRotation(across, fingers.normalized) * b.align;
+            }
+            b.weapon.position = grip;
+            b.weapon.rotation = _armWeight >= 0.999f ? swing : Quaternion.Slerp(held, swing, _armWeight);
         }
     }
 }

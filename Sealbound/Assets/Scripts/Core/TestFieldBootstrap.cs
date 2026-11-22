@@ -43,7 +43,8 @@ namespace Sealbound.Core
             var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
             SetupCamera(player);
             LookSettings.Apply(Camera.main);
-            ToonOutline.Add(player.GetComponentsInChildren<Renderer>(true));
+            var heroAvatar = player.GetComponent<PlayerAvatar>();
+            if (heroAvatar == null || !heroAvatar.IsRealistic) ToonOutline.Add(player.GetComponentsInChildren<Renderer>(true)); // ink lines suit the cartoon heroes only
             foreach (var d in Object.FindObjectsByType<TrainingDummy>(FindObjectsSortMode.None))
                 ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);

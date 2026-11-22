@@ -12,7 +12,7 @@ namespace Sealbound.EditorTools
         const string ArtRoot = "Assets/Resources/Art/";
 
         // Bump this whenever a rule changes so Unity re-imports the art with the new rules.
-        public override uint GetVersion() => 5;
+        public override uint GetVersion() => 6;
 
         static bool IsArt(string path) => path.Replace('\\', '/').StartsWith(ArtRoot);
         static bool IsRigged(string path) => path.Contains("/Characters/") || path.Contains("/Animations/");
@@ -37,7 +37,16 @@ namespace Sealbound.EditorTools
                 m.isReadable = true; // rock colliders
             }
 
-            if (IsRigged(assetPath))
+            if (assetPath.Contains("/Quaternius/"))
+            {
+                // Quaternius' Universal heroes and animation libraries share one humanoid skeleton:
+                // a Humanoid rig lets every animation play on every body and outfit.
+                m.animationType = ModelImporterAnimationType.Human;
+                m.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                m.importAnimation = assetPath.Contains("/Animations/");
+                m.optimizeGameObjects = false;
+            }
+            else if (IsRigged(assetPath))
             {
                 // Every KayKit adventurer shares the same "Rig_Medium" skeleton, so a generic rig
                 // lets the Knight, the Mage and the goblins all use the same animation files.
@@ -59,10 +68,20 @@ namespace Sealbound.EditorTools
             var m = (ModelImporter)assetImporter;
             var clips = m.defaultClipAnimations;
             if (clips == null || clips.Length == 0) return;
+            bool human = assetPath.Contains("/Quaternius/");
             foreach (var c in clips)
             {
                 c.loopTime = IsLooping(c.name);
                 c.loopPose = false;
+                if (human)
+                {
+                    // In-place: the game moves the character, the animation only poses it.
+                    c.lockRootRotation = true;
+                    c.lockRootPositionXZ = true;
+                    c.keepOriginalOrientation = true;
+                    c.keepOriginalPositionY = true;
+                    c.keepOriginalPositionXZ = true;
+                }
             }
             m.clipAnimations = clips;
         }
@@ -70,7 +89,7 @@ namespace Sealbound.EditorTools
         static bool IsLooping(string clipName)
         {
             string n = clipName.ToLowerInvariant();
-            return n.Contains("idle") || n.Contains("walking") || n.Contains("running");
+            return n.Contains("idle") || n.Contains("walking") || n.Contains("running") || n.EndsWith("_loop");
         }
 
         void OnPreprocessTexture()
@@ -96,6 +115,15 @@ namespace Sealbound.EditorTools
                 t.wrapModeV = TextureWrapMode.Clamp;
                 t.textureCompression = TextureImporterCompression.CompressedHQ;
                 t.filterMode = FilterMode.Trilinear;
+                return;
+            }
+            if (assetPath.Contains("/Quaternius/"))
+            {
+                t.maxTextureSize = 2048; // the outfit sheets come at 4096
+                t.anisoLevel = 4;
+                if (file.Contains("Normal")) t.textureType = TextureImporterType.NormalMap;
+                else if (file.Contains("ORM") || file.Contains("Roughness")) t.sRGBTexture = false;
+                else if (file.Contains("Hair")) t.alphaIsTransparency = true;
                 return;
             }
             if (assetPath.Contains("/PolyHaven/") || assetPath.Contains("/MegaKit/"))
