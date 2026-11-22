@@ -112,13 +112,18 @@ namespace Sealbound.Loot
                     var mesh = new GameObject("Model");
                     mesh.layer = 2;
                     mesh.transform.SetParent(root, false);
-                    mesh.AddComponent<MeshFilter>().sharedMesh = core ? SphereMesh() : Crystal();
+                    mesh.AddComponent<MeshFilter>().sharedMesh = Crystal(); // facets catch the light; a smooth ball reads as a bulb
                     var r = mesh.AddComponent<MeshRenderer>();
-                    r.sharedMaterial = PartMaterial(_def, fang ? 0f : core ? 2.2f : 1.4f);
+                    r.sharedMaterial = PartMaterial(_def, fang ? 0f : core ? 0.9f : 1.4f);
                     r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    mesh.transform.localScale = core ? Vector3.one * 0.46f : fang ? new Vector3(0.09f, 0.2f, 0.09f) : new Vector3(0.19f, 0.42f, 0.19f);
+                    mesh.transform.localScale = core ? new Vector3(0.44f, 0.5f, 0.44f) : fang ? new Vector3(0.09f, 0.2f, 0.09f) : new Vector3(0.19f, 0.42f, 0.19f);
                     _halo = Glow.Make(root, Vector3.zero, core ? 1.4f : 0.95f, new Color(g.r * 1.8f, g.g * 1.8f, g.b * 1.8f, fang ? 0.3f : 0.65f));
-                    if (core) AddLight(g, 4f, 2f);
+                    if (core)
+                    {
+                        // A dark stone heart with fire showing through: a hot glow at its centre.
+                        Glow.Make(root, Vector3.zero, 0.35f, new Color(2.6f, 1.6f, 0.7f, 1f));
+                        AddLight(g, 4f, 2f);
+                    }
                     break;
                 }
             }
@@ -235,7 +240,9 @@ namespace Sealbound.Loot
             if (Materials.TryGetValue(def.id, out var m) && m != null) return m;
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             m = new Material(shader != null ? shader : Shapes.Material(Color.white, false).shader) { name = def.displayName };
-            Color c = def.id == ItemCatalog.BurrowFang ? new Color(0.9f, 0.84f, 0.7f) : Color.Lerp(def.glow, Color.white, 0.25f);
+            Color c = def.id == ItemCatalog.BurrowFang ? new Color(0.9f, 0.84f, 0.7f)
+                    : def.id == ItemCatalog.GolemCore ? new Color(0.35f, 0.2f, 0.12f)
+                    : Color.Lerp(def.glow, Color.white, 0.25f);
             m.color = c;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.8f);
@@ -287,6 +294,5 @@ namespace Sealbound.Loot
             t.Add(k); t.Add(k + 1); t.Add(k + 2);
         }
 
-        static Mesh SphereMesh() => Resources.GetBuiltinResource<Mesh>("New-Sphere.fbx");
     }
 }
