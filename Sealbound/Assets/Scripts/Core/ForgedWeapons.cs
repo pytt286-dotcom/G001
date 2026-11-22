@@ -118,8 +118,8 @@ namespace Sealbound.Core
             fire.transform.SetParent(core.transform, false);
             fire.type = LightType.Point;
             fire.color = CoreFire;
-            fire.range = 1.8f;
-            fire.intensity = 0.9f;
+            fire.range = 1.3f;
+            fire.intensity = 0.45f;
             fire.shadows = LightShadows.None;
             var socket = new GameObject("Core Socket").transform; // the hero's ember cue sits inside the core
             socket.SetParent(root.transform, false);

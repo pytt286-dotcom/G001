@@ -47,11 +47,11 @@ namespace Sealbound.Core
             Piece(t, PrimitiveType.Cube, "Fire Mouth", new Vector3(0f, 0.62f, 0.62f), new Vector3(0.9f, 0.5f, 0.1f), Shapes.Material(new Color(0.03f, 0.02f, 0.015f), false), false); // the dark mouth the fire burns in
             Piece(t, PrimitiveType.Cube, "Chimney", new Vector3(0f, 2.3f, -0.35f), new Vector3(0.85f, 2.4f, 0.7f), stone, true);
             Piece(t, PrimitiveType.Cube, "Chimney Cap", new Vector3(0f, 3.55f, -0.35f), new Vector3(1.0f, 0.12f, 0.85f), dark, false);
-            f._coals = Glow.Make(t, new Vector3(0f, 0.45f, 0.7f), 0.9f, new Color(2.6f, 1.0f, 0.25f, 0.9f));
+            f._coals = Glow.Make(t, new Vector3(0f, 0.45f, 0.7f), 0.9f, new Color(2.4f, 0.6f, 0.1f, 0.9f));
             // Flames: soft tongues of light that rise and flicker in the fire mouth.
             f._flames = new Glow[4];
             for (int i = 0; i < f._flames.Length; i++)
-                f._flames[i] = Glow.Make(t, new Vector3(-0.27f + i * 0.18f, 0.55f, 0.72f), 0.45f, new Color(3f, 0.95f, 0.18f, 0.85f));
+                f._flames[i] = Glow.Make(t, new Vector3(-0.27f + i * 0.18f, 0.55f, 0.72f), 0.45f, new Color(2.2f, 0.42f, 0.06f, 0.75f)); // low green: bright HDR yellow-green turns lime after tone mapping
             Glow.Make(t, new Vector3(0f, 1.25f, 0.1f), 0.9f, new Color(2.2f, 0.9f, 0.25f, 0.5f)); // embers on the bed
             var fireGo = new GameObject("Forge Fire");
             fireGo.transform.SetParent(t, false);
