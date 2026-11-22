@@ -364,6 +364,21 @@ Combat must reward timing and skill, never button mashing. This matters for PVE,
 | F | **Runic Whirl:** a three-hit spin around you | Crowd control, good against goblin packs |
 | E | **Sealbreaker Slam:** a heavy area slam that costs stamina | Combo finisher, doubled with full Focus |
 
+**Mage class kit (first version):** the same rhythm rules, at range.
+
+| Input | Move | Role in combos |
+|---|---|---|
+| Left-click | 3-cast basic string: Ember Bolt, Ember Bolt, Twin Embers | Ranged rhythm backbone. Bolts curve toward the targeted enemy |
+| Air attack | **Falling Star:** a bolt fired downward | Air extender |
+| Q | **Flame Burst:** a fire circle lands on the target, then erupts and launches enemies | Launcher, area damage |
+| R | **Frost Snare:** an ice trap that slows and chills enemies that cross it | Crowd control, sets up combos |
+| F | **Blink:** a short, untouchable teleport-dash that leaves an arcane burst behind | Escape, or a mid-combo link |
+| E | **Meteor Lance:** a charged, piercing fire lance that costs stamina | Finisher, doubled with full Focus |
+
+Players switch class with Tab in the test build. In the full game, the class is chosen per character.
+
+**Ranged hit-confirm:** a Mage spell cast at a locked-on target counts as a hit for the rhythm bonus, because spells take time to fly. In PVP we will re-check this rule for fairness.
+
 Each class will get its own rhythm and kit built on the same rules.
 
 ## 11. Art and sound direction

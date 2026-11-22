@@ -25,9 +25,11 @@ namespace Sealbound.Player
         public bool HeavyPressed { get; private set; }
         /// <summary>True for one frame when skill 1, 2 or 3 was pressed (index 0..2), otherwise -1.</summary>
         public int SkillPressed { get; private set; } = -1;
+        /// <summary>True for one frame when switch class was pressed.</summary>
+        public bool SwitchClassPressed { get; private set; }
 
         InputActionMap _map;
-        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy;
+        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass;
         readonly InputAction[] _skills = new InputAction[3];
 
         void Awake()
@@ -67,6 +69,9 @@ namespace Sealbound.Player
             _heavy = _map.AddAction("Heavy", InputActionType.Button, "<Keyboard>/e");
             _heavy.AddBinding("<Gamepad>/buttonNorth");
 
+            _switchClass = _map.AddAction("SwitchClass", InputActionType.Button, "<Keyboard>/tab");
+            _switchClass.AddBinding("<Gamepad>/select");
+
             string[] keys = { "<Keyboard>/q", "<Keyboard>/r", "<Keyboard>/f" };
             string[] pads = { "<Gamepad>/leftShoulder", "<Gamepad>/rightShoulder", "<Gamepad>/rightTrigger" };
             for (int i = 0; i < 3; i++)
@@ -93,6 +98,7 @@ namespace Sealbound.Player
             // A click that recaptures the mouse should not also swing the sword.
             AttackPressed = _attack.WasPressedThisFrame() && !(cursorFree && _attack.activeControl?.device is Mouse);
             HeavyPressed = _heavy.WasPressedThisFrame();
+            SwitchClassPressed = _switchClass.WasPressedThisFrame();
             SkillPressed = -1;
             for (int i = 0; i < 3; i++)
                 if (_skills[i].WasPressedThisFrame()) { SkillPressed = i; break; }

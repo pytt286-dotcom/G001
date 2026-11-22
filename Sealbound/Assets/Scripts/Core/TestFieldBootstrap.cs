@@ -196,7 +196,10 @@ namespace Sealbound.Core
             player.AddComponent<CombatAudio>();
             var combat = player.AddComponent<PlayerCombat>();
             combat.swordPivot = swordPivot;
-            combat.timingCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
+            combat.swordCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
+            var staffPivot = BuildStaff(visual);
+            combat.staffPivot = staffPivot;
+            combat.staffCueRenderer = staffPivot.Find("Ember Orb").GetComponent<Renderer>();
             var health = player.AddComponent<Health>();
             health.maxHealth = 100f;
             var vitals = player.AddComponent<PlayerVitals>();
@@ -237,6 +240,27 @@ namespace Sealbound.Core
             trail.emitting = false;
 
             foreach (Transform t in pivot.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
+            return pivot;
+        }
+
+        static Transform BuildStaff(Transform visual)
+        {
+            var pivot = new GameObject("Staff Pivot").transform;
+            pivot.SetParent(visual, false);
+            pivot.localPosition = new Vector3(0.4f, 1.25f, 0.1f);
+
+            Part(pivot, "Shaft", new Vector3(0f, 0f, 0.55f), new Vector3(0.07f, 0.07f, 1.7f), Wood);
+            Part(pivot, "Head Ring", new Vector3(0f, 0f, 1.42f), new Vector3(0.28f, 0.28f, 0.06f), Iron);
+            var orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            orb.name = "Ember Orb";
+            Object.Destroy(orb.GetComponent<Collider>());
+            orb.transform.SetParent(pivot, false);
+            orb.transform.localPosition = new Vector3(0f, 0f, 1.55f);
+            orb.transform.localScale = Vector3.one * 0.26f;
+            Paint(orb, new Color(1f, 0.5f, 0.18f));
+
+            foreach (Transform t in pivot.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
+            pivot.gameObject.SetActive(false);
             return pivot;
         }
 

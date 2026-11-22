@@ -40,6 +40,16 @@ namespace Sealbound.Enemies
         public Renderer[] tintRenderers;
 
         public bool IsDead => _state == State.Dead;
+
+        float _slowMultiplier = 1f, _slowTimer;
+        public bool IsSlowed => _slowTimer > 0f;
+
+        /// <summary>Slow this goblin, e.g. by the Mage's Frost Snare. multiplier 0.5 = half speed.</summary>
+        public void ApplySlow(float multiplier, float seconds)
+        {
+            _slowMultiplier = Mathf.Min(IsSlowed ? _slowMultiplier : 1f, multiplier);
+            _slowTimer = Mathf.Max(_slowTimer, seconds);
+        }
         public event Action<Goblin> Sealed;
 
         CharacterController _cc;
@@ -156,7 +166,9 @@ namespace Sealbound.Enemies
 
         void Update()
         {
-            float dt = Time.deltaTime;
+            if (_slowTimer > 0f) { _slowTimer -= Time.deltaTime; if (_slowTimer <= 0f) _slowMultiplier = 1f; }
+            float slowScale = IsSlowed ? _slowMultiplier : 1f;
+            float dt = Time.deltaTime * (IsSlowed ? Mathf.Lerp(1f, _slowMultiplier, 0.6f) : 1f); // frost also slows their attacks
             _stateTime += dt;
 
             if (_state == State.Dead) { UpdateDead(dt); return; }
@@ -243,9 +255,9 @@ namespace Sealbound.Enemies
             // Gravity, knockback and moving.
             float g = _state == State.Airborne && _vertical < 0f ? gravity * 0.6f : gravity;
             if (_cc.isGrounded && _vertical < 0f) _vertical = -2f;
-            else _vertical -= g * dt;
-            _knock = Vector3.MoveTowards(_knock, Vector3.zero, 30f * dt);
-            Vector3 motion = (move + _knock + Separation() + Vector3.up * _vertical) * dt;
+            else _vertical -= g * Time.deltaTime;
+            _knock = Vector3.MoveTowards(_knock, Vector3.zero, 30f * Time.deltaTime);
+            Vector3 motion = (move * slowScale + _knock + Separation() + Vector3.up * _vertical) * Time.deltaTime;
             _cc.Move(motion);
 
             UpdateTint(dt);
@@ -358,8 +370,12 @@ namespace Sealbound.Enemies
             if (_mats == null) return;
             _flash = Mathf.MoveTowards(_flash, 0f, dt * 6f);
             float warn = _state == State.Windup ? Mathf.Clamp01(_stateTime / windupTime) : 0f;
+            Color frost = new Color(0.55f, 0.8f, 1f);
             for (int i = 0; i < _mats.Length; i++)
-                _mats[i].color = Color.Lerp(_baseColors[i], Color.white, _flash);
+            {
+                Color c = IsSlowed ? Color.Lerp(_baseColors[i], frost, 0.55f) : _baseColors[i];
+                _mats[i].color = Color.Lerp(c, Color.white, _flash);
+            }
 
             // Warning: a red outline that grows brighter and pulses faster as the attack nears.
             if (_telegraph != null)

@@ -48,7 +48,8 @@ namespace Sealbound.Player
         public float Stamina { get; private set; }
         public bool IsGrounded { get; private set; }
         public bool IsDodging => _dodgeTimer > 0f;
-        public bool IsInvulnerable => IsDodging && (dodgeDuration - _dodgeTimer) < dodgeInvulnerableTime;
+        public bool IsInvulnerable => (IsDodging && (dodgeDuration - _dodgeTimer) < dodgeInvulnerableTime) || _dashTimer > 0f;
+        public bool IsDashing => _dashTimer > 0f;
         public bool IsSprinting { get; private set; }
         public Vector3 PlanarVelocity => _planarVelocity;
 
@@ -60,6 +61,19 @@ namespace Sealbound.Player
 
         float _hoverTimer;
         float _stunTimer;
+        float _dashTimer;
+        Vector3 _dashVelocity;
+
+        /// <summary>A fast, untouchable dash used by skills such as the Mage's Blink.</summary>
+        public void Dash(Vector3 direction, float distance, float duration)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) direction = transform.forward;
+            _dashTimer = duration;
+            _dashVelocity = direction.normalized * (distance / Mathf.Max(0.01f, duration));
+            _verticalVelocity = Mathf.Max(_verticalVelocity, 0f);
+            transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        }
 
         /// <summary>True while knocked back by a hit: no running, jumping or dodging.</summary>
         public bool IsStunned => _stunTimer > 0f;
@@ -174,7 +188,13 @@ namespace Sealbound.Player
 
             if (_input.DodgePressed && !IsStunned) TryStartDodge(wishDir);
 
-            if (IsDodging)
+            if (_dashTimer > 0f)
+            {
+                _dashTimer -= dt;
+                _planarVelocity = _dashVelocity;
+                if (_dashTimer <= 0f) _planarVelocity = _dashVelocity.normalized * runSpeed;
+            }
+            else if (IsDodging)
             {
                 UpdateDodge(dt);
             }
@@ -259,6 +279,7 @@ namespace Sealbound.Player
                 _verticalVelocity = Mathf.Max(_verticalVelocity - gravity * 0.1f * dt, -1f);
                 return;
             }
+            if (_dashTimer > 0f) { _verticalVelocity = Mathf.Max(_verticalVelocity - gravity * 0.1f * dt, 0f); return; }
             float g = gravity;
             if (IsDodging && !IsGrounded) g *= 0.25f; // brief hang time on air dodges
             else if (_verticalVelocity < 0f) g *= fallGravityMultiplier;

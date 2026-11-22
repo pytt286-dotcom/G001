@@ -6,88 +6,20 @@ using UnityEngine;
 
 namespace Sealbound.Player
 {
-    public enum AttackKind { Basic, Skill, Heavy }
-
-    [Serializable]
-    public class AttackData
-    {
-        public string name;
-        public AttackKind kind;
-        public float windup, active, recovery;
-        public float damage;
-        public int hits = 1;
-        public float range = 2.4f;
-        public float arcDegrees = 150f;
-        public float lungeSpeed;
-        public float launchSpeed;
-        public float hover;
-        [Range(0f, 1f)] public float impact;
-        public float hitStop;
-        public float shake;
-        public float staminaCost;
-        public float cooldown;
-        public bool spin;
-        [Tooltip("Seconds after the attack starts when the perfect window opens. 0 = automatic.")]
-        public float perfectStart;
-        public float perfectLength = 0.16f;
-        public Vector3 swingFrom, swingTo; // sword pivot euler angles
-
-        public float Total => windup + active + recovery;
-        public float PerfectStart => perfectStart > 0f ? perfectStart : windup + active + 0.05f;
-        public float PerfectEnd => PerfectStart + perfectLength;
-    }
-
     /// <summary>
-    /// Rhythm-based Sword combat.
+    /// Rhythm-based combat shared by every class.
     ///
-    /// Each attack has a short "perfect window" near the end of its swing, marked by a flash on the
-    /// blade and a tick sound. Pressing in the window chains faster and hits harder. Pressing too
-    /// early (mashing) breaks the combo and leaves you open. Skills used in the window are LINKS,
-    /// and basic attacks timed after a skill are EXTENDERS, so skilled players can build long chains
-    /// like basic, basic, skill, basic, skill, heavy finisher.
+    /// Each attack has a short "perfect window" near the end of its swing or cast, marked by a flash
+    /// on the weapon and a tick sound. Pressing in the window chains faster and hits harder. Pressing
+    /// too early (mashing) breaks the combo and leaves you open. Skills used in the window are LINKS,
+    /// and basic attacks timed after a skill are EXTENDERS. Tab switches between Sword and Mage.
     /// </summary>
     [RequireComponent(typeof(PlayerMotor), typeof(PlayerInputReader))]
     public class PlayerCombat : MonoBehaviour
     {
-        [Header("Basic combo")]
-        public AttackData[] basicCombo =
-        {
-            new AttackData { name = "Slash", windup = 0.07f, active = 0.08f, recovery = 0.3f, damage = 10f, lungeSpeed = 7f,
-                impact = 0.2f, hitStop = 0.035f, shake = 0.15f, swingFrom = new Vector3(10f, -80f, 0f), swingTo = new Vector3(20f, 80f, 0f) },
-            new AttackData { name = "Return Slash", windup = 0.06f, active = 0.08f, recovery = 0.3f, damage = 12f, lungeSpeed = 7f,
-                impact = 0.3f, hitStop = 0.04f, shake = 0.18f, swingFrom = new Vector3(25f, 85f, 0f), swingTo = new Vector3(5f, -85f, 0f) },
-            new AttackData { name = "Overhead Cleave", windup = 0.11f, active = 0.1f, recovery = 0.36f, damage = 20f, lungeSpeed = 10f,
-                impact = 0.75f, hitStop = 0.07f, shake = 0.4f, arcDegrees = 110f, range = 2.8f,
-                swingFrom = new Vector3(-75f, 10f, 0f), swingTo = new Vector3(70f, 0f, 0f) },
-        };
-        public AttackData airSlash = new AttackData
-        {
-            name = "Air Slash", windup = 0.05f, active = 0.1f, recovery = 0.26f, damage = 12f, lungeSpeed = 6f,
-            impact = 0.35f, hitStop = 0.045f, shake = 0.2f, arcDegrees = 200f, range = 2.6f, hover = 0.35f,
-            swingFrom = new Vector3(-40f, -70f, 0f), swingTo = new Vector3(60f, 70f, 0f)
-        };
-
-        [Header("Skills (Q / R / F)")]
-        public AttackData[] skills =
-        {
-            new AttackData { name = "Rising Edge", kind = AttackKind.Skill, windup = 0.08f, active = 0.12f, recovery = 0.3f,
-                damage = 18f, launchSpeed = 13f, impact = 0.6f, hitStop = 0.06f, shake = 0.3f, arcDegrees = 120f, range = 2.6f,
-                cooldown = 5f, swingFrom = new Vector3(60f, 0f, 0f), swingTo = new Vector3(-70f, 0f, 0f) },
-            new AttackData { name = "Gale Thrust", kind = AttackKind.Skill, windup = 0.1f, active = 0.14f, recovery = 0.3f,
-                damage = 24f, lungeSpeed = 24f, impact = 0.7f, hitStop = 0.06f, shake = 0.35f, arcDegrees = 60f, range = 3f,
-                cooldown = 6f, swingFrom = new Vector3(5f, -15f, 0f), swingTo = new Vector3(0f, 0f, 0f) },
-            new AttackData { name = "Runic Whirl", kind = AttackKind.Skill, windup = 0.08f, active = 0.4f, recovery = 0.3f,
-                damage = 10f, hits = 3, impact = 0.4f, hitStop = 0.03f, shake = 0.2f, arcDegrees = 360f, range = 3f,
-                cooldown = 8f, spin = true, swingFrom = new Vector3(20f, -90f, 0f), swingTo = new Vector3(20f, 90f, 0f) },
-        };
-
-        [Header("Heavy (E)")]
-        public AttackData heavy = new AttackData
-        {
-            name = "Sealbreaker Slam", kind = AttackKind.Heavy, windup = 0.3f, active = 0.1f, recovery = 0.35f, damage = 38f,
-            lungeSpeed = 9f, impact = 1f, hitStop = 0.11f, shake = 0.7f, arcDegrees = 360f, range = 3.2f, staminaCost = 25f,
-            swingFrom = new Vector3(-90f, 0f, 0f), swingTo = new Vector3(80f, 0f, 0f)
-        };
+        [Header("Classes")]
+        public CombatKit swordKit = Kits.Sword();
+        public CombatKit mageKit = Kits.Mage();
 
         [Header("Rhythm")]
         [Tooltip("Time after an attack fully ends during which a press still chains (no bonus).")]
@@ -111,15 +43,21 @@ namespace Sealbound.Player
         [Header("Feel")]
         public float aimAssistRange = 5f;
         public float aimAssistAngle = 70f;
+        public float rangedAimRange = 24f;
+        public float rangedAimAngle = 35f;
         [Range(0f, 1f)] public float steerWhileAttacking = 0.15f;
         public int maxAirAttacks = 2;
 
-        [Header("Sword")]
+        [Header("Weapons")]
         public Transform swordPivot;
-        public Renderer timingCueRenderer;
+        public Transform staffPivot;
+        public Renderer swordCueRenderer;
+        public Renderer staffCueRenderer;
         public Vector3 restEuler = new Vector3(35f, 25f, 0f);
 
         // ---- read by the HUD ----
+        public CombatKit Kit => _kit;
+        public AttackData[] skills => _kit.skills;
         public bool IsAttacking => _current != null;
         public int Chain { get; private set; }
         public int ComboHits { get; private set; }
@@ -127,7 +65,7 @@ namespace Sealbound.Player
         public float Focus { get; private set; }
         public bool FocusFull => Focus >= maxFocus;
         public float CooldownRemaining(int i) => i >= 0 && i < _cooldowns.Length ? _cooldowns[i] : 0f;
-        public float CooldownTotal(int i) => i >= 0 && i < skills.Length ? skills[i].cooldown : 1f;
+        public float CooldownTotal(int i) => i >= 0 && i < _kit.skills.Length ? _kit.skills[i].cooldown : 1f;
         /// <summary>Text popups for the HUD: "PERFECT", "LINK", "TOO EARLY"...</summary>
         public event Action<string, Color> Feedback;
 
@@ -138,6 +76,8 @@ namespace Sealbound.Player
         PlayerMotor _motor;
         PlayerInputReader _input;
         CombatAudio _audio;
+        CombatKit _kit;
+        Transform _weapon;
         TrailRenderer _trail;
         Material _cueMaterial;
         Color _cueBase;
@@ -147,12 +87,13 @@ namespace Sealbound.Player
         AttackKind _previousKind;
         float _attackTime;
         float _bonus = 1f;
-        bool _broken, _landedCurrent, _landedPrevious, _cueShown;
+        bool _broken, _landedCurrent, _landedPrevious, _cueShown, _released;
         int _comboIndex, _airAttacksUsed, _lastSubHit;
         float _graceTimer, _staggerTimer, _sinceCombat = 10f;
-        float[] _cooldowns;
+        float[] _cooldowns = new float[3];
+        readonly Dictionary<CombatKit, float[]> _kitCooldowns = new Dictionary<CombatKit, float[]>();
         readonly HashSet<Health> _hitThisSwing = new HashSet<Health>();
-        readonly Collider[] _overlap = new Collider[32];
+        readonly Collider[] _overlap = new Collider[48];
 
         enum ChainResult { Fresh, Good, Perfect }
 
@@ -161,35 +102,54 @@ namespace Sealbound.Player
             _motor = GetComponent<PlayerMotor>();
             _input = GetComponent<PlayerInputReader>();
             _audio = GetComponent<CombatAudio>();
-            _cooldowns = new float[skills.Length];
             _motor.DodgeStarted += OnDodgeStarted;
+            _kit = swordKit;
         }
 
-        void Start()
+        void Start() => EquipKit(swordKit, false);
+
+        void EquipKit(CombatKit kit, bool announce)
         {
-            if (swordPivot != null)
+            if (_current != null) Interrupt();
+            if (_kit != null) _kitCooldowns[_kit] = _cooldowns;
+            _kit = kit;
+            if (!_kitCooldowns.TryGetValue(kit, out _cooldowns)) _cooldowns = new float[kit.skills.Length];
+
+            bool sword = kit == swordKit;
+            if (swordPivot != null) swordPivot.gameObject.SetActive(sword);
+            if (staffPivot != null) staffPivot.gameObject.SetActive(!sword);
+            _weapon = sword ? swordPivot : staffPivot;
+            _trail = _weapon != null ? _weapon.GetComponentInChildren<TrailRenderer>() : null;
+            if (_trail != null) _trail.emitting = false;
+            if (_weapon != null) _weapon.localRotation = Quaternion.Euler(restEuler);
+
+            var cue = sword ? swordCueRenderer : staffCueRenderer;
+            _cueMaterial = null;
+            if (cue != null)
             {
-                swordPivot.localRotation = Quaternion.Euler(restEuler);
-                _trail = swordPivot.GetComponentInChildren<TrailRenderer>();
-                if (_trail != null) _trail.emitting = false;
-            }
-            if (timingCueRenderer != null)
-            {
-                _cueMaterial = timingCueRenderer.material;
+                _cueMaterial = cue.material;
                 _cueBase = _cueMaterial.color;
                 _cueMaterial.EnableKeyword("_EMISSION");
             }
+            if (announce) Feedback?.Invoke(kit.className.ToUpperInvariant(), LinkColor);
         }
 
         void Update()
         {
             float dt = Time.deltaTime;
             for (int i = 0; i < _cooldowns.Length; i++) _cooldowns[i] = Mathf.Max(0f, _cooldowns[i] - dt);
+            foreach (var kv in _kitCooldowns)
+                if (kv.Value != _cooldowns)
+                    for (int i = 0; i < kv.Value.Length; i++) kv.Value[i] = Mathf.Max(0f, kv.Value[i] - dt);
+
             if (_motor.IsGrounded) _airAttacksUsed = 0;
             if (_staggerTimer > 0f) _staggerTimer -= dt;
 
             _sinceCombat += dt;
             if (_sinceCombat > 4f) Focus = Mathf.Max(0f, Focus - 8f * dt);
+
+            if (_input.SwitchClassPressed && !_motor.IsStunned)
+                EquipKit(_kit == swordKit ? mageKit : swordKit, true);
 
             if (_current != null) UpdateAttack(dt);
             else if (_graceTimer > 0f)
@@ -201,7 +161,7 @@ namespace Sealbound.Player
             var request = ReadRequest(out int skillIndex);
             if (request != null) HandleRequest(request, skillIndex);
 
-            UpdateSwordPose(dt);
+            UpdateWeaponPose(dt);
             UpdateCue(dt);
         }
 
@@ -213,17 +173,17 @@ namespace Sealbound.Player
             if (_motor.IsDodging || _motor.IsStunned) return null;
 
             int s = _input.SkillPressed;
-            if (s >= 0 && s < skills.Length)
+            if (s >= 0 && s < _kit.skills.Length)
             {
                 if (_cooldowns[s] > 0f) return null;
                 skillIndex = s;
-                return skills[s];
+                return _kit.skills[s];
             }
-            if (_input.HeavyPressed && _motor.IsGrounded && _motor.Stamina >= heavy.staminaCost) return heavy;
+            if (_input.HeavyPressed && _motor.IsGrounded && _motor.Stamina >= _kit.heavy.staminaCost) return _kit.heavy;
             if (_input.AttackPressed)
             {
-                if (_motor.IsGrounded) return basicCombo[_comboIndex % basicCombo.Length];
-                return _airAttacksUsed < maxAirAttacks ? airSlash : null;
+                if (_motor.IsGrounded) return _kit.basicCombo[_comboIndex % _kit.basicCombo.Length];
+                return _airAttacksUsed < maxAirAttacks ? _kit.airAttack : null;
             }
             return null;
         }
@@ -276,7 +236,7 @@ namespace Sealbound.Player
             }
 
             if (isLink) { Feedback?.Invoke("LINK!", LinkColor); if (_audio) _audio.PlayLink(); }
-            else if (isExtend) { Feedback?.Invoke(perfect ? "PERFECT EXTEND!" : "EXTEND", LinkColor); if (_audio) { if (perfect) _audio.PlayLink(); } }
+            else if (isExtend) { Feedback?.Invoke(perfect ? "PERFECT EXTEND!" : "EXTEND", LinkColor); if (_audio && perfect) _audio.PlayLink(); }
             else if (perfect) { Feedback?.Invoke("PERFECT", PerfectColor); if (_audio) _audio.PlayPerfect(); }
 
             if (a.kind == AttackKind.Heavy)
@@ -292,9 +252,10 @@ namespace Sealbound.Player
 
             if (skillIndex >= 0) _cooldowns[skillIndex] = a.cooldown * (isLink ? 1f - linkCooldownRefund : 1f);
 
-            if (a.kind == AttackKind.Basic && a != airSlash) _comboIndex = (_comboIndex + 1) % basicCombo.Length;
+            bool isAir = a == _kit.airAttack;
+            if (a.kind == AttackKind.Basic && !isAir) _comboIndex = (_comboIndex + 1) % _kit.basicCombo.Length;
             else if (a.kind != AttackKind.Basic) _comboIndex = 0; // basics after a skill start a fresh string (extender)
-            if (a == airSlash) _airAttacksUsed++;
+            if (isAir) _airAttacksUsed++;
 
             if (_current != null) _previousKind = _current.kind;
             _current = a;
@@ -302,12 +263,13 @@ namespace Sealbound.Player
             _broken = false;
             _landedCurrent = false;
             _cueShown = false;
+            _released = false;
             _lastSubHit = -1;
             _graceTimer = 0f;
             _sinceCombat = 0f;
             _hitThisSwing.Clear();
 
-            _motor.FaceDirection(FindAimDirection());
+            _motor.FaceDirection(AimDirection(a, out _));
             _motor.RotationLocked = true;
             _motor.MoveSpeedMultiplier = steerWhileAttacking;
             if (a.hover > 0f) _motor.Hover(a.hover);
@@ -317,16 +279,15 @@ namespace Sealbound.Player
         void UpdateAttack(float dt)
         {
             var a = _current;
-            float prev = _attackTime;
             _attackTime += dt;
 
-            if (prev < a.windup && _attackTime >= a.windup)
+            if (!_released && _attackTime >= a.windup)
             {
-                if (a.lungeSpeed > 0f) _motor.Lunge(transform.forward, a.lungeSpeed);
-                if (a.launchSpeed > 0f) _motor.Launch(a.launchSpeed);
+                _released = true;
+                Release(a);
             }
 
-            // The beat: flash the blade and tick when the perfect window opens.
+            // The beat: flash the weapon and tick when the perfect window opens.
             if (!_cueShown && !_broken && _attackTime >= a.PerfectStart)
             {
                 _cueShown = true;
@@ -335,15 +296,92 @@ namespace Sealbound.Player
             }
 
             bool active = _attackTime >= a.windup && _attackTime <= a.windup + a.active;
-            if (_trail != null) _trail.emitting = active;
-            if (active)
+            if (_trail != null) _trail.emitting = active && a.delivery == Delivery.Melee;
+            if (active && a.delivery == Delivery.Melee)
             {
                 int sub = Mathf.Min(a.hits - 1, Mathf.FloorToInt((_attackTime - a.windup) / (a.active / a.hits)));
                 if (sub != _lastSubHit) { _lastSubHit = sub; _hitThisSwing.Clear(); }
-                DetectHits(a);
+                DetectMeleeHits(a);
             }
 
-            if (_attackTime >= a.Total) FinishAttack();
+            if (_current != null && _attackTime >= a.Total) FinishAttack();
+        }
+
+        /// <summary>The moment the swing starts or the spell leaves the hand.</summary>
+        void Release(AttackData a)
+        {
+            float power = _bonus * ChainMultiplier;
+            Vector3 dir = AimDirection(a, out Health target);
+            Vector3 hand = transform.position + Vector3.up * 1.3f + transform.forward * 0.6f;
+
+            switch (a.delivery)
+            {
+                case Delivery.Melee:
+                    if (a.lungeSpeed > 0f) _motor.Lunge(transform.forward, a.lungeSpeed);
+                    if (a.launchSpeed > 0f) _motor.Launch(a.launchSpeed);
+                    break;
+
+                case Delivery.Bolt:
+                {
+                    // Ranged hit-confirm: a cast at a locked target counts as landing for the rhythm bonus.
+                    if (target != null) _landedCurrent = true;
+                    Vector3 aim = target != null
+                        ? (target.transform.position + Vector3.up * 0.8f - hand).normalized
+                        : transform.forward;
+                    if (a == _kit.airAttack) aim = (aim + Vector3.down * 0.6f).normalized;
+                    for (int i = 0; i < a.projectileCount; i++)
+                    {
+                        Vector3 side = transform.right * (a.projectileCount > 1 ? (i - (a.projectileCount - 1) * 0.5f) * 0.6f : 0f);
+                        PlayerBolt.Fire(hand + side, aim, target != null ? target.transform : null, a.projectileSpeed, a.projectileRadius,
+                            a.damage * power, a.impact, a.pierce, a.fxColor, gameObject, (landed, impact) => OnSpellHit(a, landed));
+                    }
+                    if (a.kind == AttackKind.Heavy) _motor.Lunge(-transform.forward, 6f); // recoil
+                    break;
+                }
+
+                case Delivery.Area:
+                {
+                    if (target != null) _landedCurrent = true;
+                    Vector3 at = target != null && Vector3.Distance(target.transform.position, transform.position) <= a.castDistance
+                        ? target.transform.position
+                        : transform.position + transform.forward * a.castDistance;
+                    at.y = transform.position.y;
+                    AreaBlast.Cast(at, a.areaRadius, a.areaDelay, a.damage * power, a.impact, a.launchSpeed > 0f ? a.launchSpeed : 0f,
+                        a.fxColor, gameObject, (landed, impact) => OnSpellHit(a, landed));
+                    break;
+                }
+
+                case Delivery.Trap:
+                {
+                    Vector3 at = transform.position + transform.forward * a.castDistance;
+                    FrostSnare.Place(at, a.areaRadius, a.damage * power, a.slow, a.slowSeconds, gameObject);
+                    _landedCurrent = true; // setting a trap keeps the rhythm going
+                    break;
+                }
+
+                case Delivery.Blink:
+                {
+                    // Leave a burst of arcane fire behind and dash forward, untouchable.
+                    AreaBlast.Cast(transform.position, a.areaRadius, 0.05f, a.damage * power, a.impact, 0f, a.fxColor, gameObject,
+                        (landed, impact) => OnSpellHit(a, landed));
+                    Vector3 wish = _motor.MoveInputWorld;
+                    _motor.Dash(wish.sqrMagnitude > 0.01f ? wish : transform.forward, a.castDistance, a.active);
+                    _landedCurrent = true;
+                    break;
+                }
+            }
+        }
+
+        void OnSpellHit(AttackData a, bool landed)
+        {
+            if (!landed) return;
+            if (_current == a) _landedCurrent = true;
+            else _landedPrevious = true;
+            ComboHits++;
+            _sinceCombat = 0f;
+            HitStop.Trigger(a.hitStop);
+            ThirdPersonCamera.Shake(a.shake);
+            if (_audio) _audio.PlayHit(a.impact > 0.6f);
         }
 
         void FinishAttack()
@@ -419,7 +457,7 @@ namespace Sealbound.Player
             if (_motor.visual != null) _motor.visual.localRotation = Quaternion.identity;
         }
 
-        void DetectHits(AttackData a)
+        void DetectMeleeHits(AttackData a)
         {
             Vector3 center = transform.position + Vector3.up * 1f;
             int count = Physics.OverlapSphereNonAlloc(center, a.range, _overlap, ~0, QueryTriggerInteraction.Collide);
@@ -441,7 +479,7 @@ namespace Sealbound.Player
                     Direction = to.sqrMagnitude > 0.01f ? to.normalized : transform.forward,
                     Source = gameObject,
                     Impact = Mathf.Clamp01(a.impact * (_bonus > 1.5f ? 1.3f : 1f)),
-                    Launch = a.launchSpeed > 0f ? 10f : (a == airSlash ? 4.5f : 0f)
+                    Launch = a.launchSpeed > 0f ? 10f : (a == _kit.airAttack ? 4.5f : 0f)
                 };
                 if (h.TryDamage(info, out _)) landed = true;
             }
@@ -457,37 +495,53 @@ namespace Sealbound.Player
             }
         }
 
-        Vector3 FindAimDirection()
+        Vector3 AimDirection(AttackData a, out Health target)
+        {
+            bool ranged = a.IsRanged;
+            target = FindTarget(ranged ? rangedAimRange : aimAssistRange, ranged ? rangedAimAngle : aimAssistAngle, ranged);
+            Vector3 wish = _motor.MoveInputWorld;
+            Vector3 baseDir = ranged ? CameraForward() : (wish.sqrMagnitude > 0.01f ? wish.normalized : transform.forward);
+            if (target == null) return baseDir;
+            Vector3 dir = target.transform.position - transform.position; dir.y = 0f;
+            return dir.sqrMagnitude > 0.01f ? dir.normalized : baseDir;
+        }
+
+        Health FindTarget(float range, float maxAngle, bool ranged)
         {
             Vector3 wish = _motor.MoveInputWorld;
-            Vector3 baseDir = wish.sqrMagnitude > 0.01f ? wish.normalized : transform.forward;
-
+            Vector3 baseDir = ranged ? CameraForward() : (wish.sqrMagnitude > 0.01f ? wish.normalized : transform.forward);
             Health best = null;
             float bestScore = float.MaxValue;
-            int count = Physics.OverlapSphereNonAlloc(transform.position, aimAssistRange, _overlap, ~0, QueryTriggerInteraction.Collide);
+            int count = Physics.OverlapSphereNonAlloc(transform.position, range, _overlap, ~0, QueryTriggerInteraction.Collide);
             for (int i = 0; i < count; i++)
             {
                 var h = _overlap[i].GetComponentInParent<Health>();
                 if (h == null || h.gameObject == gameObject || h.IsDead) continue;
                 Vector3 to = h.transform.position - transform.position; to.y = 0f;
                 float angle = Vector3.Angle(baseDir, to);
-                if (angle > aimAssistAngle) continue;
-                float score = to.magnitude + angle * 0.05f;
+                if (angle > maxAngle) continue;
+                float score = to.magnitude + angle * (ranged ? 0.4f : 0.05f);
                 if (score < bestScore) { bestScore = score; best = h; }
             }
-            if (best == null) return baseDir;
-            Vector3 dir = best.transform.position - transform.position; dir.y = 0f;
-            return dir.sqrMagnitude > 0.01f ? dir.normalized : baseDir;
+            return best;
+        }
+
+        Vector3 CameraForward()
+        {
+            var cam = _motor.cameraTransform;
+            Vector3 f = cam != null ? cam.forward : transform.forward;
+            f.y = 0f;
+            return f.sqrMagnitude > 0.01f ? f.normalized : transform.forward;
         }
 
         // ---------- Visuals ----------
 
-        void UpdateSwordPose(float dt)
+        void UpdateWeaponPose(float dt)
         {
-            if (swordPivot == null) return;
+            if (_weapon == null) return;
             if (_current == null)
             {
-                swordPivot.localRotation = Quaternion.Slerp(swordPivot.localRotation, Quaternion.Euler(restEuler), 1f - Mathf.Exp(-18f * dt));
+                _weapon.localRotation = Quaternion.Slerp(_weapon.localRotation, Quaternion.Euler(restEuler), 1f - Mathf.Exp(-18f * dt));
                 return;
             }
 
@@ -497,18 +551,18 @@ namespace Sealbound.Player
             if (_attackTime < a.windup)
             {
                 float t = _attackTime / Mathf.Max(0.0001f, a.windup);
-                swordPivot.localRotation = Quaternion.Slerp(swordPivot.localRotation, from, 1f - Mathf.Pow(1f - t, 3f));
+                _weapon.localRotation = Quaternion.Slerp(_weapon.localRotation, from, 1f - Mathf.Pow(1f - t, 3f));
             }
             else if (_attackTime < a.windup + a.active)
             {
                 float t = (_attackTime - a.windup) / Mathf.Max(0.0001f, a.active);
-                swordPivot.localRotation = Quaternion.Slerp(from, to, 1f - Mathf.Pow(1f - t, 2f));
+                _weapon.localRotation = Quaternion.Slerp(from, to, 1f - Mathf.Pow(1f - t, 2f));
                 if (a.spin && _motor.visual != null)
                     _motor.visual.localRotation = Quaternion.Euler(0f, 360f * a.hits * t, 0f);
             }
             else
             {
-                swordPivot.localRotation = Quaternion.Slerp(swordPivot.localRotation, to, 0.5f);
+                _weapon.localRotation = Quaternion.Slerp(_weapon.localRotation, to, 0.5f);
                 if (a.spin && _motor.visual != null) _motor.visual.localRotation = Quaternion.identity;
             }
         }

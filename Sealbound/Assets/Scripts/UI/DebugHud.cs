@@ -103,14 +103,15 @@ namespace Sealbound.UI
                 "Dodge: Ctrl, C or right-click / B\n" +
                 "Attack: left-click / X\n" +
                 "Skills: Q / R / F  (LB / RB / RT)\n" +
+                "Switch class (Sword / Mage): Tab / Select\n" +
                 "Heavy slam: E / Y (uses stamina)\n" +
                 "<b>Rhythm:</b> press again when the blade flashes\n" +
                 "and ticks. Too early breaks the combo.\n" +
                 "Skill on the flash = LINK. Attack after a skill = EXTEND.\n" +
                 "Dodge on the flash = EVADE (keeps the chain).\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 262f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 256f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 284f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 280f), text, _label);
         }
 
         void DrawSkills()
@@ -120,6 +121,7 @@ namespace Sealbound.UI
             float total = n * size + (n - 1) * gap;
             float x0 = (Screen.width - total) / 2f, y = Screen.height - size - 24f;
             string[] keys = { "Q", "R", "F" };
+            GUI.Label(new Rect(x0, y - 50f, total, 24f), $"<b>{combat.Kit.className.ToUpperInvariant()}</b>  <size=12>(Tab to switch)</size>", _center);
             for (int i = 0; i < n; i++)
             {
                 var r = new Rect(x0 + i * (size + gap), y, size, size);
