@@ -60,6 +60,7 @@ namespace Sealbound.Player
         public float aimAssistRange = 5f;
         public float aimAssistAngle = 70f;
         [Range(0f, 1f)] public float steerWhileAttacking = 0.15f;
+        public int maxAirAttacks = 2;
 
         [Header("Sword")]
         public Transform swordPivot;
@@ -80,6 +81,7 @@ namespace Sealbound.Player
         float _sinceLastAttack = 10f;
         float _lightBuffer, _heavyBuffer;
         float _sinceLastHit = 10f;
+        int _airAttacksUsed;
         readonly HashSet<Health> _hitThisSwing = new HashSet<Health>();
         readonly Collider[] _overlap = new Collider[32];
 
@@ -107,6 +109,7 @@ namespace Sealbound.Player
             _sinceLastAttack += dt;
             _sinceLastHit += dt;
             if (_sinceLastHit > 1.5f) ComboHits = 0;
+            if (_motor.IsGrounded) _airAttacksUsed = 0;
 
             if (_input.AttackPressed) _lightBuffer = inputBuffer; else _lightBuffer -= dt;
             if (_input.HeavyPressed) _heavyBuffer = inputBuffer; else _heavyBuffer -= dt;
@@ -129,7 +132,11 @@ namespace Sealbound.Player
                     _lightBuffer = 0f;
                     if (!_motor.IsGrounded)
                     {
-                        StartAttack(airSlash);
+                        if (_airAttacksUsed < maxAirAttacks)
+                        {
+                            _airAttacksUsed++;
+                            StartAttack(airSlash);
+                        }
                     }
                     else
                     {
