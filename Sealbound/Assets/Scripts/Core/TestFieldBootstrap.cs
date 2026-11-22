@@ -50,6 +50,7 @@ namespace Sealbound.Core
                     ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
+            ForgeStation.Build(root, new Vector3(-9f, 0f, -3f), 90f); // the Sealers' forge, near where you start
             // Built after the scenery so the grey-box reskin leaves the golem's own stone alone.
             var golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
             var hud = Object.FindAnyObjectByType<DebugHud>();

@@ -19,18 +19,20 @@ namespace Sealbound.Loot
             public List<Entry> items = new List<Entry>();
             public List<Pity> pity = new List<Pity>();
             public int hunts;
+            public string sword = "", staff = "";
         }
 
         static Dictionary<string, int> _counts;
         static Dictionary<string, int> _pity;
         static int _hunts;
+        static string _sword = "", _staff = "";
         static bool _dirty;
 
         /// <summary>An item was added: (item, how many, total now).</summary>
         public static event Action<ItemDef, int, int> Added;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _counts = null; _pity = null; _hunts = 0; _dirty = false; Added = null; }
+        static void ResetStatics() { _counts = null; _pity = null; _hunts = 0; _sword = ""; _staff = ""; _dirty = false; Added = null; }
 
         static string SavePath => Path.Combine(Application.persistentDataPath, "sealbound_inventory.json");
 
@@ -97,6 +99,17 @@ namespace Sealbound.Loot
             Save();
         }
 
+        /// <summary>The forged weapon each class carries ("" = the plain Sealer steel or staff).</summary>
+        public static string EquippedWeapon(bool sword) { Load(); return sword ? _sword : _staff; }
+
+        public static void SetEquippedWeapon(bool sword, string id)
+        {
+            Load();
+            if (sword) _sword = id ?? ""; else _staff = id ?? "";
+            _dirty = true;
+            Save();
+        }
+
         public static void CountHunt()
         {
             Load();
@@ -111,6 +124,7 @@ namespace Sealbound.Loot
             _counts = new Dictionary<string, int>();
             _pity = new Dictionary<string, int>();
             _hunts = 0;
+            _sword = ""; _staff = "";
             _dirty = true;
             Save();
         }
@@ -129,6 +143,8 @@ namespace Sealbound.Loot
                 foreach (var e in data.items) if (!string.IsNullOrEmpty(e.id)) _counts[e.id] = e.count;
                 foreach (var p in data.pity) if (!string.IsNullOrEmpty(p.creature)) _pity[p.creature] = p.failed;
                 _hunts = data.hunts;
+                _sword = data.sword ?? "";
+                _staff = data.staff ?? "";
             }
             catch (Exception ex)
             {
@@ -142,7 +158,7 @@ namespace Sealbound.Loot
             _dirty = false;
             try
             {
-                var data = new SaveData { hunts = _hunts };
+                var data = new SaveData { hunts = _hunts, sword = _sword, staff = _staff };
                 foreach (var kv in _counts) data.items.Add(new Entry { id = kv.Key, count = kv.Value });
                 foreach (var kv in _pity) data.pity.Add(new Pity { creature = kv.Key, failed = kv.Value });
                 File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));

@@ -14,6 +14,9 @@ namespace Sealbound.UI
     {
         public PlayerInputReader input;
         public bool inventoryOpen;
+        public bool forgeOpen;
+        string _forgeNote;
+        float _forgeNoteBorn = -99f;
 
         struct Line { public ItemDef Item; public int Count, Total; public float Born; }
         readonly List<Line> _feed = new List<Line>();
@@ -44,8 +47,51 @@ namespace Sealbound.UI
         void Update()
         {
             if (input != null && input.InventoryPressed) inventoryOpen = !inventoryOpen;
+
+            // The forge opens with G when you stand at it, and closes with G, Esc or by walking away.
+            var forge = Sealbound.Core.ForgeStation.Current;
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (forgeOpen && (forge == null || !forge.InReach || (kb != null && kb.escapeKey.wasPressedThisFrame))) SetForgeOpen(false);
+            else if (forge != null && forge.InReach && input != null && input.InteractPressed && GolemSeal.Current == null) SetForgeOpen(!forgeOpen);
+            if (forgeOpen && kb != null)
+            {
+                var recipes = Forge.Recipes;
+                if (kb.digit1Key.wasPressedThisFrame && recipes.Count > 0) UseRecipe(recipes[0]);
+                if (kb.digit2Key.wasPressedThisFrame && recipes.Count > 1) UseRecipe(recipes[1]);
+            }
             _feed.RemoveAll(l => Time.unscaledTime - l.Born > FeedLife);
         }
+
+        public void SetForgeOpen(bool open)
+        {
+            if (forgeOpen == open) return;
+            forgeOpen = open;
+            if (open) inventoryOpen = false;
+            // Free the mouse for the buttons while the forge is open; take it back after.
+            Sealbound.CameraRig.ThirdPersonCamera.MenuOpen = open;
+            Cursor.lockState = open ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = open;
+        }
+
+        /// <summary>Forges a weapon, or swaps between it and the plain one if it is already owned.</summary>
+        public void UseRecipe(Recipe r)
+        {
+            var def = r.Weapon;
+            if (Forge.Owns(r))
+            {
+                bool held = Inventory.EquippedWeapon(r.forSword) == r.weapon;
+                Forge.Equip(r.forSword, held ? "" : r.weapon);
+                Note(held ? $"Back to the plain {(r.forSword ? "Sealer sword" : "Sealer staff")}" : $"{def.displayName} in hand");
+            }
+            else if (Forge.Craft(r))
+            {
+                Note($"FORGED: {def.displayName}!");
+                Sealbound.Combat.SealBurst.Spawn(Sealbound.Core.ForgeStation.Current != null ? Sealbound.Core.ForgeStation.Current.transform.position + Vector3.up * 1.3f : Vector3.zero, 2.5f, def.glow);
+            }
+            else Note("Not enough parts yet.");
+        }
+
+        void Note(string text) { _forgeNote = text; _forgeNoteBorn = Time.unscaledTime; }
 
         void OnGUI()
         {
@@ -58,6 +104,7 @@ namespace Sealbound.UI
                 _small.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
             }
             DrawSealPrompt();
+            DrawForge();
             DrawFeed();
             if (inventoryOpen) DrawInventory();
         }
@@ -138,6 +185,63 @@ namespace Sealbound.UI
                 $"Golem Spirit: {LootTables.GolemSpiritChance(failed) * 100f:0}% chance on your next seal  ·  shards {shards}/{ItemCatalog.ShardsPerSpirit}";
             Rect(new Rect(x + 16f, ry + 6f, w - 32f, 44f), new Color(0.6f, 0.75f, 1f, 0.08f));
             GUI.Label(new Rect(x + 28f, ry + 10f, w - 56f, 40f), spirit, new GUIStyle(_small) { fontSize = 14 });
+        }
+
+        void DrawForge()
+        {
+            var forge = Sealbound.Core.ForgeStation.Current;
+            if (forge == null || !forge.InReach) return;
+            if (!forgeOpen)
+            {
+                float pw = 380f, ph = 36f, px = (Screen.width - pw) / 2f, py = Screen.height * 0.66f;
+                Rect(new Rect(px, py, pw, ph), new Color(0f, 0f, 0f, 0.55f));
+                GUI.Label(new Rect(px, py, pw, ph), "<b>Press  G  (d-pad up) to use the FORGE</b>", _center);
+                return;
+            }
+            var recipes = Forge.Recipes;
+            float w = Mathf.Min(640f, Screen.width - 40f), cardH = 150f;
+            float h = 96f + recipes.Count * (cardH + 10f) + 40f;
+            float x = (Screen.width - w) / 2f, y = Mathf.Max(20f, (Screen.height - h) / 2f);
+            Rect(new Rect(x, y, w, h), new Color(0.05f, 0.03f, 0.02f, 0.9f));
+            Rect(new Rect(x, y, w, 3f), new Color(1f, 0.55f, 0.2f, 0.95f));
+            GUI.Label(new Rect(x, y + 10f, w, 34f), "<b>THE SEALERS' FORGE</b>", new GUIStyle(_center) { fontSize = 24 });
+            GUI.Label(new Rect(x, y + 44f, w, 22f), "Turn creature parts into weapons.   Keys 1 / 2 or click.   Close: G or Esc",
+                new GUIStyle(_center) { fontSize = 13 });
+
+            float cy = y + 76f;
+            for (int i = 0; i < recipes.Count; i++)
+            {
+                var r = recipes[i];
+                var def = r.Weapon;
+                bool owned = Forge.Owns(r), can = Forge.CanCraft(r);
+                bool held = owned && Inventory.EquippedWeapon(r.forSword) == r.weapon;
+                var card = new Rect(x + 16f, cy, w - 32f, cardH);
+                Rect(card, new Color(1f, 1f, 1f, 0.05f));
+                Rect(new Rect(card.x, card.y, 5f, card.height), def.RarityColour);
+                Rect(new Rect(card.x + 16f, card.y + 16f, 44f, 44f), new Color(def.glow.r, def.glow.g, def.glow.b, 0.9f));
+                GUI.Label(new Rect(card.x + 72f, card.y + 8f, card.width - 250f, 26f),
+                    $"<b>{i + 1}.  {def.displayName}</b>  <size=13>({(r.forSword ? "Sword" : "Mage")})</size>", _label);
+                GUI.Label(new Rect(card.x + 72f, card.y + 34f, card.width - 250f, 54f), def.description, new GUIStyle(_small) { fontSize = 12 });
+                // What it costs: green when you have enough, red when you don't.
+                var cost = new System.Text.StringBuilder();
+                foreach (var c in r.cost)
+                {
+                    var part = ItemCatalog.Get(c.Key);
+                    int have = Inventory.Count(c.Key);
+                    string col = have >= c.Value ? "80e080" : "ff7060";
+                    cost.Append($"<color=#{col}>{part.displayName} {have}/{c.Value}</color>    ");
+                }
+                GUI.Label(new Rect(card.x + 72f, card.y + 96f, card.width - 90f, 44f), owned ? "<color=#80e080>Forged</color>" : cost.ToString(),
+                    new GUIStyle(_small) { fontSize = 13, richText = true });
+
+                string label = held ? "Put away" : owned ? "Equip" : can ? "FORGE" : "Need parts";
+                GUI.enabled = owned || can;
+                if (GUI.Button(new Rect(card.xMax - 150f, card.y + 20f, 130f, 44f), label)) UseRecipe(r);
+                GUI.enabled = true;
+                cy += cardH + 10f;
+            }
+            if (!string.IsNullOrEmpty(_forgeNote) && Time.unscaledTime - _forgeNoteBorn < 3f)
+                GUI.Label(new Rect(x, y + h - 36f, w, 30f), $"<b>{_forgeNote}</b>", new GUIStyle(_center) { fontSize = 18 });
         }
 
         void Rect(Rect r, Color c)

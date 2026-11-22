@@ -258,7 +258,7 @@ namespace Sealbound.Loot
         static Mesh _crystal;
 
         /// <summary>A six-sided crystal, pointed at both ends, about 1 x 1 x 1 before scaling, flat shaded.</summary>
-        static Mesh Crystal()
+        public static Mesh Crystal()
         {
             if (_crystal != null) return _crystal;
             var ring = new Vector3[6];

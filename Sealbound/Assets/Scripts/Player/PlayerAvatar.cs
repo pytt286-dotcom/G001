@@ -30,6 +30,8 @@ namespace Sealbound.Player
             public HeroBodies.Profile profile = HeroBodies.KayKit;
             public Transform index, pinky, middle; // realistic hands: where the grip is and which way the blade leaves the fist
             public Transform foot; // realistic staff: its bottom end
+            public string prop;    // the cartoon pack's weapon, when nothing better is held
+            public bool sword;
         }
 
         /// <summary>True when the heroes are the realistic Quaternius bodies (no cartoon ink outline).</summary>
@@ -40,6 +42,7 @@ namespace Sealbound.Player
         PlayerVitals _vitals;
         Health _health;
         Body _swordBody, _mageBody, _active;
+        string _forgedSword = "", _forgedStaff = ""; // forged weapons in each class's hands ("" = plain)
         float _armWeight, _airTime;
         bool _wasDodging;
 
@@ -51,6 +54,8 @@ namespace Sealbound.Player
         {
             if (!ArtLibrary.HasCharacters) return null;
             var av = player.AddComponent<PlayerAvatar>();
+            av._forgedSword = Sealbound.Loot.Inventory.EquippedWeapon(true);
+            av._forgedStaff = Sealbound.Loot.Inventory.EquippedWeapon(false);
             av._swordBody = av.BuildBody("Knight", visual, swordPivot, "sword_1handed");
             av._mageBody = av.BuildBody("Mage", visual, staffPivot, "staff");
             if (av._swordBody == null || av._mageBody == null)
@@ -111,10 +116,9 @@ namespace Sealbound.Player
             b.anim.SetBase(sword ? pr.combatIdle : pr.idle);
 
             b.pivot = pivot;
-            // Realistic bodies: weapons sized in metres (a 1 m sword, a 1.7 m staff); cartoon bodies: the pack's own scale.
-            float length = pr.realistic ? (sword ? 1.05f : 1.7f) : 0f;
-            b.weapon = BuildWeapon(pivot, weaponProp, b.root.transform.localScale.x, sword, length, pr.realistic, out b.align);
-            if (b.weapon != null) b.foot = b.weapon.Find("Staff Foot");
+            b.prop = weaponProp;
+            b.sword = sword;
+            MakeWeapon(b);
             return b;
         }
 
@@ -132,11 +136,50 @@ namespace Sealbound.Player
             return b;
         }
 
-        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, bool realistic, out Quaternion align)
+        /// <summary>Builds (or rebuilds) the weapon a body holds: a forged one if equipped, else the plain one.</summary>
+        void MakeWeapon(Body b)
+        {
+            if (b.weapon != null)
+            {
+                b.weapon.SetParent(null, false); // out of the pivot now, so nothing finds its parts this frame
+                Destroy(b.weapon.gameObject);
+                b.weapon = null;
+            }
+            string forged = b.sword ? _forgedSword : _forgedStaff;
+            bool metres = b.profile.realistic || !string.IsNullOrEmpty(forged);
+            // Weapons sized in metres (a 1 m sword, a 1.7 m staff); cartoon props at the pack's own scale.
+            float length = metres ? (b.sword ? 1.05f : 1.7f) : 0f;
+            b.weapon = BuildWeapon(b.pivot, b.prop, b.root.transform.localScale.x, b.sword, length, b.profile.realistic, forged, out b.align);
+            b.foot = b.weapon != null ? b.weapon.Find("Staff Foot") : null;
+        }
+
+        /// <summary>Puts a forged weapon ("" = the plain one) in a class's hands, and tells combat which part flashes.</summary>
+        public void SetForgedWeapon(bool sword, string weaponId)
+        {
+            if (sword) _forgedSword = weaponId ?? ""; else _forgedStaff = weaponId ?? "";
+            var b = sword ? _swordBody : _mageBody;
+            if (b == null) return;
+            MakeWeapon(b);
+            if (b.root != null) Shapes.SetLayerRecursive(b.pivot.gameObject, 2);
+            if (_combat != null)
+            {
+                if (sword) _combat.swordCueRenderer = CueRenderer(true);
+                else _combat.staffCueRenderer = CueRenderer(false);
+                _combat.RefreshWeapon();
+            }
+        }
+
+        void OnWeaponChanged(bool sword, string id) => SetForgedWeapon(sword, id);
+
+        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, bool realistic, string forged, out Quaternion align)
         {
             align = Quaternion.identity;
-            // Realistic heroes carry a steel sword and a carved staff; cartoon heroes the pack's props.
-            var go = realistic ? (isSword ? ForgedWeapons.Sword(pivot) : ForgedWeapons.Staff(pivot)) : ArtLibrary.Spawn(ArtLibrary.Props + prop, pivot);
+            // A forged golem weapon if one is equipped; otherwise realistic heroes carry a steel sword and a
+            // carved staff, and cartoon heroes the pack's props.
+            GameObject go;
+            if (forged == Sealbound.Loot.ItemCatalog.RunestoneBlade) go = ForgedWeapons.RunestoneBlade(pivot);
+            else if (forged == Sealbound.Loot.ItemCatalog.GolemCoreStaff) go = ForgedWeapons.GolemCoreStaff(pivot);
+            else go = realistic ? (isSword ? ForgedWeapons.Sword(pivot) : ForgedWeapons.Staff(pivot)) : ArtLibrary.Spawn(ArtLibrary.Props + prop, pivot);
             if (go == null) return null;
             go.name = "Weapon Model";
             var t = go.transform;
@@ -187,11 +230,13 @@ namespace Sealbound.Player
             {
                 // A glowing ember at the staff's head: the Mage's beat cue.
                 float orbSize = realistic ? 0.095f : 0.16f;
-                var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", tipLocal + dir * ((realistic ? 0.035f : 0.06f) / scale), Vector3.one * (orbSize / scale),
+                var socket = t.Find("Core Socket"); // a forged staff holds its ember inside the core
+                Vector3 orbAt = socket != null ? socket.localPosition : tipLocal + dir * ((realistic ? 0.035f : 0.06f) / scale);
+                var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", orbAt, Vector3.one * ((socket != null ? 0.07f : orbSize) / scale),
                     new Color(1f, 0.5f, 0.18f));
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 if (realistic) Sealbound.Combat.Glow.Make(orb.transform, Vector3.zero, 4.2f, new Color(2.4f, 1.05f, 0.35f, 0.75f)); // a soft halo round the ember
-                if (realistic)
+                if (realistic || socket != null)
                 {
                     // Where the staff's foot is, so at rest it can stand on the ground.
                     var foot = new GameObject("Staff Foot").transform;
@@ -216,6 +261,8 @@ namespace Sealbound.Player
                 var orb = b.weapon.Find("Ember Orb");
                 if (orb != null) return orb.GetComponent<Renderer>();
             }
+            var channel = b.weapon.Find("Rune Channel"); // the forged blade flashes its rune, not its stone
+            if (channel != null) return channel.GetComponent<Renderer>();
             foreach (var r in b.weapon.GetComponentsInChildren<Renderer>(true))
                 if (!(r is TrailRenderer) && !SkinnedOutline.IsOutline(r)) return r;
             return null;
@@ -232,6 +279,7 @@ namespace Sealbound.Player
         void Start()
         {
             if (_health != null) _health.Damaged += OnDamaged;
+            Sealbound.Loot.Forge.WeaponChanged += OnWeaponChanged;
             if (_vitals != null)
             {
                 _vitals.Fell += () => { if (_active != null) _active.anim.PlayOnce(_active.profile.death, 1f, 0.08f, true); };
@@ -247,6 +295,7 @@ namespace Sealbound.Player
         void OnDestroy()
         {
             if (_health != null) _health.Damaged -= OnDamaged;
+            Sealbound.Loot.Forge.WeaponChanged -= OnWeaponChanged;
         }
 
         void OnDamaged(DamageInfo info, float dealt)

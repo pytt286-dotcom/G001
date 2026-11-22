@@ -133,6 +133,8 @@ namespace Sealbound.Dev
             Line($"Frame rate in the warren fight: {frames / 2f:0} fps");
 
             yield return GolemTour(motor);
+            yield return ForgeTour(motor);
+            DescribeAmbientOcclusion();
             Finish();
         }
 
@@ -242,6 +244,75 @@ namespace Sealbound.Dev
             foreach (var kv in Sealbound.Loot.Inventory.Owned()) pack.Append(kv.Key.displayName).Append(" x").Append(kv.Value).Append(", ");
             Line($"Pack after collecting: {pack} (left on the ground: {Sealbound.Loot.LootDrop.Active.Count}); hunts {Sealbound.Loot.Inventory.Hunts}, " +
                  $"next spirit chance {Sealbound.Loot.LootTables.GolemSpiritChance(Sealbound.Loot.Inventory.FailedSpiritRolls(Sealbound.Loot.LootTables.GolemName)):P0}");
+        }
+
+        /// <summary>Gives the hero enough parts, forges both golem weapons at the forge and photographs them in hand.</summary>
+        IEnumerator ForgeTour(PlayerMotor motor)
+        {
+            var forge = FindAnyObjectByType<Sealbound.Core.ForgeStation>();
+            Line("Forge found: " + (forge != null));
+            if (forge == null) yield break;
+            var combat = motor.GetComponent<PlayerCombat>();
+            Sealbound.Loot.Inventory.Add(Sealbound.Loot.ItemCatalog.Essence, 200);
+            Sealbound.Loot.Inventory.Add(Sealbound.Loot.ItemCatalog.RunestoneShard, 12);
+            Sealbound.Loot.Inventory.Add(Sealbound.Loot.ItemCatalog.GolemCore, 2);
+            Vector3 f = forge.transform.position;
+            Vector3 front = forge.transform.forward, right = forge.transform.right;
+            motor.Teleport(f + front * 2.6f + right * 0.6f + Vector3.up * 0.2f);
+            yield return new WaitForSeconds(0.8f);
+            Line($"At the forge: in reach {forge.InReach}");
+            Shot("20_forge", f + front * 5.5f + right * 3f + Vector3.up * 2.4f, f + Vector3.up * 1.1f, 55f);
+
+            var recipes = Sealbound.Loot.Forge.Recipes;
+            foreach (var r in recipes)
+                Line($"Forge {r.Weapon.displayName}: can {Sealbound.Loot.Forge.CanCraft(r)}, crafted {Sealbound.Loot.Forge.Craft(r)}, equipped {Sealbound.Loot.Inventory.EquippedWeapon(r.forSword) == r.weapon}");
+            yield return new WaitForSeconds(0.6f);
+
+            var p = motor.transform;
+            if (combat != null) CallPrivate(combat, "EquipKit", combat.swordKit, false);
+            yield return new WaitForSeconds(0.6f);
+            DescribeMaterials(p.gameObject, "Weapon Model");
+            Shot("21_runestone_blade", p.position + p.forward * 1.9f + p.right * 0.9f + Vector3.up * 1.4f, p.position + p.right * 0.25f + Vector3.up * 1.05f, 45f);
+            if (combat != null)
+            {
+                var slash = combat.Kit.basicCombo[0];
+                Attack(combat, slash);
+                yield return new WaitForSeconds(slash.windup + slash.active * 0.5f);
+                Shot("21b_runestone_swing", p.position + p.forward * 3f + p.right * 1.5f + Vector3.up * 1.6f, p.position + Vector3.up * 1f, 45f);
+                yield return new WaitForSeconds(1f);
+                CallPrivate(combat, "EquipKit", combat.mageKit, true);
+                yield return new WaitForSeconds(0.8f);
+                Shot("22_core_staff", p.position + p.forward * 2.4f + p.right * 0.6f + Vector3.up * 1.6f, p.position + p.right * 0.3f + Vector3.up * 1.3f, 45f);
+                CallPrivate(combat, "EquipKit", combat.swordKit, false);
+            }
+        }
+
+        /// <summary>Reports whether the ambient occlusion pass is really on the renderer the game uses.</summary>
+        void DescribeAmbientOcclusion()
+        {
+            try
+            {
+                var asset = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
+                var field = asset != null ? asset.GetType().GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic) : null;
+                var list = field != null ? field.GetValue(asset) as ScriptableRendererData[] : null;
+                var sb = new StringBuilder();
+                sb.Append("Pipeline asset in use: ").Append(asset != null ? asset.name : "none").Append("; renderer: ");
+                if (list != null && list.Length > 0 && list[0] != null)
+                {
+                    sb.Append(list[0].name).Append(" features: ");
+                    foreach (var feat in list[0].rendererFeatures)
+                    {
+                        if (feat == null) { sb.Append("(null) "); continue; }
+                        sb.Append(feat.GetType().Name).Append(feat.isActive ? "[on] " : "[off] ");
+                        var settings = feat.GetType().GetField("m_Settings", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(feat);
+                        if (settings != null)
+                            foreach (var fi in settings.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                                sb.Append(fi.Name).Append('=').Append(fi.GetValue(settings)).Append(' ');
+                    }
+                }
+                Line(sb.ToString());
+            }
+            catch (Exception e) { Line("Could not describe ambient occlusion: " + e.Message); }
         }
 
         /// <summary>

@@ -112,6 +112,19 @@ namespace Sealbound.Player
 
         void Start() => EquipKit(swordKit, false);
 
+        // ---------- Forged weapons ----------
+
+        /// <summary>The forged weapon each class holds ("" = plain).</summary>
+        string SwordWeapon => Sealbound.Loot.Inventory.EquippedWeapon(true);
+        string StaffWeapon => Sealbound.Loot.Inventory.EquippedWeapon(false);
+        bool RunestoneBlade => _kit == swordKit && SwordWeapon == Sealbound.Loot.ItemCatalog.RunestoneBlade;
+        bool CoreStaff => _kit == mageKit && StaffWeapon == Sealbound.Loot.ItemCatalog.GolemCoreStaff;
+        /// <summary>Forged weapons hit 15% harder.</summary>
+        float WeaponDamage => RunestoneBlade || CoreStaff ? 1.15f : 1f;
+
+        /// <summary>The weapon model changed: pick up its trail and beat flash again.</summary>
+        public void RefreshWeapon() => EquipKit(_kit, false);
+
         void EquipKit(CombatKit kit, bool announce)
         {
             if (_current != null) Interrupt();
@@ -337,8 +350,9 @@ namespace Sealbound.Player
                     for (int i = 0; i < a.projectileCount; i++)
                     {
                         Vector3 side = transform.right * (a.projectileCount > 1 ? (i - (a.projectileCount - 1) * 0.5f) * 0.6f : 0f);
-                        PlayerBolt.Fire(hand + side, aim, target != null ? (target.aimPoint != null ? target.aimPoint : target.transform) : null, a.projectileSpeed, a.projectileRadius,
-                            a.damage * power, a.impact, a.pierce, a.fxColor, gameObject, (landed, impact) => OnSpellHit(a, landed));
+                        var bolt = PlayerBolt.Fire(hand + side, aim, target != null ? (target.aimPoint != null ? target.aimPoint : target.transform) : null, a.projectileSpeed, a.projectileRadius,
+                            a.damage * power * WeaponDamage, a.impact, a.pierce, a.fxColor, gameObject, (landed, impact) => OnSpellHit(a, landed));
+                        if (CoreStaff && bolt != null) { bolt.splashRadius = 2.5f; bolt.splashFraction = 0.45f; } // core fire bursts on impact
                     }
                     if (a.kind == AttackKind.Heavy) _motor.Lunge(-transform.forward, 6f); // recoil
                     break;
@@ -479,7 +493,8 @@ namespace Sealbound.Player
                 _hitThisSwing.Add(h);
                 var info = new DamageInfo
                 {
-                    Amount = a.damage * _bonus * ChainMultiplier,
+                    // The Runestone Blade cracks armour: against armoured foes it makes up much of what armour takes off.
+                    Amount = a.damage * _bonus * ChainMultiplier * WeaponDamage * (RunestoneBlade ? 1f + 0.9f * (1f - Mathf.Clamp01(h.damageMultiplier)) : 1f),
                     Point = closest,
                     Direction = to.sqrMagnitude > 0.01f ? to.normalized : transform.forward,
                     Source = gameObject,

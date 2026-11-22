@@ -46,6 +46,12 @@ namespace Sealbound.CameraRig
         float _bossWeight, _bossTarget;
 
         /// <summary>0 = normal framing, 1 = pulled back for a giant boss. Blends smoothly.</summary>
+        /// <summary>A menu (the forge) needs the mouse: clicks don't recapture it while this is set.</summary>
+        public static bool MenuOpen;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetMenu() { MenuOpen = false; }
+
         public static void SetBossFraming(float weight)
         {
             if (_instance != null) _instance._bossTarget = Mathf.Clamp01(weight);
@@ -85,7 +91,7 @@ namespace Sealbound.CameraRig
             if (UnityEngine.InputSystem.Keyboard.current != null &&
                 UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
                 LockCursor(false);
-            else if (Cursor.lockState != CursorLockMode.Locked &&
+            else if (Cursor.lockState != CursorLockMode.Locked && !MenuOpen &&
                      UnityEngine.InputSystem.Mouse.current != null &&
                      UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
                 LockCursor(true);

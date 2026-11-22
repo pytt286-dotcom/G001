@@ -29,6 +29,7 @@ namespace Sealbound.Player
         public bool SwitchClassPressed { get; private set; }
         /// <summary>Held to seal a beaten creature (and later to use things).</summary>
         public bool InteractHeld { get; private set; }
+        public bool InteractPressed { get; private set; }
         public bool InventoryPressed { get; private set; }
 
         InputActionMap _map;
@@ -109,6 +110,7 @@ namespace Sealbound.Player
             HeavyPressed = _heavy.WasPressedThisFrame();
             SwitchClassPressed = _switchClass.WasPressedThisFrame();
             InteractHeld = _interact.IsPressed();
+            InteractPressed = _interact.WasPressedThisFrame();
             InventoryPressed = _inventory.WasPressedThisFrame();
             SkillPressed = -1;
             for (int i = 0; i < 3; i++)

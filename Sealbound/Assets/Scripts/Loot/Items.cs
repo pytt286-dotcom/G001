@@ -5,7 +5,7 @@ namespace Sealbound.Loot
 {
     public enum Rarity { Common, Fine, Rare, Epic, Legendary }
 
-    public enum ItemKind { Essence, Part, SpiritShard, Spirit }
+    public enum ItemKind { Essence, Part, SpiritShard, Spirit, Weapon }
 
     /// <summary>
     /// One kind of thing a player can own: a creature part, essence, a spirit or a spirit shard.
@@ -33,6 +33,8 @@ namespace Sealbound.Loot
         public const string GolemCore = "golem_core";
         public const string GolemSpiritShard = "golem_spirit_shard";
         public const string GolemSpirit = "golem_spirit";
+        public const string RunestoneBlade = "runestone_blade";
+        public const string GolemCoreStaff = "golem_core_staff";
 
         /// <summary>Spirit shards needed to bind a spirit without finding it whole (used by the shrine, Milestone 8).</summary>
         public const int ShardsPerSpirit = 10;
@@ -65,6 +67,15 @@ namespace Sealbound.Loot
                 Rarity.Fine, ItemKind.SpiritShard, "Bastion Golem", new Color(0.7f, 0.85f, 1f));
             Add(GolemSpirit, "Golem Spirit", "The Bastion Golem's soul, sealed whole. Bind it at the soul shrine to take on its stone form in battle.",
                 Rarity.Legendary, ItemKind.Spirit, "Bastion Golem", new Color(0.85f, 0.95f, 1f));
+            AddWeapons();
+        }
+
+        static void AddWeapons()
+        {
+            Add(RunestoneBlade, "Runestone Blade", "A sword of the golem's own rune-cut stone, its edge lit blue. Rune-edge: hits crack armour (+15% damage, and much more against armoured foes).",
+                Rarity.Epic, ItemKind.Weapon, "Bastion Golem", new Color(0.25f, 0.6f, 1f));
+            Add(GolemCoreStaff, "Golem Core Staff", "A staff crowned with a burning Golem Core. Core fire: ember bolts burst on impact, scorching everything close by (+15% damage).",
+                Rarity.Epic, ItemKind.Weapon, "Bastion Golem", new Color(1f, 0.5f, 0.15f));
         }
 
         static void Add(string id, string name, string text, Rarity rarity, ItemKind kind, string creature, Color glow)

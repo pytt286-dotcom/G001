@@ -12,7 +12,7 @@ namespace Sealbound.Core
         static Material _steel, _leather, _brass, _wood, _burlap, _rope, _straw, _timber;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; _burlap = null; _rope = null; _straw = null; _timber = null; _blade = null; _tuft = null; }
+        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; _burlap = null; _rope = null; _straw = null; _timber = null; _blade = null; _tuft = null; _stone = null; _runeGlow = null; _coreGlow = null; }
 
         public static GameObject Sword(Transform parent)
         {
@@ -52,6 +52,102 @@ namespace Sealbound.Core
                 prong.transform.localRotation = Quaternion.Euler(0f, ang, -18f);
             }
             return root;
+        }
+
+        // ---------- Forged golem weapons (Milestone 7) ----------
+
+        static readonly Color RuneBlue = new Color(0.25f, 0.6f, 1f);
+        static readonly Color CoreFire = new Color(1f, 0.45f, 0.12f);
+        static Material _stone, _runeGlow, _coreGlow;
+
+        /// <summary>The Runestone Blade: a broad blade of the golem's stone with a glowing blue rune channel.</summary>
+        public static GameObject RunestoneBlade(Transform parent)
+        {
+            var root = new GameObject("Runestone Blade");
+            root.transform.SetParent(parent, false);
+            var blade = new GameObject("Blade");
+            blade.transform.SetParent(root.transform, false);
+            blade.transform.localScale = new Vector3(1.3f, 1f, 1.6f); // broader and thicker than steel
+            blade.AddComponent<MeshFilter>().sharedMesh = BladeMesh();
+            blade.AddComponent<MeshRenderer>().sharedMaterial = new Material(Stone()) { name = "Blade stone" };
+            // The rune channel runs through the blade and shows on both faces; it is what flashes on the beat.
+            Part(root.transform, PrimitiveType.Cube, "Rune Channel", new Vector3(0f, 0.5f, 0f), new Vector3(0.01f, 0.72f, 0.0215f), RuneGlow());
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int k = 0; k < 4; k++)
+                    Part(root.transform, PrimitiveType.Cube, "Rune Cut", new Vector3(0f, 0.25f + k * 0.16f, side * 0.0102f), new Vector3(0.03f, 0.006f, 0.002f), RuneGlow());
+            }
+            Part(root.transform, PrimitiveType.Cube, "Crossguard", new Vector3(0f, 0.08f, 0f), new Vector3(0.26f, 0.05f, 0.065f), Stone());
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var shard = Crystal(root.transform, "Guard Shard", new Vector3(side * 0.14f, 0.09f, 0f), new Vector3(0.035f, 0.07f, 0.035f), RuneGlow());
+                shard.transform.localRotation = Quaternion.Euler(0f, 0f, side * -55f);
+            }
+            Part(root.transform, PrimitiveType.Cylinder, "Grip", new Vector3(0f, -0.015f, 0f), new Vector3(0.034f, 0.085f, 0.034f), Leather());
+            Crystal(root.transform, "Pommel Shard", new Vector3(0f, -0.125f, 0f), new Vector3(0.05f, 0.07f, 0.05f), RuneGlow());
+            return root;
+        }
+
+        /// <summary>The Golem Core Staff: a dark shaft bound with stone, three stone talons holding a burning core.</summary>
+        public static GameObject GolemCoreStaff(Transform parent)
+        {
+            var root = new GameObject("Golem Core Staff");
+            root.transform.SetParent(parent, false);
+            Vector3 a = new Vector3(0f, -0.42f, 0f), b = new Vector3(0.01f, 0.3f, 0.005f), c = new Vector3(-0.008f, 0.9f, -0.006f), d = new Vector3(0.012f, 1.15f, 0.008f);
+            Shaft(root.transform, a, b, 0.029f);
+            Shaft(root.transform, b, c, 0.032f);
+            Shaft(root.transform, c, d, 0.036f);
+            Part(root.transform, PrimitiveType.Cylinder, "Wrap", new Vector3(0.002f, 0.02f, 0.001f), new Vector3(0.07f, 0.11f, 0.07f), Leather());
+            // Stone bands up the shaft.
+            foreach (float y in new[] { 0.45f, 0.75f, 1.08f })
+                Part(root.transform, PrimitiveType.Cylinder, "Stone Band", Vector3.Lerp(b, d, Mathf.InverseLerp(0.3f, 1.15f, y)) + Vector3.up * 0f, new Vector3(0.085f, 0.025f, 0.085f), Stone());
+            Part(root.transform, PrimitiveType.Sphere, "Collar", d + new Vector3(0f, 0.02f, 0f), new Vector3(0.11f, 0.07f, 0.11f), Stone());
+            Vector3 coreAt = d + new Vector3(0f, 0.15f, 0f);
+            for (int i = 0; i < 3; i++)
+            {
+                float ang = i * 120f;
+                var talon = Part(root.transform, PrimitiveType.Capsule, "Talon", d + Quaternion.Euler(0f, ang, 0f) * new Vector3(0.07f, 0.13f, 0f),
+                    new Vector3(0.035f, 0.11f, 0.035f), Stone());
+                talon.transform.localRotation = Quaternion.Euler(0f, ang, 14f);
+            }
+            var core = Crystal(root.transform, "Golem Core", coreAt, new Vector3(0.12f, 0.15f, 0.12f), CoreGlow());
+            core.transform.localRotation = Quaternion.Euler(0f, 30f, 0f);
+            var socket = new GameObject("Core Socket").transform; // the hero's ember cue sits inside the core
+            socket.SetParent(root.transform, false);
+            socket.localPosition = coreAt;
+            return root;
+        }
+
+        static GameObject Crystal(Transform parent, string name, Vector3 pos, Vector3 size, Material m)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localScale = size;
+            go.AddComponent<MeshFilter>().sharedMesh = Sealbound.Loot.LootDrop.Crystal();
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go;
+        }
+
+        static Material Stone()
+        {
+            if (_stone != null) return _stone;
+            _stone = RealArt.Has ? RealArt.Surface(RealArt.GolemStone, 0.35f, 0f) : null;
+            if (_stone == null) _stone = Lit("Runestone", new Color(0.36f, 0.35f, 0.33f), 0f, 0.25f);
+            return _stone;
+        }
+
+        static Material RuneGlow() => _runeGlow != null ? _runeGlow : (_runeGlow = Glowing("Rune glow", RuneBlue, 2.2f));
+        static Material CoreGlow() => _coreGlow != null ? _coreGlow : (_coreGlow = Glowing("Core fire", CoreFire, 2.6f));
+
+        static Material Glowing(string name, Color c, float strength)
+        {
+            var m = Lit(name, Color.Lerp(c, Color.white, 0.3f), 0f, 0.8f);
+            m.EnableKeyword("_EMISSION");
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", c * strength);
+            return m;
         }
 
         static void Shaft(Transform parent, Vector3 from, Vector3 to, float radius)

@@ -13,6 +13,8 @@ namespace Sealbound.Combat
         public float damage = 10f;
         public float impact = 0.3f;
         public bool pierce;
+        /// <summary>Golem Core Staff: on impact, this share of the damage also hits everything within the radius.</summary>
+        public float splashRadius, splashFraction;
         public float homing = 6f;
         public GameObject caster;
         public Transform target;
@@ -101,6 +103,18 @@ namespace Sealbound.Combat
 
         void Burst(Vector3 at)
         {
+            if (splashRadius > 0f && splashFraction > 0f)
+            {
+                foreach (var c in Physics.OverlapSphere(at, splashRadius, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    var h = c.GetComponentInParent<Health>();
+                    if (h == null || _hit.Contains(h)) continue;
+                    _hit.Add(h);
+                    Vector3 dir = h.transform.position - at; dir.y = 0f;
+                    SpellHit.Apply(h, caster, damage * splashFraction, c.ClosestPoint(at), dir.sqrMagnitude > 0.01f ? dir.normalized : _dir, impact * 0.6f, 0f, 0f, 0f);
+                }
+                SealBurst.Spawn(at, splashRadius * 1.6f, new Color(1f, 0.45f, 0.12f));
+            }
             SealBurst.Spawn(at, radius * 4f, new Color(1f, 0.55f, 0.2f));
             Destroy(gameObject);
         }
