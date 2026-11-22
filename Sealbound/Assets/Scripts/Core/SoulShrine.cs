@@ -22,7 +22,9 @@ namespace Sealbound.Core
 
         public bool InReach { get; private set; }
 
-        static readonly Color SpiritBlue = new Color(0.9f, 1.7f, 3.4f, 1f);
+        static readonly Color SpiritBlue = new Color(0.25f, 0.8f, 2.6f, 1f);
+        /// <summary>The same deep rune blue as the golem's own runes, so it glows blue rather than white in daylight.</summary>
+        static readonly Color RuneGem = new Color(0.12f, 0.5f, 1f);
 
         Transform _seal, _sealRing, _player;
         Glow _sealGlow, _ring;
@@ -55,7 +57,13 @@ namespace Sealbound.Core
                 float h = 2.1f + (i % 2) * 0.6f;
                 var st = Piece(t, PrimitiveType.Cube, "Standing Stone", p + Vector3.up * h * 0.5f, new Vector3(0.7f, h, 0.45f), stone, true);
                 st.transform.localRotation = Quaternion.Euler(Random.Range(-4f, 4f), a, Random.Range(-5f, 5f));
-                Glow.Make(t, p + Quaternion.Euler(0f, a, 0f) * new Vector3(0f, 0f, -0.3f) + Vector3.up * h * 0.6f, 0.35f, new Color(0.8f, 1.5f, 3f, 0.9f)); // a rune cut into each stone
+                Quaternion face = Quaternion.Euler(0f, a, 0f);
+                Vector3 runeAt = p + face * new Vector3(0f, 0f, -0.24f) + Vector3.up * h * 0.6f;
+                var plate = Shapes.Make(PrimitiveType.Cube, t, "Stone Rune", runeAt, new Vector3(0.12f, 0.42f, 0.03f), RuneGem, false, true); // a rune cut into each stone
+                plate.transform.localRotation = face;
+                var cross = Shapes.Make(PrimitiveType.Cube, t, "Stone Rune", runeAt + Vector3.up * 0.08f, new Vector3(0.3f, 0.08f, 0.03f), RuneGem, false, true);
+                cross.transform.localRotation = face;
+                Glow.Make(t, runeAt + face * new Vector3(0f, 0f, -0.08f), 0.5f, new Color(0.2f, 0.6f, 2f, 0.7f));
             }
 
             // The floating seal the spirit is bound through.
@@ -68,7 +76,7 @@ namespace Sealbound.Core
             var ring = new GameObject("Seal Ring").transform;
             ring.SetParent(seal, false);
             s._sealRing = ring;
-            Color runeLight = new Color(0.55f, 0.85f, 1f);
+            Color runeLight = RuneGem;
             for (int i = 0; i < 12; i++)
             {
                 float a = i * 30f;
@@ -76,7 +84,14 @@ namespace Sealbound.Core
                     new Vector3(i % 3 == 0 ? 0.2f : 0.12f, 0.06f, 0.05f), runeLight, false, true);
                 bar.transform.localRotation = Quaternion.Euler(0f, 0f, a);
             }
-            Shapes.Make(PrimitiveType.Cube, ring, "Seal Core", Vector3.zero, new Vector3(0.16f, 0.16f, 0.16f), runeLight, false, true).transform.localRotation = Quaternion.Euler(45f, 0f, 45f);
+            Shapes.Make(PrimitiveType.Sphere, ring, "Seal Core", Vector3.zero, new Vector3(0.28f, 0.28f, 0.28f), runeLight, false, true);
+            // A rune circle inlaid in the dais: glowing stones set in a ring.
+            for (int i = 0; i < 24; i++)
+            {
+                Vector3 q = Quaternion.Euler(0f, i * 15f, 0f) * Vector3.forward * 2.15f;
+                var inlay = Shapes.Make(PrimitiveType.Cube, t, "Dais Rune", q + Vector3.up * 0.165f, new Vector3(i % 2 == 0 ? 0.34f : 0.16f, 0.02f, 0.07f), RuneGem, false, true);
+                inlay.transform.localRotation = Quaternion.Euler(0f, i * 15f + 90f, 0f);
+            }
             s._ring = Glow.MakeRing(t, new Vector3(0f, 0.14f, 0f), 4.6f, new Color(0.7f, 1.3f, 2.6f, 0.9f));
 
             var lightGo = new GameObject("Shrine Light");

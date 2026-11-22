@@ -235,13 +235,14 @@ namespace Sealbound.Player
                 }
                 // Runes glowing through the stone, and a rune circle under the feet.
                 _runes.Clear();
-                Color rune = new Color(0.8f, 1.5f, 3.2f, 1f);
-                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.25f, 0.3f), 0.5f, rune));    // the heart rune, front
-                _runes.Add(Glow.Make(visual, new Vector3(0f, 1.3f, -0.3f), 0.45f, rune));   // and through the back
-                _runes.Add(Glow.Make(visual, new Vector3(-0.36f, 1.45f, 0f), 0.3f, rune));  // shoulders
-                _runes.Add(Glow.Make(visual, new Vector3(0.36f, 1.45f, 0f), 0.3f, rune));
-                _runes.Add(Glow.Make(visual, new Vector3(0f, 0.95f, 0.26f), 0.3f, rune));   // belt
-                _ring = Glow.MakeRing(transform, new Vector3(0f, 0.06f, 0f), 2.6f, new Color(0.7f, 1.3f, 2.6f, 0.9f));
+                // Runes glowing through the stone, pinned to the nearest bone so they move with the body.
+                Color rune = new Color(0.2f, 0.65f, 2.4f, 1f);
+                AddRune(visual, new Vector3(0f, 1.28f, 0.2f), 0.42f, rune);    // the heart rune, front
+                AddRune(visual, new Vector3(0f, 1.3f, -0.2f), 0.42f, rune);    // and through the back
+                AddRune(visual, new Vector3(-0.24f, 1.45f, 0f), 0.28f, rune);  // shoulders
+                AddRune(visual, new Vector3(0.24f, 1.45f, 0f), 0.28f, rune);
+                AddRune(visual, new Vector3(0f, 0.98f, 0.17f), 0.26f, rune);   // belt
+                _ring = Glow.MakeRing(transform, new Vector3(0f, 0.06f, 0f), 2.6f, new Color(0.25f, 0.8f, 2.6f, 1f));
                 return;
             }
 
@@ -254,6 +255,34 @@ namespace Sealbound.Player
             _runes.Clear();
             if (_ring != null) Destroy(_ring.gameObject);
             _ring = null;
+        }
+
+        void AddRune(Transform visual, Vector3 localPos, float size, Color colour)
+        {
+            var g = Glow.Make(visual, localPos, size, colour);
+            // Deep blue gem under the glow, so the rune reads in daylight too (additive light alone washes out).
+            var gem = Shapes.Make(PrimitiveType.Sphere, g.transform, "Rune Gem", Vector3.zero, new Vector3(0.18f, 0.18f, 0.18f), new Color(0.12f, 0.5f, 1f), false, true);
+            gem.transform.localScale = Vector3.one * (0.09f / Mathf.Max(0.01f, size));
+            var bone = NearestBone(visual, g.transform.position);
+            if (bone != null) g.transform.SetParent(bone, true);
+            _runes.Add(g);
+        }
+
+        Transform NearestBone(Transform visual, Vector3 at)
+        {
+            Transform best = null;
+            float bestD = 0.35f * 0.35f; // only bones close by; otherwise stay on the body root
+            foreach (var smr in visual.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (SkinnedOutline.IsOutline(smr) || smr.bones == null) continue;
+                foreach (var b in smr.bones)
+                {
+                    if (b == null || IsUnder(b, _combat.swordPivot) || IsUnder(b, _combat.staffPivot)) continue;
+                    float d = (b.position - at).sqrMagnitude;
+                    if (d < bestD) { bestD = d; best = b; }
+                }
+            }
+            return best;
         }
 
         static bool IsUnder(Transform t, Transform root)
