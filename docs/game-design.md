@@ -331,6 +331,41 @@ Pytt wants combat that is smooth and **fast-paced** (confirmed after playing Mil
 - **Weight and impact.** Big hits shake the camera slightly and freeze the action for a split second, so they feel powerful.
 - **Controls:** mouse and keyboard first, with full controller support.
 
+### 10.1 Rhythm and timing (set by Pytt after playing Milestone 2)
+
+Combat must reward timing and skill, never button mashing. This matters for PVE, and even more for PVP.
+
+**The beat.** Every attack has a short **perfect window** near the end of its swing. The blade flashes and a soft tick sounds when it opens. Each class and weapon has its own rhythm.
+
+| You press... | What happens |
+|---|---|
+| **Too early** (mashing) | The combo **breaks**. You finish the swing, then stagger briefly and cannot attack. In PVP this is your opponent's chance to punish you. |
+| **In the perfect window** | **PERFECT.** The next attack comes out faster and hits harder (+25%), and you gain **Focus**. |
+| **Late, but before the swing ends** | The chain continues, with no bonus. |
+| **Nothing** | The chain ends after a moment. |
+
+**Chains, links and extenders.** Basic attacks, skills and the heavy attack all chain into each other on the beat:
+- **LINK:** a skill used in a basic attack's perfect window. It gets bigger damage (+40%) and its cooldown is shortened.
+- **EXTEND:** a basic attack timed after a skill. It starts a new basic string while the chain keeps counting.
+- **EVADE:** a dodge in the perfect window. You escape without losing the chain.
+- **Chain bonus:** every step of an unbroken chain adds damage (+6% per step, up to +36%). The best players build long chains such as *slash, slash, LINK skill, EXTEND slash, slash, LINK skill, Sealbreaker*.
+
+**Focus and the finisher.** Perfect hits and links fill the **Focus** bar. With full Focus, the heavy attack becomes a **Sealbreaker** finisher that deals double damage. Later, Focus will also help fill the Soul Gauge for merging.
+
+**Hit-confirm (fair for PVP).** Perfect timing only gives bonus damage and Focus if the previous attack actually **hit**. Swinging rhythmically at nothing still lets you practise the chain, but gives no power.
+
+**Sword class kit (first version):**
+
+| Input | Move | Role in combos |
+|---|---|---|
+| Left-click | 3-hit basic string: Slash, Return Slash, Overhead Cleave | The rhythm backbone |
+| Q | **Rising Edge:** an upward slash that launches you into the air | Launcher: extend with air slashes |
+| R | **Gale Thrust:** a long dashing thrust | Gap closer and mid-combo link |
+| F | **Runic Whirl:** a three-hit spin around you | Crowd control, good against goblin packs |
+| E | **Sealbreaker Slam:** a heavy area slam that costs stamina | Combo finisher, doubled with full Focus |
+
+Each class will get its own rhythm and kit built on the same rules.
+
 ## 11. Art and sound direction
 
 - **Look:** stylised 3D in the spirit of *How To Train Your Dragon*: bold, slightly exaggerated shapes, expressive characters, warm lighting, painterly skies, rich colour. Creatures can be cute, majestic or terrifying, but always full of personality. (We take inspiration from the *style*, but all designs are our own.)

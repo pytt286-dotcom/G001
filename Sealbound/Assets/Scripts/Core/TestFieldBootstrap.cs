@@ -23,6 +23,7 @@ namespace Sealbound.Core
         static readonly Color Rune = new Color(0.35f, 0.75f, 0.95f);
         static readonly Color RealmBrown = new Color(0.45f, 0.30f, 0.18f);
         static readonly Color Iron = new Color(0.72f, 0.72f, 0.76f);
+        static readonly Color SwordRune = new Color(0.36f, 0.76f, 0.96f); // own material: it flashes on the beat
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Build()
@@ -187,8 +188,11 @@ namespace Sealbound.Core
             player.AddComponent<PlayerInputReader>();
             var motor = player.AddComponent<PlayerMotor>();
             motor.visual = visual;
+            player.AddComponent<AudioSource>();
+            player.AddComponent<CombatAudio>();
             var combat = player.AddComponent<PlayerCombat>();
             combat.swordPivot = swordPivot;
+            combat.timingCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
 
             var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
             hud.motor = motor;
@@ -205,7 +209,7 @@ namespace Sealbound.Core
             Part(pivot, "Grip", new Vector3(0f, 0f, 0f), new Vector3(0.06f, 0.06f, 0.28f), Wood);
             Part(pivot, "Guard", new Vector3(0f, 0f, 0.16f), new Vector3(0.36f, 0.06f, 0.07f), Iron);
             Part(pivot, "Blade", new Vector3(0f, 0f, 0.85f), new Vector3(0.14f, 0.04f, 1.3f), Iron);
-            Part(pivot, "Rune Edge", new Vector3(0f, 0.025f, 0.85f), new Vector3(0.04f, 0.01f, 1.1f), Rune);
+            Part(pivot, "Rune Edge", new Vector3(0f, 0.025f, 0.85f), new Vector3(0.05f, 0.012f, 1.15f), SwordRune);
 
             var tip = new GameObject("Blade Tip").transform;
             tip.SetParent(pivot, false);

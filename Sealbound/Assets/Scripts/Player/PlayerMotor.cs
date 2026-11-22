@@ -75,6 +75,14 @@ namespace Sealbound.Player
             if (_verticalVelocity < 0f) _verticalVelocity = 0f;
         }
 
+        /// <summary>Throw the player upward, e.g. a launcher skill.</summary>
+        public void Launch(float upSpeed)
+        {
+            _verticalVelocity = upSpeed;
+            _coyoteTimer = 0f;
+            _hoverTimer = 0f;
+        }
+
         public void FaceDirection(Vector3 direction)
         {
             direction.y = 0f;
