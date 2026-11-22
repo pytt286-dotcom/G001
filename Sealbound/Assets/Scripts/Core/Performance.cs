@@ -1,3 +1,4 @@
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -21,7 +22,7 @@ namespace Sealbound.Core
         public bool adaptive = true;
 
         public const int TargetFps = 60;
-        const float MinScale = 0.5f;
+        const float MinScale = 0.7f; // below this the picture turns soft; the editor's own drawing also counts in its timings
 
         RenderPipelineAsset _original;
         UniversalRenderPipelineAsset _asset;
@@ -67,6 +68,7 @@ namespace Sealbound.Core
             float pixels = Mathf.Max(1f, Screen.width * (float)Screen.height);
             _maxScale = Mathf.Clamp(Mathf.Sqrt(2.1e6f / pixels), MinScale, 1f);
             _asset.renderScale = _maxScale;
+            AmbientOcclusion = AddAmbientOcclusion(_asset);
             QualitySettings.renderPipeline = _asset;
         }
 
@@ -78,6 +80,62 @@ namespace Sealbound.Core
                 QualitySettings.renderPipeline = _original;
                 Destroy(_asset);
             }
+        }
+
+        /// <summary>True when soft contact shadows (ambient occlusion) were switched on.</summary>
+        public static bool AmbientOcclusion { get; private set; }
+
+        /// <summary>
+        /// Adds screen-space ambient occlusion: soft shadow where things meet (under rocks, in the folds
+        /// of clothes, where the golem's stones touch), which takes away the flat "clay" look.
+        /// Works on copies, so the project's renderer settings are never changed.
+        /// </summary>
+        static bool AddAmbientOcclusion(UniversalRenderPipelineAsset asset)
+        {
+            try
+            {
+                const BindingFlags F = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+                var listField = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", F);
+                var list = listField != null ? listField.GetValue(asset) as ScriptableRendererData[] : null;
+                if (list == null || list.Length == 0 || list[0] == null) return false;
+                var aoType = typeof(ScriptableRendererFeature).Assembly.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion");
+                if (aoType == null) return false;
+                foreach (var f in list[0].rendererFeatures) if (f != null && aoType.IsInstanceOfType(f)) return true; // already there
+
+                var data = Instantiate(list[0]);
+                data.name = list[0].name + " (in game)";
+                var ao = (ScriptableRendererFeature)ScriptableObject.CreateInstance(aoType);
+                ao.name = "Ambient Occlusion";
+                var settingsField = aoType.GetField("m_Settings", F);
+                var settings = settingsField != null ? settingsField.GetValue(ao) : null;
+                if (settings != null)
+                {
+                    Set(settings, "Intensity", 1.4f);
+                    Set(settings, "Radius", 0.4f);
+                    Set(settings, "DirectLightingStrength", 0.3f);
+                    Set(settings, "Downsample", true);
+                    settingsField.SetValue(ao, settings);
+                }
+                data.rendererFeatures.Add(ao);
+                var map = typeof(ScriptableRendererData).GetField("m_RendererFeatureMap", F);
+                if (map != null && map.GetValue(data) is System.Collections.Generic.List<long> ids) ids.Add(ao.GetInstanceID());
+                data.SetDirty();
+                var copy = (ScriptableRendererData[])list.Clone();
+                copy[0] = data;
+                listField.SetValue(asset, copy);
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("Sealbound: ambient occlusion could not be switched on: " + e.Message);
+                return false;
+            }
+        }
+
+        static void Set(object target, string field, object value)
+        {
+            var f = target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+            if (f != null && f.FieldType == value.GetType()) f.SetValue(target, value);
         }
 
         public void SetRenderScale(float s)
@@ -95,10 +153,10 @@ namespace Sealbound.Core
                 _gpuMs = Mathf.Lerp(_gpuMs, (float)_timing[0].gpuFrameTime, 0.08f);
             if (!adaptive || _asset == null) return;
 
-            // The frame cap hides how hard the graphics chip works, so judge by its own time when we can:
-            // over budget for a while, draw fewer pixels; comfortably under for a while, draw more again.
-            bool slow = _gpuMs > 0f ? _gpuMs > 16f : _avgDt > 1f / 50f;
-            bool fast = _gpuMs > 0f ? _gpuMs < 11.5f : _avgDt < 1f / 57f;
+            // Judge by real frame time: below about 52 fps for a while, draw fewer pixels; back at 60, draw more.
+            // (The GPU timing includes the editor's own windows, so it is shown, not used.)
+            bool slow = _avgDt > 1f / 52f;
+            bool fast = _avgDt < 1f / 58f;
             if (slow) { _slowFor += dt; _fastFor = 0f; }
             else if (fast) { _fastFor += dt; _slowFor = 0f; }
             else { _slowFor = 0f; _fastFor = 0f; }

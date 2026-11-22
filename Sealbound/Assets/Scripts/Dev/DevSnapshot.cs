@@ -52,7 +52,7 @@ namespace Sealbound.Dev
 
             var motor = FindAnyObjectByType<PlayerMotor>();
             var combat = motor != null ? motor.GetComponent<PlayerCombat>() : null;
-            Line("Player found: " + (motor != null));
+            Line("Player found: " + (motor != null) + ", ambient occlusion on: " + Sealbound.Core.Performance.AmbientOcclusion);
             if (motor == null) { Finish(); yield break; }
             var p = motor.transform;
 
