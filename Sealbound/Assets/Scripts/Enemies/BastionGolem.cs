@@ -174,7 +174,8 @@ namespace Sealbound.Enemies
             body.Add(Block(_head, "Brow", new Vector3(0f, 2.15f, 1.35f), new Vector3(3.3f, 0.55f, 0.7f), Stone, "floor_foundation_allsides"));
             for (int s = -1; s <= 1; s += 2)
             {
-                var eye = Shapes.Make(PrimitiveType.Cube, _head, s < 0 ? "Eye L" : "Eye R", new Vector3(0.75f * s, 1.45f, 1.43f), new Vector3(0.7f, 0.35f, 0.12f), RuneBlue, false, true);
+                float eyeZ = RealArt.Has ? 1.62f : 1.43f; // the scanned skull bulges past its block
+                var eye = Shapes.Make(PrimitiveType.Sphere, _head, s < 0 ? "Eye L" : "Eye R", new Vector3(0.75f * s, 1.45f, eyeZ), new Vector3(0.6f, 0.26f, 0.2f), RuneBlue, false, true);
                 eye.layer = 2;
                 _eyeMats.Add(eye.GetComponent<Renderer>().material);
             }
@@ -190,14 +191,15 @@ namespace Sealbound.Enemies
             BuildLeg(1, out _thighR, out _kneeR, out _footR, legR);
 
             // Weak points.
-            _runes.Add(GolemRune.Create(this, _elbowL, "Rune (left arm)", new Vector3(0f, -2.6f, 1.25f), 0.95f, 150f, false));
-            _runes.Add(GolemRune.Create(this, _elbowR, "Rune (right arm)", new Vector3(0f, -2.6f, 1.25f), 0.95f, 150f, false));
-            _runes.Add(GolemRune.Create(this, _kneeL, "Rune (left leg)", new Vector3(0f, -1.4f, 1.3f), 0.95f, 190f, false));
-            _runes.Add(GolemRune.Create(this, _kneeR, "Rune (right leg)", new Vector3(0f, -1.4f, 1.3f), 0.95f, 190f, false));
-            _core = GolemRune.Create(this, _torso, "Rune Core", new Vector3(0f, 3.6f, 2.3f), 1.5f, 99999f, true);
+            float lift = RealArt.Has ? 0.15f : 0f; // sit on the rock's surface, not inside it
+            _runes.Add(GolemRune.Create(this, _elbowL, "Rune (left arm)", new Vector3(0f, -2.6f, 1.25f + lift), 0.95f, 150f, false));
+            _runes.Add(GolemRune.Create(this, _elbowR, "Rune (right arm)", new Vector3(0f, -2.6f, 1.25f + lift), 0.95f, 150f, false));
+            _runes.Add(GolemRune.Create(this, _kneeL, "Rune (left leg)", new Vector3(0f, -1.4f, 1.3f + lift), 0.95f, 190f, false));
+            _runes.Add(GolemRune.Create(this, _kneeR, "Rune (right leg)", new Vector3(0f, -1.4f, 1.3f + lift), 0.95f, 190f, false));
+            _core = GolemRune.Create(this, _torso, "Rune Core", new Vector3(0f, 3.6f, RealArt.Has ? 2.55f : 2.3f), 1.5f, 99999f, true);
 
             renderers.AddRange(body); renderers.AddRange(armL); renderers.AddRange(armR); renderers.AddRange(legL); renderers.AddRange(legR);
-            ToonOutline.Add(Visible(renderers), 0.08f);
+            if (!RealArt.Has) ToonOutline.Add(Visible(renderers), 0.08f); // ink lines suit the cartoon look only
 
             _warnArmL = Warn(_shoulderL, armL);
             _warnArmR = Warn(_shoulderR, armR);
@@ -246,6 +248,18 @@ namespace Sealbound.Enemies
             var go = Shapes.Make(PrimitiveType.Cube, parent, name, localCentre, size, color, true);
             go.layer = 2;
             _blocks.Add(go);
+            if (RealArt.Has)
+            {
+                // A scanned boulder, slightly bigger than its block so the pieces overlap like a natural rock body.
+                string slug = ScanFor(name);
+                var rock = RealArt.FitInsideBox(go.transform, RealArt.Scan(slug, null, 0f, 0.5f), 1.14f);
+                if (rock != null)
+                {
+                    Shapes.SetLayerRecursive(rock, 2);
+                    var r = rock.GetComponentInChildren<Renderer>();
+                    if (r != null) return r;
+                }
+            }
             if (ArtLibrary.HasScenery)
             {
                 var dressed = ArtLibrary.FitInsideBox(go.transform, ArtLibrary.Dungeon + piece);
@@ -257,6 +271,16 @@ namespace Sealbound.Enemies
                 }
             }
             return go.GetComponent<Renderer>();
+        }
+
+        /// <summary>Which scanned rock each part of the body is made from.</summary>
+        static string ScanFor(string part)
+        {
+            if (part.StartsWith("Chest") || part.StartsWith("Pelvis")) return "boulder_01";
+            if (part.StartsWith("Belly") || part.StartsWith("Fist")) return "namaqualand_boulder_02";
+            if (part.StartsWith("Skull") || part.StartsWith("Upper Arm") || part.StartsWith("Thigh")) return "rock_07";
+            if (part.StartsWith("Foot")) return "stone_01";
+            return "rock_09"; // forearms, shins, shoulder plates, brow
         }
 
         static IEnumerable<Renderer> Visible(List<Renderer> list)

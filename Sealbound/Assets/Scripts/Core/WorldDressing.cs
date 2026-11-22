@@ -60,16 +60,27 @@ namespace Sealbound.Core
             "Rock_3_M_Color1", "Rock_3_O_Color1", "Rock_3_Q_Color1", "Rock_3_R_Color1",
         };
 
+        static bool _real, _nature;
+
         public static void Dress(Transform field)
         {
             if (!ArtLibrary.HasScenery) return;
             _rng = new System.Random(1286);
-            var root = new GameObject("Scenery (KayKit, CC0)").transform;
+            _real = RealArt.Has;
+            _nature = _real && RealArt.HasNature;
+            var root = new GameObject(_real ? "Scenery (Poly Haven, MegaKit, KayKit; CC0)" : "Scenery (KayKit, CC0)").transform;
             root.SetParent(field, false);
+
+            if (_real && Landscape.Build(root) != null)
+            {
+                // The painted terrain replaces the flat green ground and the path tiles.
+                HideRenderer(ArtLibrary.FindDeep(field, "Ground"));
+                foreach (Transform t in field) if (t.name == "Path") HideRenderer(t);
+            }
 
             ReskinGreyBox(field);
             PaveTrainingYard(field, root);
-            PavePath(field, root);
+            if (!_real) PavePath(field, root);
             BuildForest(root);
             BuildRuins(root, new Vector3(0f, 0f, 70f));
             BuildHorizon(root);
@@ -77,6 +88,22 @@ namespace Sealbound.Core
 
             // Merge the many still pieces into fewer draw calls.
             StaticBatchingUtility.Combine(root.gameObject);
+            if (_nature) GrassField.Build(root, p => IsClear(p, 0.4f) || InPlayableClearing(p));
+        }
+
+        /// <summary>Grass may grow in the arena and the warren too, just not on the course, path or yard.</summary>
+        static bool InPlayableClearing(Vector3 p)
+        {
+            foreach (var r in ClearRects)
+                if (p.x > r.x - 0.4f && p.x < r.z + 0.4f && p.z > r.y - 0.4f && p.z < r.w + 0.4f) return false;
+            return OnGround(p, 1f);
+        }
+
+        static void HideRenderer(Transform t)
+        {
+            if (t == null) return;
+            var r = t.GetComponent<Renderer>();
+            if (r != null) r.enabled = false;
         }
 
         // ---------- Pieces ----------
@@ -84,7 +111,14 @@ namespace Sealbound.Core
         static GameObject Place(Transform parent, string path, Vector3 pos, float yaw, float scale, float sink = 0.05f)
         {
             var go = ArtLibrary.Spawn(path, parent);
+            return Settle(go, pos, yaw, scale, sink);
+        }
+
+        /// <summary>Puts a spawned model on the ground at <paramref name="pos"/> (following the hills).</summary>
+        static GameObject Settle(GameObject go, Vector3 pos, float yaw, float scale, float sink)
+        {
             if (go == null) return null;
+            pos.y += Landscape.HeightAt(pos);
             var t = go.transform;
             t.position = pos;
             t.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -96,13 +130,67 @@ namespace Sealbound.Core
 
         /// <summary>Places a model scaled to a height in metres, whatever size it was made at.</summary>
         static GameObject PlaceHeight(Transform parent, string path, Vector3 pos, float height, float sink)
+            => FitHeight(Place(parent, path, pos, Range(0f, 360f), 1f, 0f), pos, height, sink);
+
+        static GameObject FitHeight(GameObject go, Vector3 pos, float height, float sink)
         {
-            var go = Place(parent, path, pos, Range(0f, 360f), 1f, 0f);
             if (go == null) return null;
             var b = ArtLibrary.WorldBounds(go);
             if (b.size.y > 0.001f) go.transform.localScale *= height / b.size.y;
-            ArtLibrary.SetBottom(go, pos.y - sink);
+            ArtLibrary.SetBottom(go, pos.y + Landscape.HeightAt(pos) - sink);
             return go;
+        }
+
+        /// <summary>A Nature MegaKit model (tree, bush, plant) a set height tall.</summary>
+        static GameObject PlaceNature(Transform parent, string name, Vector3 pos, float height, float sink = 0.1f)
+        {
+            var go = Settle(RealArt.Nature(name, parent), pos, Range(0f, 360f), 1f, 0f);
+            return FitHeight(go, pos, height, sink);
+        }
+
+        /// <summary>A scanned rock or stump, its largest side <paramref name="size"/> metres.</summary>
+        static GameObject PlaceScan(Transform parent, string slug, Vector3 pos, float size, float sink, float moss = 0f)
+        {
+            var go = RealArt.Scan(slug, parent, size, moss);
+            if (go == null) return null;
+            var p = pos; p.y += Landscape.HeightAt(pos);
+            go.transform.position = p;
+            go.transform.rotation = Quaternion.Euler(Range(-8f, 8f), Range(0f, 360f), Range(-8f, 8f));
+            ArtLibrary.SetBottom(go, p.y - sink);
+            go.isStatic = true;
+            return go;
+        }
+
+        static void AddTrunkMetres(GameObject go, float radius, float height)
+        {
+            if (go == null) return;
+            var cap = go.AddComponent<CapsuleCollider>();
+            float s = Mathf.Max(0.0001f, go.transform.lossyScale.y);
+            cap.radius = radius / s;
+            cap.height = height / s;
+            cap.center = new Vector3(0f, cap.height * 0.5f, 0f);
+        }
+
+        static readonly string[] NatureTrees = { "CommonTree_1", "CommonTree_2", "CommonTree_3", "CommonTree_4", "CommonTree_5" };
+        static readonly string[] NaturePines = { "Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5" };
+        static readonly string[] NatureTwisted = { "TwistedTree_1", "TwistedTree_2", "TwistedTree_3", "TwistedTree_4", "TwistedTree_5" };
+        static readonly string[] NatureDead = { "DeadTree_1", "DeadTree_2", "DeadTree_3" };
+        static readonly string[] NatureBushes = { "Bush_Common", "Bush_Common", "Bush_Common_Flowers", "Fern_1", "Plant_1", "Plant_7" };
+        static readonly string[] ScanSmallRocks = { "rock_07", "rock_09", "stone_01" };
+        static readonly string[] ScanBigRocks = { "boulder_01", "namaqualand_boulder_02", "rock_moss_set_01", "rock_moss_set_02" };
+
+        /// <summary>A tree that fits the highland: mostly pines, with broadleaf and the odd twisted or dead one.</summary>
+        static GameObject PlaceTree(Transform parent, Vector3 p, bool solid)
+        {
+            float roll = Range(0f, 1f);
+            string name; float height;
+            if (roll < 0.55f) { name = Pick(NaturePines); height = Range(11f, 19f); }
+            else if (roll < 0.85f) { name = Pick(NatureTrees); height = Range(8f, 13f); }
+            else if (roll < 0.95f) { name = Pick(NatureTwisted); height = Range(7f, 11f); }
+            else { name = Pick(NatureDead); height = Range(6f, 10f); }
+            var tree = PlaceNature(parent, name, p, height, 0.15f);
+            if (solid) AddTrunkMetres(tree, 0.5f, 6f);
+            return tree;
         }
 
         static void SetTop(GameObject go, float y)
@@ -210,6 +298,7 @@ namespace Sealbound.Core
             var forest = new GameObject("Forest").transform;
             forest.SetParent(root, false);
             Vector3 centre = new Vector3(0f, 0f, 40f);
+            if (_nature) { BuildRealForest(forest, centre); return; }
 
             // The surrounding forest: denser further out.
             for (int i = 0; i < 520; i++)
@@ -257,6 +346,61 @@ namespace Sealbound.Core
                 Vector3 p = new Vector3(Range(-100f, 100f), 0f, Range(-60f, 160f));
                 if (!IsClear(p, 7f)) continue;
                 AddMeshColliders(Place(forest, ArtLibrary.Forest + Pick(BigRocks), p, Range(0f, 360f), Range(0.8f, 2.2f), 0.3f));
+            }
+        }
+
+        /// <summary>The highland forest from the painted nature pack and the scanned rocks.</summary>
+        static void BuildRealForest(Transform forest, Vector3 centre)
+        {
+            // The surrounding forest, climbing the hills: denser further out.
+            for (int i = 0; i < 620; i++)
+            {
+                float r = Mathf.Lerp(55f, 230f, Mathf.Sqrt(Range(0f, 1f)));
+                Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
+                if (!InWorld(p, 4f) || !IsClear(p, 5f, worldEdge: false)) continue;
+                PlaceTree(forest, p, r < 120f);
+            }
+            // Clumps of trees closer in, so the field has shape.
+            for (int c = 0; c < 9; c++)
+            {
+                Vector3 clump = new Vector3(Range(-60f, 60f), 0f, Range(-40f, 125f));
+                for (int i = 0; i < 7; i++)
+                {
+                    Vector3 p = clump + new Vector3(Range(-9f, 9f), 0f, Range(-9f, 9f));
+                    if (!IsClear(p, 6f)) continue;
+                    PlaceTree(forest, p, true);
+                }
+            }
+            for (int i = 0; i < 180; i++)
+            {
+                Vector3 p = new Vector3(Range(-95f, 95f), 0f, Range(-60f, 160f));
+                if (!IsClear(p, 2f)) continue;
+                if (Range(0f, 1f) < 0.3f) PlaceScan(forest, Pick("shrub_02", "shrub_04", "fern_02"), p, Range(0.8f, 1.6f), 0.05f);
+                else PlaceNature(forest, Pick(NatureBushes), p, Range(0.6f, 1.4f), 0.05f);
+            }
+            // Fallen wood: stumps, dead trunks and branches under the trees.
+            for (int i = 0; i < 50; i++)
+            {
+                float r = Mathf.Lerp(45f, 140f, Range(0f, 1f));
+                Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
+                if (!IsClear(p, 2f, worldEdge: false)) continue;
+                string slug = Pick("tree_stump_01", "tree_stump_01", "dead_tree_trunk", "dry_branches_medium_01");
+                float size = slug == "dead_tree_trunk" ? Range(4f, 7f) : slug == "tree_stump_01" ? Range(0.8f, 1.4f) : Range(1.5f, 2.5f);
+                var wood = PlaceScan(forest, slug, p, size, 0.1f);
+                if (slug == "dead_tree_trunk") AddBox(wood, 0.8f);
+            }
+            // Rocks: pebbles to boulders you can hide behind, mossy where they sit in the grass.
+            for (int i = 0; i < 120; i++)
+            {
+                Vector3 p = new Vector3(Range(-100f, 100f), 0f, Range(-60f, 165f));
+                if (!IsClear(p, 1.5f)) continue;
+                PlaceScan(forest, Pick(ScanSmallRocks), p, Range(0.3f, 1.2f), 0.12f, 0.25f);
+            }
+            for (int i = 0; i < 30; i++)
+            {
+                Vector3 p = new Vector3(Range(-110f, 110f), 0f, Range(-65f, 175f));
+                if (!IsClear(p, 7f)) continue;
+                AddBox(PlaceScan(forest, Pick(ScanBigRocks), p, Range(3f, 7.5f), 0.5f, 0.35f), 0.75f);
             }
         }
 
@@ -314,6 +458,19 @@ namespace Sealbound.Core
         {
             var horizon = new GameObject("Horizon Rocks").transform;
             horizon.SetParent(root, false);
+            if (_real)
+            {
+                // Rock faces and boulders breaking out of the hills around the valley.
+                for (int i = 0; i < 26; i++)
+                {
+                    float a = i * (360f / 26f) + Range(-5f, 5f);
+                    Vector3 p = new Vector3(-20f, 0f, 55f) + Quaternion.Euler(0f, a, 0f) * Vector3.forward * Range(190f, 260f);
+                    if (!InWorld(p, 10f)) continue;
+                    var cliff = PlaceScan(horizon, Pick("rock_face_01", "rock_face_02", "boulder_01", "namaqualand_boulder_02"), p, Range(25f, 55f), Range(4f, 10f), 0.3f);
+                    if (cliff != null) cliff.transform.rotation = Quaternion.Euler(0f, a + 180f + Range(-30f, 30f), 0f);
+                }
+                return;
+            }
             for (int i = 0; i < 18; i++)
             {
                 float a = i * 20f + Range(-6f, 6f);
@@ -337,8 +494,10 @@ namespace Sealbound.Core
                     var r = t.GetComponent<Renderer>();
                     if (r == null) continue;
                     r.enabled = false;
-                    var rock = Place(deco, ArtLibrary.Forest + Pick("Rock_3_B_Color1", "Rock_3_D_Color1", "Rock_3_F_Color1", "Rock_3_H_Color1"),
-                        t.position, Range(0f, 360f), 1f, 0f);
+                    var rock = _real
+                        ? PlaceScan(deco, Pick(ScanBigRocks), t.position, 3f, 0f, 0.3f)
+                        : Place(deco, ArtLibrary.Forest + Pick("Rock_3_B_Color1", "Rock_3_D_Color1", "Rock_3_F_Color1", "Rock_3_H_Color1"),
+                            t.position, Range(0f, 360f), 1f, 0f);
                     if (rock == null) continue;
                     var rb = ArtLibrary.WorldBounds(rock);
                     float fit = Mathf.Max(t.lossyScale.x, t.lossyScale.z) * 1.1f / Mathf.Max(0.01f, Mathf.Max(rb.size.x, rb.size.z));
@@ -353,7 +512,8 @@ namespace Sealbound.Core
                     for (int k = 0; k < 3; k++)
                     {
                         Vector3 p = t.position + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * Range(1.4f, 1.9f);
-                        PlaceHeight(deco, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0.35f, 0.8f), 0.1f);
+                        if (_real) PlaceScan(deco, Pick(ScanSmallRocks), p, Range(0.4f, 0.9f), 0.1f, 0.2f);
+                        else PlaceHeight(deco, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0.35f, 0.8f), 0.1f);
                     }
                 }
             }
@@ -375,8 +535,10 @@ namespace Sealbound.Core
                 l.intensity = 2.5f;
                 l.shadows = LightShadows.None;
             }
-            string[] clutter = { "barrel_small", "box_small", "trunk_small_A", "trunk_medium_B", "keg", "bottle_A_brown", "plate_food_A", "coin_stack_small", "chest" };
-            for (int i = 0; i < 14; i++)
+            string[] clutter = _real
+                ? new[] { "barrel_small", "box_small", "trunk_small_A", "keg", "chest" } // the toy-like small props stay out of the real look
+                : new[] { "barrel_small", "box_small", "trunk_small_A", "trunk_medium_B", "keg", "bottle_A_brown", "plate_food_A", "coin_stack_small", "chest" };
+            for (int i = 0; i < (_real ? 6 : 14); i++)
             {
                 Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * Range(12f, 16f);
                 Place(deco, ArtLibrary.Dungeon + clutter[i % clutter.Length], p, Range(0f, 360f), 1.3f);
@@ -387,6 +549,7 @@ namespace Sealbound.Core
             {
                 Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * Range(21f, 34f);
                 if (!IsClear(p, 3f, ignoreWarren: true)) continue;
+                if (_nature) { PlaceTree(deco, p, true); continue; }
                 float s = Range(1f, 1.6f);
                 AddTrunk(Place(deco, ArtLibrary.Forest + Pick(Trees), p, Range(0f, 360f), s, 0.1f), s);
             }
@@ -396,9 +559,13 @@ namespace Sealbound.Core
 
         static bool OnGround(Vector3 p, float margin) => Mathf.Abs(p.x) < 200f - margin && Mathf.Abs(p.z) < 200f - margin;
 
-        static bool IsClear(Vector3 p, float margin, bool ignoreWarren = false)
+        /// <summary>Inside the terrain when there is one (it reaches further than the old ground).</summary>
+        static bool InWorld(Vector3 p, float margin) =>
+            Landscape.Terrain == null ? OnGround(p, margin) : p.x > -400f + margin && p.x < 360f - margin && p.z > -320f + margin && p.z < 440f - margin;
+
+        static bool IsClear(Vector3 p, float margin, bool ignoreWarren = false, bool worldEdge = true)
         {
-            if (!OnGround(p, margin)) return false;
+            if (worldEdge ? !OnGround(p, margin) : !InWorld(p, margin)) return false;
             foreach (var c in ClearCircles)
             {
                 if (ignoreWarren && c.x == -45f) continue;

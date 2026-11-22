@@ -123,7 +123,30 @@ namespace Sealbound.Core
             var go = Object.Instantiate(prefab, parent, false);
             go.name = prefab.name;
             ApplySheet(go, sheet != null ? sheet : GuessSheet(path, go));
+            if (sheet == null && path.StartsWith(Dungeon)) ApplyRealStone(go, path.Substring(Dungeon.Length));
             return go;
+        }
+
+        /// <summary>
+        /// With the scanned textures in the project, the ruin pieces (walls, pillars, floors, rubble) wear real
+        /// weathered stone with moss on top instead of the flat cartoon palette. Props keep their colours.
+        /// </summary>
+        static void ApplyRealStone(GameObject go, string piece)
+        {
+            if (!RealArt.Has) return;
+            string n = piece.ToLowerInvariant();
+            Material m = null;
+            if (n.StartsWith("floor") || n.StartsWith("stairs")) m = RealArt.Surface(RealArt.Blocks, 2f, 0.15f);
+            else if (n.StartsWith("wall") || n.StartsWith("pillar") || n.StartsWith("column") || n.StartsWith("barrier")
+                     || n.StartsWith("foundation") || n.StartsWith("arch")) m = RealArt.Surface(RealArt.CastleStone, 2.5f, 0.4f);
+            else if (n.StartsWith("rubble")) m = RealArt.Surface(RealArt.CastleStone, 1.5f, 0.5f);
+            if (m == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = m;
+                r.sharedMaterials = mats;
+            }
         }
 
         public static void ApplySheet(GameObject go, Texture sheet)

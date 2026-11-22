@@ -23,6 +23,7 @@ namespace Sealbound.Enemies
         Renderer _gem;
         Material _mat;
         Collider _collider;
+        Light _light;
         Color _color = new Color(0.12f, 0.5f, 1f);
         float _flash, _size;
 
@@ -33,7 +34,8 @@ namespace Sealbound.Enemies
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
 
-            var gem = Shapes.Make(PrimitiveType.Cube, go.transform, "Rune Gem", Vector3.zero, Vector3.one * size, new Color(0.12f, 0.5f, 1f), true, true);
+            // A flat glowing rune set into the rock, with a light that glows on the stone around it.
+            var gem = Shapes.Make(PrimitiveType.Cube, go.transform, "Rune Gem", Vector3.zero, new Vector3(size, size, size * 0.4f), new Color(0.12f, 0.5f, 1f), true, true);
             gem.layer = 2;
             gem.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
             gem.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -50,6 +52,14 @@ namespace Sealbound.Enemies
             rune._mat = rune._gem.material;
             rune._collider = gem.GetComponent<Collider>();
             rune._size = size;
+            var lightGo = new GameObject("Rune Light");
+            lightGo.transform.SetParent(go.transform, false);
+            lightGo.transform.localPosition = Vector3.forward * size * 0.9f;
+            rune._light = lightGo.AddComponent<Light>();
+            rune._light.type = LightType.Point;
+            rune._light.range = core ? 7f : 4.5f;
+            rune._light.intensity = core ? 4f : 2.5f;
+            rune._light.shadows = LightShadows.None;
             if (core) rune.SetExposed(false);
             return rune;
         }
@@ -75,6 +85,7 @@ namespace Sealbound.Enemies
             DustPuff.Spawn(transform.position, 1.5f, 6);
             if (_gem != null) _gem.enabled = false;
             if (_collider != null) _collider.enabled = false;
+            if (_light != null) _light.enabled = false;
             if (golem != null) golem.OnRuneBroken(this);
         }
 
@@ -84,6 +95,7 @@ namespace Sealbound.Enemies
             Health.ResetHealth();
             if (_gem != null) _gem.enabled = Exposed;
             if (_collider != null) _collider.enabled = Exposed;
+            if (_light != null) _light.enabled = Exposed;
             _flash = 1f;
         }
 
@@ -94,6 +106,7 @@ namespace Sealbound.Enemies
             bool show = on && !Broken;
             if (_gem != null) _gem.enabled = show;
             if (_collider != null) _collider.enabled = show;
+            if (_light != null) _light.enabled = show;
         }
 
         public void SetColor(Color c) => _color = c;
@@ -107,8 +120,9 @@ namespace Sealbound.Enemies
             Color c = Color.Lerp(_color * pulse, Color.white, _flash * 0.6f);
             _mat.color = c;
             _mat.SetColor("_EmissionColor", c * (isCore ? 1.6f : 1.2f));
+            if (_light != null) _light.color = _color;
             if (_gem != null)
-                _gem.transform.localScale = Vector3.one * _size * (1f + 0.15f * _flash + (isCore ? 0.08f * Mathf.Sin(Time.time * 7f) : 0f));
+                _gem.transform.localScale = new Vector3(1f, 1f, 0.4f) * _size * (1f + 0.15f * _flash + (isCore ? 0.08f * Mathf.Sin(Time.time * 7f) : 0f));
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Sealbound.EditorTools
         const string ArtRoot = "Assets/Resources/Art/";
 
         // Bump this whenever a rule changes so Unity re-imports the art with the new rules.
-        public override uint GetVersion() => 3;
+        public override uint GetVersion() => 4;
 
         static bool IsArt(string path) => path.Replace('\\', '/').StartsWith(ArtRoot);
         static bool IsRigged(string path) => path.Contains("/Characters/") || path.Contains("/Animations/");
@@ -29,6 +29,13 @@ namespace Sealbound.EditorTools
             m.importBlendShapes = false;
             m.importVisibility = false;
             m.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            if (assetPath.Contains("/PolyHaven/"))
+            {
+                // Scans get their materials from code; they need tangents for their normal maps.
+                m.materialImportMode = ModelImporterMaterialImportMode.None;
+                m.importTangents = ModelImporterTangents.CalculateMikk;
+                m.isReadable = true; // rock colliders
+            }
 
             if (IsRigged(assetPath))
             {
@@ -79,6 +86,35 @@ namespace Sealbound.EditorTools
             }
             t.mipmapEnabled = true;
             t.filterMode = FilterMode.Bilinear;
+
+            string file = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+            if (assetPath.Contains("/PolyHaven/Sky/"))
+            {
+                // The photographed sky, at full size.
+                t.maxTextureSize = 8192;
+                t.wrapModeU = TextureWrapMode.Repeat;
+                t.wrapModeV = TextureWrapMode.Clamp;
+                t.textureCompression = TextureImporterCompression.CompressedHQ;
+                t.filterMode = FilterMode.Trilinear;
+                return;
+            }
+            if (assetPath.Contains("/PolyHaven/") || assetPath.Contains("/MegaKit/"))
+            {
+                t.maxTextureSize = 2048;
+                t.anisoLevel = 4;
+                t.filterMode = FilterMode.Trilinear;
+                t.wrapMode = TextureWrapMode.Repeat;
+                if (file.EndsWith("_nor") || file.EndsWith("_Normal"))
+                    t.textureType = TextureImporterType.NormalMap;
+                else if (file.EndsWith("_arm") || file.EndsWith("_rough"))
+                    t.sRGBTexture = false;
+                if (assetPath.Contains("/MegaKit/") && !file.StartsWith("Bark"))
+                {
+                    t.alphaIsTransparency = true;           // leaves and grass: clean cut-out edges
+                    t.mipMapsPreserveCoverage = true;       // so distant leaves don't thin out
+                    t.alphaTestReferenceValue = 0.45f;
+                }
+            }
         }
     }
 }

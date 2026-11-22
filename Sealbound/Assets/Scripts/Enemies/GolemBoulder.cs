@@ -30,7 +30,16 @@ namespace Sealbound.Enemies
             var root = new GameObject("Golem Boulder");
             root.layer = 2;
             GameObject rock = null;
-            if (ArtLibrary.HasScenery)
+            if (RealArt.Has)
+            {
+                rock = RealArt.Scan("boulder_01", root.transform, size, 0.4f);
+                if (rock != null)
+                {
+                    var bb = ArtLibrary.WorldBounds(rock);
+                    rock.transform.position -= bb.center - root.transform.position;
+                }
+            }
+            else if (ArtLibrary.HasScenery)
                 rock = ArtLibrary.Spawn(ArtLibrary.Forest + "Rock_3_C_Color1", root.transform);
             if (rock != null)
             {
@@ -48,7 +57,7 @@ namespace Sealbound.Enemies
             }
             foreach (var c in rock.GetComponentsInChildren<Collider>()) Destroy(c);
             Shapes.SetLayerRecursive(root, 2);
-            ToonOutline.Add(root.GetComponentsInChildren<Renderer>(), 0.06f);
+            if (!RealArt.Has) ToonOutline.Add(root.GetComponentsInChildren<Renderer>(), 0.06f);
             return root;
         }
 
