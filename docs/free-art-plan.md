@@ -26,7 +26,7 @@ The two makers below, **KayKit** (Kay Lousberg) and **Quaternius**, both make ch
 | **Goblins** | [Quaternius: LowPoly Animated Monsters](https://quaternius.itch.io/lowpoly-animated-monsters) | Animated cartoon monsters (attack, walk, jump and more) in a style that matches. We'll recolour and dress one up as the Burrow Goblin. |
 | **Forest** | [KayKit Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest) (free tier) | 100+ trees, bushes, grass and rocks. |
 | **More nature** | [Quaternius Stylized Nature MegaKit](https://opengameart.org/content/stylized-nature-megakit) (standard version) | 68 more trees, plants, flowers and rocks. |
-| **Ruins and stone** | KayKit Dungeon pieces (free, CC0) | Walls, pillars and arches for the Runestone Ruins. |
+| **Ruins and stone** | KayKit Dungeon pack (I still need to confirm its free tier) | Walls, pillars and arches for the Runestone Ruins. If it isn't free, we use the rocks from the nature packs. |
 | **Extra animations** | [KayKit Character Animations](https://kaylousberg.itch.io/kaykit-animations) | 29 more CC0 animations (combo attack, spin attack, rolls, dashes). |
 
 ### The Bastion Golem
