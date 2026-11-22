@@ -196,6 +196,8 @@ namespace Sealbound.Core
             hud.motor = motor;
             hud.combat = combat;
             hud.vitals = vitals;
+            var loot = hud.gameObject.AddComponent<Sealbound.UI.LootHud>();
+            loot.input = player.GetComponent<PlayerInputReader>();
             return player;
         }
 

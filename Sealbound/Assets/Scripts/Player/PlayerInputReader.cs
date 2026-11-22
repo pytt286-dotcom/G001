@@ -27,9 +27,12 @@ namespace Sealbound.Player
         public int SkillPressed { get; private set; } = -1;
         /// <summary>True for one frame when switch class was pressed.</summary>
         public bool SwitchClassPressed { get; private set; }
+        /// <summary>Held to seal a beaten creature (and later to use things).</summary>
+        public bool InteractHeld { get; private set; }
+        public bool InventoryPressed { get; private set; }
 
         InputActionMap _map;
-        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass;
+        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass, _interact, _inventory;
         readonly InputAction[] _skills = new InputAction[3];
 
         void Awake()
@@ -72,6 +75,12 @@ namespace Sealbound.Player
             _switchClass = _map.AddAction("SwitchClass", InputActionType.Button, "<Keyboard>/tab");
             _switchClass.AddBinding("<Gamepad>/select");
 
+            _interact = _map.AddAction("Interact", InputActionType.Button, "<Keyboard>/g");
+            _interact.AddBinding("<Gamepad>/dpad/up");
+
+            _inventory = _map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/i");
+            _inventory.AddBinding("<Gamepad>/dpad/down");
+
             string[] keys = { "<Keyboard>/q", "<Keyboard>/r", "<Keyboard>/f" };
             string[] pads = { "<Gamepad>/leftShoulder", "<Gamepad>/rightShoulder", "<Gamepad>/rightTrigger" };
             for (int i = 0; i < 3; i++)
@@ -99,6 +108,8 @@ namespace Sealbound.Player
             AttackPressed = _attack.WasPressedThisFrame() && !(cursorFree && _attack.activeControl?.device is Mouse);
             HeavyPressed = _heavy.WasPressedThisFrame();
             SwitchClassPressed = _switchClass.WasPressedThisFrame();
+            InteractHeld = _interact.IsPressed();
+            InventoryPressed = _inventory.WasPressedThisFrame();
             SkillPressed = -1;
             for (int i = 0; i < 3; i++)
                 if (_skills[i].WasPressedThisFrame()) { SkillPressed = i; break; }

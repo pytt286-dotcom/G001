@@ -145,9 +145,10 @@ namespace Sealbound.UI
                 "Dodge on the flash = EVADE (keeps the chain).\n" +
                 "<b>Golem</b> (ruins to the north): jump its ground wave,\n" +
                 "break the glowing runes, then hit the exposed core.\n" +
+                "Beaten creatures: hold G (d-pad up) to SEAL. Pack: I\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 324f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 320f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 346f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 342f), text, _label);
         }
 
         void DrawBossBar()

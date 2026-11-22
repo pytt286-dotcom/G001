@@ -363,6 +363,7 @@ namespace Sealbound.Enemies
             SetState(State.Dead);
             _cc.enabled = false;
             SealBurst.Spawn(transform.position + Vector3.up * 0.7f, 2f, new Color(0.35f, 0.75f, 0.95f));
+            Sealbound.Loot.LootDrop.Burst(Sealbound.Loot.LootTables.RollGoblin(), transform.position + Vector3.up * 0.8f, 2.5f);
             Sealed?.Invoke(this);
         }
 

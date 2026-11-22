@@ -40,6 +40,9 @@ namespace Sealbound.Dev
             }
         }
 
+        // A test run must never touch the player's real pack on disk.
+        void Awake() => Sealbound.Loot.Inventory.InMemoryOnly = true;
+
         IEnumerator Start()
         {
             Done = false;
@@ -185,11 +188,48 @@ namespace Sealbound.Dev
             Line($"Frame rate in the golem fight: {fpsFrames / Mathf.Max(0.1f, Time.realtimeSinceStartup - t0):0} fps, state {golem.CurrentState}");
 
             Vector3 centre = g.position;
+            int brokenBefore = golem.RunesBrokenTotal;
             golem.Health.TryDamage(new Combat.DamageInfo { Amount = 1e6f, Point = centre + Vector3.up * 6f }, out _);
+            yield return new WaitForSeconds(2f);
+            Line($"After the killing blow: state {golem.CurrentState}, subdued {golem.Subdued}, seal ritual {(GolemSeal.Current != null)}, runes broken this fight {brokenBefore}");
+            Vector3 side = Vector3.ProjectOnPlane(motor.transform.position - centre, Vector3.up).normalized;
+            Shot("16_golem_subdued", centre + side * 20f + Vector3.up * 9f, centre + Vector3.up * 2f, 62f);
+
+            // Walk up and seal it.
+            motor.Teleport(centre + side * 8f + Vector3.up * 0.2f);
+            yield return new WaitForSeconds(0.4f);
+            GolemSeal.DevHold = true;
+            yield return new WaitForSeconds(GolemSeal.HoldSeconds * 0.6f);
+            var seal = GolemSeal.Current;
+            Line($"Sealing: in reach {(seal != null && seal.InReach)}, holding {(seal != null && seal.Holding)}, progress {(seal != null ? seal.Progress : -1f):P0}");
+            Shot("17_sealing", centre + side * 15f + Quaternion.Euler(0f, 90f, 0f) * side * 9f + Vector3.up * 5f, centre + side * 4f + Vector3.up * 3f, 60f);
+            float w2 = 0f;
+            while (golem != null && w2 < 5f) { w2 += Time.deltaTime; yield return null; }
+            GolemSeal.DevHold = false;
+            Line("Golem sealed and gone: " + (golem == null) + ", respawner waiting " + (GameObject.Find("Golem Respawner") != null));
+            yield return new WaitForSeconds(0.35f);
+            Shot("18a_loot_burst", centre + side * 16f + Vector3.up * 7f, centre + Vector3.up * 3f, 62f);
             yield return new WaitForSeconds(1.6f);
-            Line("After the killing blow: golem dead " + golem.Health.IsDead + ", respawner waiting " + (GameObject.Find("Golem Respawner") != null));
-            Vector3 collapseCam = centre + Vector3.ProjectOnPlane(motor.transform.position - centre, Vector3.up).normalized * 18f + Vector3.up * 10f;
-            Shot("16_golem_collapse", collapseCam, centre + Vector3.up * 1.5f, 60f);
+            var drops = new List<Sealbound.Loot.LootDrop>(Sealbound.Loot.LootDrop.Active);
+            var counts = new Dictionary<string, int>();
+            foreach (var d in drops) { counts.TryGetValue(d.Item.displayName, out int n); counts[d.Item.displayName] = n + d.Count; }
+            var sb = new StringBuilder();
+            foreach (var kv in counts) sb.Append(kv.Key).Append(" x").Append(kv.Value).Append(", ");
+            Line($"Loot on the ground: {drops.Count} pickups: {sb}");
+            Shot("18b_loot_on_ground", centre + side * 12f + Vector3.up * 2.6f, centre + Vector3.up * 0.6f, 60f);
+
+            // Walk over every drop so it flies into the pack.
+            foreach (var d in drops)
+            {
+                if (d == null) continue;
+                motor.Teleport(d.transform.position + Vector3.up * 0.1f);
+                yield return new WaitForSeconds(0.35f);
+            }
+            yield return new WaitForSeconds(1.5f);
+            var pack = new StringBuilder();
+            foreach (var kv in Sealbound.Loot.Inventory.Owned()) pack.Append(kv.Key.displayName).Append(" x").Append(kv.Value).Append(", ");
+            Line($"Pack after collecting: {pack} (left on the ground: {Sealbound.Loot.LootDrop.Active.Count}); hunts {Sealbound.Loot.Inventory.Hunts}, " +
+                 $"next spirit chance {Sealbound.Loot.LootTables.GolemSpiritChance(Sealbound.Loot.Inventory.FailedSpiritRolls(Sealbound.Loot.LootTables.GolemName)):P0}");
         }
 
         /// <summary>

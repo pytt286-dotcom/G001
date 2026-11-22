@@ -20,7 +20,7 @@ namespace Sealbound.Enemies
     [RequireComponent(typeof(Health))]
     public class BastionGolem : MonoBehaviour
     {
-        public enum State { Dormant, Waking, Idle, Walking, Slam, DoubleSlam, Stomp, Charge, Throw, Kneel, Roar, Dead }
+        public enum State { Dormant, Waking, Idle, Walking, Slam, DoubleSlam, Stomp, Charge, Throw, Kneel, Roar, Subdued, Dead }
 
         public string displayName = "Bastion Golem";
         public float maxHealth = 3000f;
@@ -51,7 +51,13 @@ namespace Sealbound.Enemies
         public int Phase { get; private set; } = 1;
         public Health Health => _health;
         public float HealthFraction => _health != null ? _health.Current / Mathf.Max(1f, _health.maxHealth) : 0f;
-        public bool Engaged => _state != State.Dormant && _state != State.Dead;
+        public bool Engaged => _state != State.Dormant && _state != State.Dead && _state != State.Subdued;
+        /// <summary>Beaten and kneeling: waiting for a Sealer to seal it.</summary>
+        public bool Subdued => _state == State.Subdued;
+        /// <summary>Limb runes broken during this fight (both phases): more of them means better drops.</summary>
+        public int RunesBrokenTotal { get; private set; }
+        /// <summary>Where the sealing beam aims: the middle of its chest.</summary>
+        public Vector3 SealPoint => _torso != null ? _torso.position + _torso.up * 3.5f : transform.position + Vector3.up * 6f;
         public bool CoreExposed => _core != null && _core.Exposed;
         public bool CanBeHurt => Engaged && _state != State.Waking && _state != State.Roar;
         public IReadOnlyList<GolemRune> LimbRunes => _runes;
@@ -378,6 +384,7 @@ namespace Sealbound.Enemies
                 case State.Throw: return UpdateThrow(ref rate);
                 case State.Kneel: return UpdateKneel(ref rate);
                 case State.Roar: return UpdateRoar(ref rate);
+                case State.Subdued: rate = 2.5f; return SubduedPose();
                 default: return _pose;
             }
         }
@@ -979,6 +986,7 @@ namespace Sealbound.Enemies
 
         public void OnRuneBroken(GolemRune rune)
         {
+            if (Engaged) RunesBrokenTotal++;
             if (!CanBeHurt) return;
             var info = new DamageInfo { Amount = _health.maxHealth * 0.06f / Mathf.Max(0.01f, _health.damageMultiplier), Point = rune.transform.position, Source = gameObject, Impact = 1f };
             _health.TryDamage(info, out _);
@@ -1004,16 +1012,43 @@ namespace Sealbound.Enemies
 
         void OnDefeated()
         {
+            // Beaten, it sinks to its knees, runes dark, and waits to be sealed.
             HideWarnings();
             if (_warning != null) { _warning.Cancel(); _warning = null; }
+            if (_heldBoulder != null) { Destroy(_heldBoulder); _heldBoulder = null; }
+            SetState(State.Subdued);
+            _core.SetExposed(false);
+            foreach (var r in _runes) if (r != null) r.gameObject.SetActive(false);
+            SetEyes(0.25f);
+            Announce?.Invoke("THE GOLEM KNEELS. SEAL IT!", new Color(1f, 0.85f, 0.3f));
+            Play(_crumble, 0.7f);
+            Shake(0.8f);
+            ThirdPersonCamera.SetBossFraming(0f);
+            GolemSeal.Begin(this);
+        }
+
+        Pose SubduedPose()
+        {
+            var p = KneelPose();
+            p.hipDrop = 4.2f;
+            p.torsoPitch = 58f;
+            p.headPitch = 32f;
+            return p;
+        }
+
+        /// <summary>The sealing is done: it breaks apart, its power pours out as drops, and it returns later.</summary>
+        public void CompleteSeal()
+        {
+            if (_state != State.Subdued) return;
             _state = State.Dead;
             _t = 0f;
-            _core.SetExposed(false);
-            Announce?.Invoke("BASTION GOLEM SEALED", new Color(1f, 0.85f, 0.3f));
-            SealBurst.Spawn(_torso.position + Vector3.up * 3f, 14f, RuneBlue);
+            Vector3 heart = SealPoint;
+            var loot = Sealbound.Loot.LootTables.RollGolem(RunesBrokenTotal, out bool spirit);
+            Announce?.Invoke(spirit ? "SEALED! ITS SPIRIT IS YOURS!" : "BASTION GOLEM SEALED", spirit ? new Color(0.85f, 0.95f, 1f) : new Color(1f, 0.85f, 0.3f));
+            SealBurst.Spawn(heart, 14f, RuneBlue);
             Play(_crumble, 1f);
             Shake(1f);
-            ThirdPersonCamera.SetBossFraming(0f);
+            Sealbound.Loot.LootDrop.Burst(loot, new Vector3(heart.x, Mathf.Max(heart.y - 2f, transform.position.y + 2f), heart.z), 9f);
 
             // It falls apart into a heap of stone.
             foreach (var block in _blocks)
@@ -1028,14 +1063,13 @@ namespace Sealbound.Enemies
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 2f;
                 Destroy(block, 12f);
             }
-            foreach (var r in _runes) if (r != null) r.gameObject.SetActive(false);
-            GolemRespawner.Schedule(arenaCentre, transform.eulerAngles.y, 25f);
+            GolemRespawner.Schedule(arenaCentre, transform.eulerAngles.y, 40f);
             Destroy(gameObject, 0.1f);
         }
 
         void OnPlayerFell()
         {
-            if (_state == State.Dead || _state == State.Dormant) return;
+            if (_state == State.Dead || _state == State.Dormant || _state == State.Subdued) return;
             ResetFight();
         }
 
@@ -1055,6 +1089,7 @@ namespace Sealbound.Enemies
             _tempo = 1f;
             turnSpeed = 55f;
             _health.ResetHealth();
+            RunesBrokenTotal = 0;
             SetRuneColour(RuneBlue);
             foreach (var r in _runes) r.Restore();
             _core.SetExposed(false);
