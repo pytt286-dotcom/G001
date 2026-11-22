@@ -67,6 +67,7 @@ namespace Sealbound.Core
             var root = new GameObject("Scenery (KayKit, CC0)").transform;
             root.SetParent(field, false);
 
+            ReskinGreyBox(field);
             PaveTrainingYard(field, root);
             PavePath(field, root);
             BuildForest(root);
@@ -90,6 +91,17 @@ namespace Sealbound.Core
             t.localScale *= scale;
             ArtLibrary.SetBottom(go, pos.y - sink);
             go.isStatic = true;
+            return go;
+        }
+
+        /// <summary>Places a model scaled to a height in metres, whatever size it was made at.</summary>
+        static GameObject PlaceHeight(Transform parent, string path, Vector3 pos, float height, float sink)
+        {
+            var go = Place(parent, path, pos, Range(0f, 360f), 1f, 0f);
+            if (go == null) return null;
+            var b = ArtLibrary.WorldBounds(go);
+            if (b.size.y > 0.001f) go.transform.localScale *= height / b.size.y;
+            ArtLibrary.SetBottom(go, pos.y - sink);
             return go;
         }
 
@@ -126,6 +138,59 @@ namespace Sealbound.Core
         }
 
         // ---------- Areas ----------
+
+        /// <summary>
+        /// Gives the movement course, the golem stand-in and the 60 m marker real stone and wood,
+        /// stretched to exactly the same shapes, so jumps and collisions don't change.
+        /// </summary>
+        static void ReskinGreyBox(Transform field)
+        {
+            foreach (var t in field.GetComponentsInChildren<Transform>())
+            {
+                string piece = null;
+                string n = t.name;
+                if (n.StartsWith("Ramp")) piece = "floor_tile_large";
+                else if (n == "Stair" || n == "Stair Top" || n == "Platform") piece = "floor_foundation_allsides";
+                else if (n == "Pillar") piece = "pillar";
+                else if (n == "Wall") piece = "wall";
+                else if (n == "Roof") piece = "floor_tile_large";
+                else if (n == "Leg L" || n == "Leg R" || n == "Arm L" || n == "Arm R") piece = "pillar_decorated";
+                else if (n == "Body" && t.parent != null && t.parent.name.StartsWith("Bastion Golem")) piece = "floor_foundation_allsides";
+                else if (n == "Head" && t.parent != null && t.parent.name.StartsWith("Bastion Golem")) piece = "floor_foundation_allsides";
+                else if (n == "Tower") piece = "pillar_decorated";
+                else if (n == "Crown") piece = "floor_foundation_allsides";
+                if (piece != null) Reskin(t, ArtLibrary.Dungeon + piece);
+            }
+        }
+
+        /// <summary>Hides a box shape and fits a model inside it exactly. The box's collider stays.</summary>
+        static void Reskin(Transform box, string path)
+        {
+            var r = box.GetComponent<Renderer>();
+            var mf = box.GetComponent<MeshFilter>();
+            if (r == null || mf == null || !SkinnedOutline.IsBuiltInShape(mf.sharedMesh)) return;
+            var go = ArtLibrary.Spawn(path, box);
+            if (go == null) return;
+            var t = go.transform;
+            t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            t.localScale = Vector3.one;
+
+            Bounds lb = BoneAim.LocalMeshBounds(t);
+            Vector3 size = lb.size;
+            if (size.x < 0.001f || size.y < 0.001f || size.z < 0.001f) { Object.Destroy(go); return; }
+
+            // Keep the piece's long side along the box's long side.
+            Vector3 boxSize = box.lossyScale;
+            bool turn = (boxSize.z > boxSize.x) != (size.z > size.x);
+            Quaternion rot = turn ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
+            Vector3 scale = new Vector3(1f / size.x, 1f / size.y, 1f / size.z);
+            t.localRotation = rot;
+            t.localScale = scale;
+            t.localPosition = -(rot * Vector3.Scale(lb.center, scale));
+            r.enabled = false;
+            go.isStatic = true;
+        }
 
         static void PaveTrainingYard(Transform field, Transform root)
         {
@@ -198,7 +263,7 @@ namespace Sealbound.Core
             {
                 Vector3 p = new Vector3(Range(-80f, 80f), 0f, Range(-50f, 140f));
                 if (!IsClear(p, 2f)) continue;
-                Place(forest, ArtLibrary.Forest + Pick(Bushes), p, Range(0f, 360f), Range(4f, 7f), 0.05f);
+                PlaceHeight(forest, ArtLibrary.Forest + Pick(Bushes), p, Range(0.7f, 1.5f), 0.05f);
             }
 
             // Grass tufts everywhere you play (they don't block anything).
@@ -206,7 +271,7 @@ namespace Sealbound.Core
             {
                 Vector3 p = new Vector3(Range(-70f, 70f), 0f, Range(-50f, 130f));
                 if (!IsClear(p, 0.6f)) continue;
-                Place(forest, ArtLibrary.Forest + Pick(Grass), p, Range(0f, 360f), Range(3f, 5f), 0.02f);
+                PlaceHeight(forest, ArtLibrary.Forest + Pick(Grass), p, Range(0.3f, 0.55f), 0.02f);
             }
 
             // Rocks: pebbles to boulders you can hide behind.
@@ -214,7 +279,7 @@ namespace Sealbound.Core
             {
                 Vector3 p = new Vector3(Range(-90f, 90f), 0f, Range(-55f, 150f));
                 if (!IsClear(p, 1.5f)) continue;
-                Place(forest, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0f, 360f), Range(1.2f, 3f), 0.1f);
+                PlaceHeight(forest, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0.3f, 1.1f), 0.1f);
             }
             for (int i = 0; i < 26; i++)
             {
@@ -322,7 +387,7 @@ namespace Sealbound.Core
                     for (int k = 0; k < 3; k++)
                     {
                         Vector3 p = t.position + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * Range(1.4f, 1.9f);
-                        Place(deco, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0f, 360f), Range(1.2f, 2.2f), 0.1f);
+                        PlaceHeight(deco, ArtLibrary.Forest + Pick(SmallRocks), p, Range(0.35f, 0.8f), 0.1f);
                     }
                 }
             }

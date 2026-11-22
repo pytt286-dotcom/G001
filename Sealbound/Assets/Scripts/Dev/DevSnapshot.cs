@@ -61,19 +61,26 @@ namespace Sealbound.Dev
             Line($"Frame rate at start: {frames / 2f:0} fps");
 
             Shot("01_hero_front", p.position + p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
+            Shot("01b_hero_back", p.position - p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
+            Shot("01c_sword_closeup", p.position + p.forward * 1.6f + p.right * 0.9f + Vector3.up * 1.2f, p.position + p.right * 0.35f + Vector3.up * 0.8f, 40f);
+            DescribeMaterials(p.gameObject, "Weapon Model");
             ShotMain("02_gameplay_view");
 
             // Mid-swing of the first sword attack.
             if (combat != null)
             {
-                Attack(combat, combat.Kit.basicCombo[0]);
-                yield return new WaitForSeconds(combat.Kit.basicCombo[0].windup + combat.Kit.basicCombo[0].active * 0.5f);
-                Shot("03_sword_swing", p.position + p.forward * 3f + p.right * 1.5f + Vector3.up * 1.6f, p.position + Vector3.up * 1f, 45f);
+                var slash = combat.Kit.basicCombo[0];
+                Attack(combat, slash);
+                yield return new WaitForSeconds(slash.windup * 0.95f);
+                Shot("03a_sword_windup", p.position + p.forward * 3f + p.right * 1.5f + Vector3.up * 1.6f, p.position + Vector3.up * 1f, 45f);
+                yield return new WaitForSeconds(slash.windup * 0.05f + slash.active * 0.5f);
+                Shot("03b_sword_midswing", p.position + p.forward * 3f + p.right * 1.5f + Vector3.up * 1.6f, p.position + Vector3.up * 1f, 45f);
                 yield return new WaitForSeconds(1f);
 
                 CallPrivate(combat, "EquipKit", combat.mageKit, true);
                 yield return new WaitForSeconds(0.6f);
                 Shot("04_mage_front", p.position + p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
+                Shot("04b_mage_back", p.position - p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
                 Attack(combat, combat.Kit.basicCombo[0]);
                 yield return new WaitForSeconds(combat.Kit.basicCombo[0].windup * 0.9f);
                 Shot("05_mage_cast", p.position + p.forward * 3f - p.right * 1.5f + Vector3.up * 1.6f, p.position + Vector3.up * 1f, 45f);
@@ -88,14 +95,14 @@ namespace Sealbound.Dev
             // The warren: step in so the goblins come out.
             motor.Teleport(new Vector3(-45f, 0.2f, -15f));
             yield return new WaitForSeconds(3.5f);
-            Shot("09_warren", new Vector3(-30f, 9f, -30f), new Vector3(-45f, 0.5f, -15f), 55f);
+            Shot("09_warren", new Vector3(-45f, 11f, -40f), new Vector3(-45f, 0.5f, -15f), 55f);
             var gob = FindAnyObjectByType<Goblin>();
             Line("Goblins out: " + FindObjectsByType<Goblin>(FindObjectsSortMode.None).Length);
             if (gob != null)
             {
                 Describe(gob.gameObject);
                 var g = gob.transform;
-                Shot("10_goblin_close", g.position + g.forward * 2.4f + Vector3.up * 1.1f, g.position + Vector3.up * 0.6f, 40f);
+                Shot("10_goblin_close", g.position + g.right * 2.2f + g.forward * 0.8f + Vector3.up * 1.0f, g.position + Vector3.up * 0.6f, 40f);
                 float wait = 0f;
                 Goblin winding = null;
                 while (wait < 8f && winding == null)
@@ -108,7 +115,8 @@ namespace Sealbound.Dev
                 if (winding != null)
                 {
                     var w = winding.transform;
-                    Shot("11_goblin_windup", w.position + w.forward * 2.6f + w.right * 1f + Vector3.up * 1.2f, w.position + Vector3.up * 0.6f, 42f);
+                    Shot("11_goblin_windup", w.position + w.right * 2.4f + w.forward * 0.6f + Vector3.up * 1.1f, w.position + Vector3.up * 0.6f, 42f);
+                    DescribeMaterials(winding.gameObject, "Outline");
                 }
                 else Line("No goblin wind-up seen within 8 s.");
             }
@@ -139,6 +147,22 @@ namespace Sealbound.Dev
                 if (r.name.Contains("Outline")) continue;
                 var m = r.sharedMaterial;
                 Line($"  part {r.name} ({r.GetType().Name}, active {r.gameObject.activeInHierarchy}) material {(m != null ? m.name : "none")} texture {(m != null && m.mainTexture != null ? m.mainTexture.name : "none")}");
+            }
+        }
+
+        /// <summary>Logs the colour settings of renderers with this name (to check outline and cue colours).</summary>
+        void DescribeMaterials(GameObject root, string rendererName)
+        {
+            int shown = 0;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.name != rendererName || shown >= 4) continue;
+                shown++;
+                var m = r.sharedMaterial;
+                if (m == null) continue;
+                string col = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor").ToString("F2") : "-";
+                string em = m.HasProperty("_EmissionColor") ? m.GetColor("_EmissionColor").ToString("F2") : "-";
+                Line($"  {rendererName} on {r.transform.parent?.name}: shader {m.shader.name}, enabled {r.enabled}, colour {col}, emission {em}");
             }
         }
 

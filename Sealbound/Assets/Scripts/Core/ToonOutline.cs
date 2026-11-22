@@ -13,6 +13,9 @@ namespace Sealbound.Core
         static Material _material, _skinMaterial;
         static readonly Color Ink = new Color(0.08f, 0.06f, 0.05f);
 
+        // Real models are small and detailed, so their ink line is thinner than on the big box shapes.
+        static float SkinWidth(float thickness) => thickness * 0.6f;
+
         public static void Add(IEnumerable<Renderer> parts, float thickness = 0.022f)
         {
             if (_material == null)
@@ -32,12 +35,19 @@ namespace Sealbound.Core
                 if (part is SkinnedMeshRenderer skinned)
                 {
                     // Animated characters: an outline that bends with the same bones.
-                    if (_skinMaterial == null) _skinMaterial = SkinnedOutline.NewMaterial(Ink, thickness);
+                    if (_skinMaterial == null) _skinMaterial = SkinnedOutline.NewMaterial(Ink, SkinWidth(thickness));
                     SkinnedOutline.Add(skinned, _skinMaterial, "Ink Outline");
                     continue;
                 }
                 var mf = part.GetComponent<MeshFilter>();
                 if (mf == null || mf.sharedMesh == null) continue;
+                if (!SkinnedOutline.IsBuiltInShape(mf.sharedMesh) && part is MeshRenderer still && SkinnedOutline.Available)
+                {
+                    // Real models (weapons, ears): a shell of fixed width, whatever the model's scale.
+                    if (_skinMaterial == null) _skinMaterial = SkinnedOutline.NewMaterial(Ink, SkinWidth(thickness));
+                    SkinnedOutline.AddStill(still, _skinMaterial, "Ink Outline");
+                    continue;
+                }
 
                 var go = new GameObject("Ink Outline");
                 go.layer = part.gameObject.layer;

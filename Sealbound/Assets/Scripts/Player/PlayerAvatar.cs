@@ -17,7 +17,7 @@ namespace Sealbound.Player
         public float runClipSpeed = 4.5f;
         public float walkClipSpeed = 1.7f;
         [Tooltip("How much the upper body twists to follow a swing.")]
-        [Range(0f, 1f)] public float chestTwist = 0.35f;
+        [Range(0f, 1f)] public float chestTwist = 0.5f;
 
         class Body
         {

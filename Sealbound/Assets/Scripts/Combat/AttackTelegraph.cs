@@ -29,7 +29,7 @@ namespace Sealbound.Combat
                 if (part is SkinnedMeshRenderer skinned)
                 {
                     // Animated body parts: an outline that bends with the same bones.
-                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness);
+                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness * 0.7f);
                     var outline = Core.SkinnedOutline.Add(skinned, _skinMaterial, "Outline");
                     if (outline != null)
                     {
@@ -40,6 +40,13 @@ namespace Sealbound.Combat
                 }
                 var mf = part.GetComponent<MeshFilter>();
                 if (mf == null || mf.sharedMesh == null) continue;
+                if (!Core.SkinnedOutline.IsBuiltInShape(mf.sharedMesh) && part is MeshRenderer still && Core.SkinnedOutline.Available)
+                {
+                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness * 0.7f);
+                    var shell = Core.SkinnedOutline.AddStill(still, _skinMaterial, "Outline");
+                    if (shell != null) { shell.enabled = false; _outlines.Add(shell); }
+                    continue;
+                }
 
                 var go = new GameObject("Outline");
                 go.layer = part.gameObject.layer;

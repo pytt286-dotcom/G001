@@ -51,7 +51,7 @@ namespace Sealbound.Enemies
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
                 if (r.name.Contains("BearHat")) r.gameObject.SetActive(false);
 
-            ArtLibrary.FitHeight(go, burrower ? 1.15f : 1.08f);
+            float bodyScale = go.transform.localScale.x * ArtLibrary.FitHeight(go, burrower ? 1.15f : 1.08f);
 
             var av = goblin.gameObject.AddComponent<GoblinAvatar>();
             av._goblin = goblin;
@@ -71,7 +71,9 @@ namespace Sealbound.Enemies
                 {
                     dagger.transform.localPosition = Vector3.zero;
                     dagger.transform.localRotation = Quaternion.identity;
-                    dagger.transform.localScale = Vector3.one;
+                    // Bones can carry their own import scale, so size the dagger to match the body, not the bone.
+                    float boneScale = Mathf.Max(0.0001f, av._handSlot.lossyScale.x / Mathf.Max(0.0001f, visual.lossyScale.x));
+                    dagger.transform.localScale = Vector3.one * (bodyScale / boneScale) * 1.15f;
                 }
             }
             else if (av._handSlot != null)
