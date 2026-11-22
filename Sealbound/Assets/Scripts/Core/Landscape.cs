@@ -45,8 +45,8 @@ namespace Sealbound.Core
 
             data.terrainLayers = new[]
             {
-                Layer(RealArt.Grass, 5f),        // 0 meadow
-                Layer(RealArt.ForestGround, 4f), // 1 forest floor
+                Layer(Has(RealArt.Meadow) ? RealArt.Meadow : RealArt.Grass, 3f),                    // 0 meadow
+                Layer(Has(RealArt.MeadowMix) ? RealArt.MeadowMix : RealArt.ForestGround, 4f),       // 1 forest edge and floor
                 Layer(RealArt.Trail, 3.5f),      // 2 trail and arena
                 Layer(RealArt.Cliff, 9f),        // 3 rock on steep slopes
             };
@@ -111,6 +111,8 @@ namespace Sealbound.Core
         }
 
         // ---------- Painting ----------
+
+        static bool Has(string slug) => RealArt.Tex(slug, "diff") != null;
 
         static TerrainLayer Layer(string slug, float tile)
         {

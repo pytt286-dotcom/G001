@@ -18,6 +18,8 @@ namespace Sealbound.Core
 
         // Surfaces (texture slugs).
         public const string Grass = "sparse_grass";
+        public const string Meadow = "meadow_grass";   // ambientCG Grass004 (CC0): lush green grass
+        public const string MeadowMix = "meadow_mix";  // ambientCG Ground037 (CC0): grass and earth
         public const string ForestGround = "forest_ground_04";
         public const string Trail = "rocky_trail";
         public const string Cliff = "rock_face_03";
