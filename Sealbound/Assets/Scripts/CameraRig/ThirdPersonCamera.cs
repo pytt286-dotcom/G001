@@ -22,13 +22,13 @@ namespace Sealbound.CameraRig
 
         [Header("Feel")]
         public float mouseSensitivity = 0.12f;      // degrees per pixel
-        public float stickSensitivity = 200f;       // degrees per second
+        public float stickSensitivity = 260f;       // degrees per second
         public bool invertY;
-        public float followSmoothTime = 0.06f;
+        public float followSmoothTime = 0.035f;
         public float collisionRadius = 0.3f;
         public float baseFov = 60f;
-        public float sprintFov = 68f;
-        public float dodgeFov = 72f;
+        public float sprintFov = 73f;
+        public float dodgeFov = 80f;
 
         float _yaw, _pitch = 15f;
         float _currentDistance;
@@ -100,7 +100,7 @@ namespace Sealbound.CameraRig
                 if (motor.IsDodging) fov = dodgeFov;
                 else if (motor.IsSprinting) fov = sprintFov;
             }
-            _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, fov, 1f - Mathf.Exp(-8f * dt));
+            _cam.fieldOfView = Mathf.Lerp(_cam.fieldOfView, fov, 1f - Mathf.Exp(-10f * dt));
         }
 
         static void LockCursor(bool locked)

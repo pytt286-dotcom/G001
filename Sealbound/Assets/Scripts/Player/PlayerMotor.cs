@@ -10,35 +10,35 @@ namespace Sealbound.Player
     public class PlayerMotor : MonoBehaviour
     {
         [Header("Running")]
-        public float runSpeed = 6.5f;
-        public float sprintSpeed = 10f;
-        public float acceleration = 45f;
-        public float deceleration = 55f;
-        [Range(0f, 1f)] public float airControl = 0.45f;
-        public float turnSpeed = 900f;
+        public float runSpeed = 9f;
+        public float sprintSpeed = 14f;
+        public float acceleration = 80f;
+        public float deceleration = 90f;
+        [Range(0f, 1f)] public float airControl = 0.6f;
+        public float turnSpeed = 1500f;
 
         [Header("Jumping")]
-        public float jumpHeight = 1.8f;
-        public float gravity = 28f;
+        public float jumpHeight = 2.2f;
+        public float gravity = 42f;
         public float fallGravityMultiplier = 1.7f;
         public float lowJumpGravityMultiplier = 2.2f;
         public float coyoteTime = 0.12f;
         public float jumpBufferTime = 0.15f;
-        public float maxFallSpeed = 40f;
+        public float maxFallSpeed = 55f;
 
         [Header("Dodge")]
-        public float dodgeDistance = 5f;
-        public float dodgeDuration = 0.32f;
-        public float dodgeRecovery = 0.08f;
+        public float dodgeDistance = 7f;
+        public float dodgeDuration = 0.24f;
+        public float dodgeRecovery = 0.04f;
         public float dodgeStaminaCost = 22f;
         [Tooltip("Part of the dodge during which hits will not land (used once combat exists).")]
-        public float dodgeInvulnerableTime = 0.22f;
+        public float dodgeInvulnerableTime = 0.17f;
 
         [Header("Stamina")]
         public float maxStamina = 100f;
         public float sprintStaminaPerSecond = 14f;
-        public float staminaRegenPerSecond = 35f;
-        public float staminaRegenDelay = 0.6f;
+        public float staminaRegenPerSecond = 45f;
+        public float staminaRegenDelay = 0.4f;
 
         [Header("References")]
         public Transform cameraTransform;
@@ -230,7 +230,7 @@ namespace Sealbound.Player
         void UpdateVisual(float dt)
         {
             if (visual == null) return;
-            _squash = Mathf.MoveTowards(_squash, 0f, dt * 2.5f);
+            _squash = Mathf.MoveTowards(_squash, 0f, dt * 3.5f);
             float y = 1f - _squash;
             float xz = 1f + _squash * 0.5f;
             Vector3 target = new Vector3(_visualBaseScale.x * xz, _visualBaseScale.y * y, _visualBaseScale.z * xz);

@@ -322,7 +322,7 @@ Players fight each other to prove their builds and skill.
 
 ## 10. Combat and movement feel
 
-Pytt wants combat that is smooth and fairly fast. Goals:
+Pytt wants combat that is smooth and **fast-paced** (confirmed after playing Milestone 1: "everything in general to be faster"). Movement, dodges, attacks and creature tempo should all lean quick. Goals:
 
 - **Fluid transitions.** Running, dodging, attacking, jumping, gliding and swimming flow into each other with no awkward stops. Attacks can be cancelled into a dodge.
 - **Light, responsive controls.** Pressing a button gets an instant reaction.
