@@ -28,6 +28,10 @@ namespace Sealbound.Combat
         /// <summary>Optional check, e.g. the player's dodge i-frames.</summary>
         public Func<bool> InvulnerableCheck;
 
+        [Tooltip("Where spells aim. Empty = a little above the feet. Big creatures set this to their chest.")]
+        public Transform aimPoint;
+        public Vector3 AimPosition => aimPoint != null ? aimPoint.position : transform.position + Vector3.up * 0.8f;
+
         public event Action<DamageInfo, float> Damaged; // info, damage actually dealt
         public event Action Died;
 

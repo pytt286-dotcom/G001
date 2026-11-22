@@ -331,13 +331,13 @@ namespace Sealbound.Player
                     // Ranged hit-confirm: a cast at a locked target counts as landing for the rhythm bonus.
                     if (target != null) _landedCurrent = true;
                     Vector3 aim = target != null
-                        ? (target.transform.position + Vector3.up * 0.8f - hand).normalized
+                        ? (target.AimPosition - hand).normalized
                         : transform.forward;
                     if (a == _kit.airAttack) aim = (aim + Vector3.down * 0.6f).normalized;
                     for (int i = 0; i < a.projectileCount; i++)
                     {
                         Vector3 side = transform.right * (a.projectileCount > 1 ? (i - (a.projectileCount - 1) * 0.5f) * 0.6f : 0f);
-                        PlayerBolt.Fire(hand + side, aim, target != null ? target.transform : null, a.projectileSpeed, a.projectileRadius,
+                        PlayerBolt.Fire(hand + side, aim, target != null ? (target.aimPoint != null ? target.aimPoint : target.transform) : null, a.projectileSpeed, a.projectileRadius,
                             a.damage * power, a.impact, a.pierce, a.fxColor, gameObject, (landed, impact) => OnSpellHit(a, landed));
                     }
                     if (a.kind == AttackKind.Heavy) _motor.Lunge(-transform.forward, 6f); // recoil

@@ -30,6 +30,12 @@ namespace Sealbound.CameraRig
         public float sprintFov = 73f;
         public float dodgeFov = 80f;
 
+        [Header("Boss framing")]
+        [Tooltip("Extra distance and height when a giant is fighting you, so it fits on screen.")]
+        public float bossExtraDistance = 5f;
+        public float bossExtraHeight = 1.6f;
+        public float bossExtraFov = 7f;
+
         [Header("Shake")]
         public float maxShakeAngle = 2.5f;
         public float maxShakeOffset = 0.25f;
@@ -37,6 +43,13 @@ namespace Sealbound.CameraRig
 
         static ThirdPersonCamera _instance;
         float _trauma;
+        float _bossWeight, _bossTarget;
+
+        /// <summary>0 = normal framing, 1 = pulled back for a giant boss. Blends smoothly.</summary>
+        public static void SetBossFraming(float weight)
+        {
+            if (_instance != null) _instance._bossTarget = Mathf.Clamp01(weight);
+        }
 
         /// <summary>Shake the camera. 0.1 = small tap, 1 = huge impact.</summary>
         public static void Shake(float amount)
@@ -91,7 +104,9 @@ namespace Sealbound.CameraRig
                 _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
             }
 
-            Vector3 desiredPivot = target.position + targetOffset;
+            _bossWeight = Mathf.MoveTowards(_bossWeight, _bossTarget, dt * 0.8f);
+            float boss = Mathf.SmoothStep(0f, 1f, _bossWeight);
+            Vector3 desiredPivot = target.position + targetOffset + Vector3.up * (bossExtraHeight * boss);
             _pivot = Vector3.SmoothDamp(_pivot, desiredPivot, ref _pivotVelocity, followSmoothTime);
 
             Quaternion rot = Quaternion.Euler(_pitch, _yaw, 0f);
@@ -99,8 +114,9 @@ namespace Sealbound.CameraRig
             Vector3 back = rot * Vector3.back;
 
             // Pull the camera in when something is between it and the player.
-            float wanted = distance;
-            if (Physics.SphereCast(_pivot + shoulder, collisionRadius, back, out RaycastHit hit, distance,
+            float fullDistance = distance + bossExtraDistance * boss;
+            float wanted = fullDistance;
+            if (Physics.SphereCast(_pivot + shoulder, collisionRadius, back, out RaycastHit hit, fullDistance,
                     Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                 wanted = Mathf.Max(0.5f, hit.distance);
             _currentDistance = wanted < _currentDistance
@@ -121,7 +137,7 @@ namespace Sealbound.CameraRig
             }
             transform.SetPositionAndRotation(camPos, rot);
 
-            float fov = baseFov;
+            float fov = baseFov + bossExtraFov * boss;
             if (motor != null)
             {
                 if (motor.IsDodging) fov = dodgeFov;

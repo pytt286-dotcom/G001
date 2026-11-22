@@ -12,6 +12,7 @@ namespace Sealbound.UI
         public PlayerCombat combat;
         public PlayerVitals vitals;
         public GoblinWarren warren;
+        public BastionGolem boss;
         public bool showControls = true;
 
         struct Popup { public string Text; public Color Color; public float Born; }
@@ -20,6 +21,13 @@ namespace Sealbound.UI
         Texture2D _white;
         GUIStyle _label, _center, _big;
         bool _subscribed;
+
+        // Boss banners ("RUNE BROKEN!", "SEALED!"), and the golem the HUD is listening to.
+        string _banner;
+        Color _bannerColor;
+        float _bannerBorn = -99f;
+        BastionGolem _listening;
+        float _findBossIn;
 
         void Awake() => _white = Texture2D.whiteTexture;
 
@@ -34,9 +42,31 @@ namespace Sealbound.UI
                 };
                 _subscribed = true;
             }
+            // The golem is rebuilt after it is sealed, so look for the new one now and then.
+            if (boss == null)
+            {
+                _findBossIn -= Time.unscaledDeltaTime;
+                if (_findBossIn <= 0f) { boss = FindAnyObjectByType<BastionGolem>(); _findBossIn = 1f; }
+            }
+            if (boss != _listening)
+            {
+                if (_listening != null) _listening.Announce -= OnAnnounce;
+                _listening = boss;
+                if (_listening != null) _listening.Announce += OnAnnounce;
+            }
+
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.hKey.wasPressedThisFrame) showControls = !showControls;
         }
+
+        void OnAnnounce(string text, Color color)
+        {
+            _banner = text;
+            _bannerColor = color;
+            _bannerBorn = Time.unscaledTime;
+        }
+
+        bool BossEngaged => boss != null && boss.Engaged;
 
         void OnGUI()
         {
@@ -60,7 +90,11 @@ namespace Sealbound.UI
                 DrawRect(new Rect(Screen.width - t, 0, t, Screen.height), c);
             }
 
-            if (warren != null)
+            if (BossEngaged) DrawBossBar();
+            else if (boss != null) DrawBossHint();
+            DrawBanner();
+
+            if (warren != null && !BossEngaged)
             {
                 string status = warren.StatusText;
                 if (!string.IsNullOrEmpty(status))
@@ -109,9 +143,73 @@ namespace Sealbound.UI
                 "and ticks. Too early breaks the combo.\n" +
                 "Skill on the flash = LINK. Attack after a skill = EXTEND.\n" +
                 "Dodge on the flash = EVADE (keeps the chain).\n" +
+                "<b>Golem</b> (ruins to the north): jump its ground wave,\n" +
+                "break the glowing runes, then hit the exposed core.\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 284f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 280f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 324f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 320f), text, _label);
+        }
+
+        void DrawBossBar()
+        {
+            float w = Mathf.Min(720f, Screen.width - 80f), h = 18f;
+            float x = (Screen.width - w) / 2f, y = 46f;
+            bool p2 = boss.Phase == 2;
+            DrawRect(new Rect(x - 3f, y - 3f, w + 6f, h + 6f), new Color(0f, 0f, 0f, 0.6f));
+            Color fill = p2 ? new Color(1f, 0.45f, 0.12f) : new Color(0.8f, 0.18f, 0.16f);
+            DrawRect(new Rect(x, y, w * Mathf.Clamp01(boss.HealthFraction), h), fill);
+            DrawRect(new Rect(x + w * 0.5f - 1f, y - 3f, 2f, h + 6f), new Color(1f, 1f, 1f, 0.7f)); // second phase mark
+
+            var title = new GUIStyle(_center) { fontSize = 20 };
+            string phase = p2 ? "  <color=#ffa040>· ENRAGED</color>" : "";
+            GUI.Label(new Rect(x, y - 32f, w, 28f), $"<b>{boss.displayName.ToUpperInvariant()}</b>{phase}", title);
+
+            // One pip per limb rune: lit while it stands, dark once broken.
+            var runes = boss.LimbRunes;
+            float pip = 14f, gap = 10f;
+            float px = Screen.width / 2f - (runes.Count * pip + (runes.Count - 1) * gap) / 2f;
+            Color lit = p2 ? new Color(1f, 0.55f, 0.2f) : new Color(0.4f, 0.85f, 1f);
+            for (int i = 0; i < runes.Count; i++)
+            {
+                var r = new Rect(px + i * (pip + gap), y + h + 10f, pip, pip);
+                DrawRect(new Rect(r.x - 2f, r.y - 2f, r.width + 4f, r.height + 4f), new Color(0f, 0f, 0f, 0.6f));
+                DrawRect(r, runes[i] != null && !runes[i].Broken ? lit : new Color(0.2f, 0.2f, 0.22f));
+            }
+
+            if (boss.CoreExposed)
+            {
+                var st = new GUIStyle(_center) { fontSize = 22 };
+                float pulse = 0.6f + 0.4f * Mathf.Sin(Time.unscaledTime * 10f);
+                st.normal.textColor = Color.Lerp(Color.white, new Color(1f, 0.85f, 0.3f), pulse);
+                GUI.Label(new Rect(x, y + h + 30f, w, 30f), "<b>CORE EXPOSED: HIT THE CHEST!</b>", st);
+            }
+        }
+
+        void DrawBossHint()
+        {
+            if (boss.CurrentState != BastionGolem.State.Dormant) return;
+            Vector3 d = boss.arenaCentre - motor.transform.position; d.y = 0f;
+            float dist = d.magnitude;
+            if (dist > 45f) return;
+            var st = new GUIStyle(_center) { fontSize = 18 };
+            DrawRect(new Rect(Screen.width / 2f - 300f, 14f, 600f, 32f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(Screen.width / 2f - 300f, 14f, 600f, 32f),
+                $"<b>A Bastion Golem sleeps in the ruins ({dist:0} m). Step inside to wake it.</b>", st);
+        }
+
+        void DrawBanner()
+        {
+            float age = Time.unscaledTime - _bannerBorn;
+            if (string.IsNullOrEmpty(_banner) || age > 2.4f) return;
+            float pop = age < 0.12f ? Mathf.Lerp(1.6f, 1f, age / 0.12f) : 1f;
+            var c = _bannerColor; c.a = 1f - Mathf.Clamp01((age - 1.8f) / 0.6f);
+            var style = new GUIStyle(_big) { fontSize = Mathf.RoundToInt(40 * pop) };
+            style.normal.textColor = c;
+            var shadow = new GUIStyle(style);
+            shadow.normal.textColor = new Color(0f, 0f, 0f, c.a * 0.7f);
+            var r = new Rect(0f, Screen.height * 0.2f, Screen.width, 60f);
+            GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), _banner, shadow);
+            GUI.Label(r, _banner, style);
         }
 
         void DrawSkills()

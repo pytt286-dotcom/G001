@@ -35,9 +35,9 @@ namespace Sealbound.Combat
         public void PlayBroken() => _source.PlayOneShot(_broken);
         public void PlaySwing() => _source.PlayOneShot(_swing);
 
-        const int Rate = 44100;
+        public const int Rate = 44100;
 
-        static AudioClip Tone(string name, float freq, float length, float volume, float slide)
+        public static AudioClip Tone(string name, float freq, float length, float volume, float slide)
         {
             int n = Mathf.CeilToInt(Rate * length);
             var data = new float[n];
@@ -53,7 +53,7 @@ namespace Sealbound.Combat
             return Make(name, data);
         }
 
-        static AudioClip Chord(string name, float[] freqs, float length, float volume)
+        public static AudioClip Chord(string name, float[] freqs, float length, float volume)
         {
             int n = Mathf.CeilToInt(Rate * length);
             var data = new float[n];
@@ -69,7 +69,7 @@ namespace Sealbound.Combat
             return Make(name, data);
         }
 
-        static AudioClip Noise(string name, float length, float volume, float bodyFreq)
+        public static AudioClip Noise(string name, float length, float volume, float bodyFreq)
         {
             int n = Mathf.CeilToInt(Rate * length);
             var data = new float[n];
@@ -87,7 +87,7 @@ namespace Sealbound.Combat
             return Make(name, data);
         }
 
-        static AudioClip Make(string name, float[] data)
+        public static AudioClip Make(string name, float[] data)
         {
             var clip = AudioClip.Create(name, data.Length, 1, Rate, false);
             clip.SetData(data, 0);

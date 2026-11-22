@@ -194,6 +194,35 @@ namespace Sealbound.Core
             go.transform.position += Vector3.up * (y - b.min.y);
         }
 
+        /// <summary>Hides a box shape and fits a model inside it exactly. The box's collider stays.</summary>
+        public static GameObject FitInsideBox(Transform box, string path)
+        {
+            var r = box.GetComponent<Renderer>();
+            var mf = box.GetComponent<MeshFilter>();
+            if (r == null || mf == null || !SkinnedOutline.IsBuiltInShape(mf.sharedMesh)) return null;
+            var go = Spawn(path, box);
+            if (go == null) return null;
+            var t = go.transform;
+            t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            t.localScale = Vector3.one;
+
+            Bounds lb = BoneAim.LocalMeshBounds(t);
+            Vector3 size = lb.size;
+            if (size.x < 0.001f || size.y < 0.001f || size.z < 0.001f) { Object.Destroy(go); return null; }
+
+            // Keep the piece's long side along the box's long side.
+            Vector3 boxSize = box.lossyScale;
+            bool turn = (boxSize.z > boxSize.x) != (size.z > size.x);
+            Quaternion rot = turn ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
+            Vector3 scale = new Vector3(1f / size.x, 1f / size.y, 1f / size.z);
+            t.localRotation = rot;
+            t.localScale = scale;
+            t.localPosition = -(rot * Vector3.Scale(lb.center, scale));
+            r.enabled = false;
+            return go;
+        }
+
         public static Transform FindDeep(Transform root, string name)
         {
             foreach (var t in root.GetComponentsInChildren<Transform>(true))

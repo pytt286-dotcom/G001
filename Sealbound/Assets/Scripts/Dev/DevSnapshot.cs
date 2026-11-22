@@ -124,8 +124,72 @@ namespace Sealbound.Dev
             frames = 0; t0 = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - t0 < 2f) { frames++; yield return null; }
             Line($"Frame rate in the warren fight: {frames / 2f:0} fps");
+
+            yield return GolemTour(motor);
             Finish();
         }
+
+        /// <summary>Wakes the Bastion Golem, watches an attack, breaks a rune, pushes it into phase two and seals it.</summary>
+        IEnumerator GolemTour(PlayerMotor motor)
+        {
+            var golem = FindAnyObjectByType<BastionGolem>();
+            Line("Bastion Golem found: " + (golem != null));
+            if (golem == null) yield break;
+            Line($"Golem: {golem.GetComponentsInChildren<Renderer>().Length} renderers, {golem.GetComponentsInChildren<Collider>().Length} colliders, " +
+                 $"{golem.LimbRunes.Count} limb runes, health {golem.Health.Current}/{golem.Health.maxHealth}, armour x{golem.Health.damageMultiplier}");
+
+            // Keep the hero standing for the pictures.
+            var health = motor.GetComponent<Combat.Health>();
+            if (health != null) health.InvulnerableCheck = () => true;
+
+            motor.Teleport(new Vector3(0f, 0.2f, 52f));
+            yield return new WaitForSeconds(1.2f);
+            Line("Golem state after stepping in: " + golem.CurrentState);
+            Shot("12_golem_waking", new Vector3(16f, 5f, 40f), golem.transform.position + Vector3.up * 7f, 55f);
+
+            float wait = 0f;
+            while (wait < 12f && !(IsAttack(golem.CurrentState) && golem.StateTime > 0.45f))
+            {
+                wait += Time.deltaTime;
+                yield return null;
+            }
+            Line($"Golem attack seen: {golem.CurrentState} after {wait:0.0}s");
+            Shot("13_golem_attack", new Vector3(20f, 7f, 38f), golem.transform.position + Vector3.up * 5f, 60f);
+
+            wait = 0f;
+            while (wait < 8f && !golem.CanBeHurt) { wait += Time.deltaTime; yield return null; }
+            golem.DebugBreakRune(0);
+            yield return new WaitForSeconds(1.4f);
+            var g = golem.transform;
+            Line($"After breaking a rune: state {golem.CurrentState}, core exposed {golem.CoreExposed}, health {golem.HealthFraction:P0}");
+            Shot("14_golem_kneel", g.position + g.forward * 13f + g.right * 4f + Vector3.up * 5f, g.position + Vector3.up * 4.5f, 55f);
+
+            // Push it past half health for the second phase.
+            float toHalf = golem.Health.Current - golem.Health.maxHealth * 0.45f;
+            golem.Health.TryDamage(new Combat.DamageInfo { Amount = toHalf / Mathf.Max(0.01f, golem.Health.damageMultiplier), Point = g.position + Vector3.up * 6f }, out _);
+            yield return new WaitForSeconds(1.2f);
+            Line($"Phase {golem.Phase}, state {golem.CurrentState}, health {golem.HealthFraction:P0}");
+            Shot("15_golem_phase2", g.position + g.forward * 15f + g.right * 6f + Vector3.up * 6f, g.position + Vector3.up * 6f, 58f);
+
+            int fpsFrames = 0; float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 3f || !golem.CanBeHurt)
+            {
+                fpsFrames++;
+                if (Time.realtimeSinceStartup - t0 > 10f) break;
+                yield return null;
+            }
+            Line($"Frame rate in the golem fight: {fpsFrames / Mathf.Max(0.1f, Time.realtimeSinceStartup - t0):0} fps, state {golem.CurrentState}");
+
+            Vector3 centre = g.position;
+            golem.Health.TryDamage(new Combat.DamageInfo { Amount = 1e6f, Point = centre + Vector3.up * 6f }, out _);
+            yield return new WaitForSeconds(1.6f);
+            Line("After the killing blow: golem dead " + golem.Health.IsDead + ", respawner waiting " + (GameObject.Find("Golem Respawner") != null));
+            Shot("16_golem_collapse", centre + new Vector3(14f, 6f, -14f), centre + Vector3.up * 2f, 60f);
+        }
+
+        static bool IsAttack(BastionGolem.State s) =>
+            s == BastionGolem.State.Slam || s == BastionGolem.State.DoubleSlam || s == BastionGolem.State.Stomp ||
+            s == BastionGolem.State.Charge || s == BastionGolem.State.Throw;
 
         void Finish()
         {

@@ -50,7 +50,9 @@ namespace Sealbound.Combat
 
             if (target != null)
             {
-                Vector3 want = (target.position + Vector3.up * 0.8f - transform.position).normalized;
+                var th = target.GetComponent<Health>();
+                Vector3 aimAt = th != null ? th.AimPosition : target.position; // an aim point itself, or a creature's own aim
+                Vector3 want = (aimAt - transform.position).normalized;
                 _dir = Vector3.RotateTowards(_dir, want, homing * dt, 0f);
             }
 

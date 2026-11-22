@@ -48,8 +48,10 @@ namespace Sealbound.Core
                 ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
+            // Built after the scenery so the grey-box reskin leaves the golem's own stone alone.
+            var golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
             var hud = Object.FindAnyObjectByType<DebugHud>();
-            if (hud != null) hud.warren = warren;
+            if (hud != null) { hud.warren = warren; hud.boss = golem; }
         }
 
         // ---------- World ----------
@@ -109,25 +111,12 @@ namespace Sealbound.Core
         }
 
         /// <summary>
-        /// Size references from the design document (section 7.3): a person, a 15 m Great Beast
-        /// (the Bastion Golem) and a 60 m Legend, so the sense of scale can be judged early.
+        /// Size reference from the design document (section 7.3): a 60 m Legend on the horizon,
+        /// so the sense of scale can be judged next to the 15 m Bastion Golem.
         /// </summary>
         static void BuildScaleMarkers(Transform root)
         {
-            // Stand-in Bastion Golem, ~15 m tall, as tall as a castle tower.
-            var golem = new GameObject("Bastion Golem (scale stand-in, 15 m)").transform;
-            golem.SetParent(root);
-            golem.position = new Vector3(0f, 0f, 70f);
-            golem.rotation = Quaternion.Euler(0f, 180f, 0f);
-            BoxLocal(golem, "Leg L", new Vector3(-2.2f, 2.75f, 0f), new Vector3(2.4f, 5.5f, 2.6f), Stone);
-            BoxLocal(golem, "Leg R", new Vector3(2.2f, 2.75f, 0f), new Vector3(2.4f, 5.5f, 2.6f), Stone);
-            BoxLocal(golem, "Body", new Vector3(0f, 8.5f, 0f), new Vector3(8f, 6.5f, 4.5f), Stone);
-            BoxLocal(golem, "Head", new Vector3(0f, 13.3f, 0.4f), new Vector3(3.2f, 2.8f, 3f), DarkStone);
-            BoxLocal(golem, "Arm L", new Vector3(-5.6f, 7.5f, 0f), new Vector3(2.4f, 7.5f, 2.4f), DarkStone);
-            BoxLocal(golem, "Arm R", new Vector3(5.6f, 7.5f, 0f), new Vector3(2.4f, 7.5f, 2.4f), DarkStone);
-            BoxLocal(golem, "Rune Core", new Vector3(0f, 9f, -2.3f), new Vector3(1.6f, 1.6f, 0.2f), Rune);
-            BoxLocal(golem, "Eye L", new Vector3(-0.7f, 13.6f, -1.1f), new Vector3(0.5f, 0.3f, 0.2f), Rune);
-            BoxLocal(golem, "Eye R", new Vector3(0.7f, 13.6f, -1.1f), new Vector3(0.5f, 0.3f, 0.2f), Rune);
+            // The Bastion Golem itself is built in Build(), after the scenery, at (0, 0, 70).
 
             // A 60 m Legend-tier silhouette on the horizon (an elder dragon would be this size).
             var legend = new GameObject("Legend tier marker (60 m)").transform;

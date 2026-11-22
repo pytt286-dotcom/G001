@@ -159,37 +159,8 @@ namespace Sealbound.Core
                 else if (n == "Head" && t.parent != null && t.parent.name.StartsWith("Bastion Golem")) piece = "floor_foundation_allsides";
                 else if (n == "Tower") piece = "pillar_decorated";
                 else if (n == "Crown") piece = "floor_foundation_allsides";
-                if (piece != null) Reskin(t, ArtLibrary.Dungeon + piece);
+                if (piece != null) ArtLibrary.FitInsideBox(t, ArtLibrary.Dungeon + piece);
             }
-        }
-
-        /// <summary>Hides a box shape and fits a model inside it exactly. The box's collider stays.</summary>
-        static void Reskin(Transform box, string path)
-        {
-            var r = box.GetComponent<Renderer>();
-            var mf = box.GetComponent<MeshFilter>();
-            if (r == null || mf == null || !SkinnedOutline.IsBuiltInShape(mf.sharedMesh)) return;
-            var go = ArtLibrary.Spawn(path, box);
-            if (go == null) return;
-            var t = go.transform;
-            t.localPosition = Vector3.zero;
-            t.localRotation = Quaternion.identity;
-            t.localScale = Vector3.one;
-
-            Bounds lb = BoneAim.LocalMeshBounds(t);
-            Vector3 size = lb.size;
-            if (size.x < 0.001f || size.y < 0.001f || size.z < 0.001f) { Object.Destroy(go); return; }
-
-            // Keep the piece's long side along the box's long side.
-            Vector3 boxSize = box.lossyScale;
-            bool turn = (boxSize.z > boxSize.x) != (size.z > size.x);
-            Quaternion rot = turn ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
-            Vector3 scale = new Vector3(1f / size.x, 1f / size.y, 1f / size.z);
-            t.localRotation = rot;
-            t.localScale = scale;
-            t.localPosition = -(rot * Vector3.Scale(lb.center, scale));
-            r.enabled = false;
-            go.isStatic = true;
         }
 
         static void PaveTrainingYard(Transform field, Transform root)
