@@ -174,7 +174,7 @@ namespace Sealbound.Core
         }
 
         /// <summary>Straw: pale dry gold.</summary>
-        public static Material Straw() => _straw != null ? _straw : (_straw = Lit("Straw", new Color(0.78f, 0.66f, 0.38f), 0f, 0.15f));
+        public static Material Straw() => _straw != null ? _straw : (_straw = Lit("Straw", new Color(0.86f, 0.62f, 0.3f), 0f, 0.15f));
 
         /// <summary>Lighter weathered timber for posts (the staff's bark, bleached).</summary>
         public static Material Timber() => _timber != null ? _timber : (_timber = Lit("Timber", new Color(0.95f, 0.85f, 0.72f), 0f, 0.15f,

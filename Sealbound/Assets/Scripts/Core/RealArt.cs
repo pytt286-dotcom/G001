@@ -192,7 +192,7 @@ namespace Sealbound.Core
             if (prefab == null) return null;
             var go = Object.Instantiate(prefab, parent, false);
             go.name = name;
-            bool green = name.StartsWith("Bush"); // bushes share the twisted tree's red autumn leaves: keep them green
+            const bool green = true; // the pack's red autumn leaves read as odd blotches in a green highland: keep every crown green
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;

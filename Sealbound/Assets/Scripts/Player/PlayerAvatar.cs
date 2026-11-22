@@ -29,6 +29,7 @@ namespace Sealbound.Player
             public float scale = 1f;
             public HeroBodies.Profile profile = HeroBodies.KayKit;
             public Transform index, pinky, middle; // realistic hands: where the grip is and which way the blade leaves the fist
+            public Transform foot; // realistic staff: its bottom end
         }
 
         /// <summary>True when the heroes are the realistic Quaternius bodies (no cartoon ink outline).</summary>
@@ -113,6 +114,7 @@ namespace Sealbound.Player
             // Realistic bodies: weapons sized in metres (a 1 m sword, a 1.7 m staff); cartoon bodies: the pack's own scale.
             float length = pr.realistic ? (sword ? 1.05f : 1.7f) : 0f;
             b.weapon = BuildWeapon(pivot, weaponProp, b.root.transform.localScale.x, sword, length, pr.realistic, out b.align);
+            if (b.weapon != null) b.foot = b.weapon.Find("Staff Foot");
             return b;
         }
 
@@ -184,11 +186,20 @@ namespace Sealbound.Player
             else
             {
                 // A glowing ember at the staff's head: the Mage's beat cue.
-                float orbSize = realistic ? 0.075f : 0.16f;
+                float orbSize = realistic ? 0.095f : 0.16f;
                 var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", tipLocal + dir * ((realistic ? 0.035f : 0.06f) / scale), Vector3.one * (orbSize / scale),
                     new Color(1f, 0.5f, 0.18f));
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                if (realistic) Sealbound.Combat.Glow.Make(orb.transform, Vector3.zero, 3.2f, new Color(2f, 0.9f, 0.3f, 0.55f)); // a soft halo round the ember
+                if (realistic) Sealbound.Combat.Glow.Make(orb.transform, Vector3.zero, 4.2f, new Color(2.4f, 1.05f, 0.35f, 0.75f)); // a soft halo round the ember
+                if (realistic)
+                {
+                    // Where the staff's foot is, so at rest it can stand on the ground.
+                    var foot = new GameObject("Staff Foot").transform;
+                    foot.SetParent(t, false);
+                    Vector3 footLocal = Vector3.zero;
+                    footLocal[axis] = dir[axis] > 0f ? min : max; // the end opposite the tip
+                    foot.localPosition = footLocal;
+                }
             }
 
             Shapes.SetLayerRecursive(go, 2);
@@ -339,6 +350,17 @@ namespace Sealbound.Player
             }
             b.weapon.position = grip;
             b.weapon.rotation = _armWeight >= 0.999f ? swing : Quaternion.Slerp(held, swing, _armWeight);
+            if (b.foot != null && _armWeight < 0.999f)
+            {
+                // At rest the hand slides up the shaft so the staff's foot stands on the ground.
+                Transform vis = _motor != null && _motor.visual != null ? _motor.visual : transform;
+                Vector3 axis = (b.weapon.position - b.foot.position).normalized;
+                if (axis.y > 0.5f)
+                {
+                    float drop = Mathf.Clamp(vis.position.y + 0.02f - b.foot.position.y, -0.9f, 0f);
+                    b.weapon.position += axis * (drop / axis.y) * (1f - _armWeight);
+                }
+            }
         }
     }
 }

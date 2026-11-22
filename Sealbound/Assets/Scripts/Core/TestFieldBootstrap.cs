@@ -361,7 +361,7 @@ namespace Sealbound.Core
             Dressed(pivot, scale, PrimitiveType.Cylinder, "Foot", new Vector3(0f, 0.06f, 0f), new Vector3(0.5f, 0.06f, 0.5f), wood, false, Vector3.zero);
             // A stuffed sack body, tied in at the waist and gathered at the neck, and a sack head.
             var body = Dressed(pivot, scale, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.3f, 0f), new Vector3(0.62f, 0.5f, 0.5f), sack, true, Vector3.zero);
-            Stuff(body, 0.09f, new[] { -0.6f, 0.84f }, seed);
+            Stuff(body, 0.15f, new[] { -0.6f, 0.84f }, seed);
             flash.Add(body);
             var head = Dressed(pivot, scale, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.0f, 0f), new Vector3(0.36f, 0.4f, 0.34f), sack, true, new Vector3(0f, 0f, 6f));
             Stuff(head, 0.07f, null, seed + 5f);
@@ -373,8 +373,8 @@ namespace Sealbound.Core
                 flash.Add(arm);
                 Tuft(pivot, scale, new Vector3(0.7f * side, 1.6f, 0.02f), new Vector3(0f, 0f, -90f * side));
             }
-            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Neck", new Vector3(0f, 1.72f, 0f), new Vector3(0.37f, 0.025f, 0.3f), rope, false, Vector3.zero);
-            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Waist", new Vector3(0f, 1.0f, 0f), new Vector3(0.5f, 0.03f, 0.41f), rope, false, Vector3.zero);
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Neck", new Vector3(0f, 1.72f, 0f), new Vector3(0.4f, 0.045f, 0.33f), rope, false, Vector3.zero);
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Waist", new Vector3(0f, 1.0f, 0f), new Vector3(0.54f, 0.05f, 0.45f), rope, false, Vector3.zero);
             Tuft(pivot, scale, new Vector3(0f, 1.74f, 0f), Vector3.zero);
             Tuft(pivot, scale, new Vector3(0f, 0.98f, 0f), new Vector3(180f, 0f, 0f));
             if (armoured)
