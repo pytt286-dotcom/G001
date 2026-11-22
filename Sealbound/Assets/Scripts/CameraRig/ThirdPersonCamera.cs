@@ -30,6 +30,20 @@ namespace Sealbound.CameraRig
         public float sprintFov = 73f;
         public float dodgeFov = 80f;
 
+        [Header("Shake")]
+        public float maxShakeAngle = 2.5f;
+        public float maxShakeOffset = 0.25f;
+        public float shakeDecay = 2.5f;
+
+        static ThirdPersonCamera _instance;
+        float _trauma;
+
+        /// <summary>Shake the camera. 0.1 = small tap, 1 = huge impact.</summary>
+        public static void Shake(float amount)
+        {
+            if (_instance != null) _instance._trauma = Mathf.Clamp01(_instance._trauma + amount);
+        }
+
         float _yaw, _pitch = 15f;
         float _currentDistance;
         Vector3 _pivot, _pivotVelocity;
@@ -39,6 +53,7 @@ namespace Sealbound.CameraRig
         {
             _cam = GetComponent<Camera>();
             _currentDistance = distance;
+            _instance = this;
         }
 
         void Start()
@@ -92,7 +107,19 @@ namespace Sealbound.CameraRig
                 ? wanted
                 : Mathf.Lerp(_currentDistance, wanted, 1f - Mathf.Exp(-6f * dt));
 
-            transform.SetPositionAndRotation(_pivot + shoulder + back * _currentDistance, rot);
+            Vector3 camPos = _pivot + shoulder + back * _currentDistance;
+            if (_trauma > 0f)
+            {
+                float s = _trauma * _trauma;
+                float time = Time.unscaledTime * 25f;
+                rot *= Quaternion.Euler(
+                    (Mathf.PerlinNoise(time, 0f) * 2f - 1f) * maxShakeAngle * s,
+                    (Mathf.PerlinNoise(0f, time) * 2f - 1f) * maxShakeAngle * s,
+                    (Mathf.PerlinNoise(time, time) * 2f - 1f) * maxShakeAngle * s);
+                camPos += rot * new Vector3(Mathf.PerlinNoise(time + 7f, 3f) * 2f - 1f, Mathf.PerlinNoise(3f, time + 7f) * 2f - 1f, 0f) * (maxShakeOffset * s);
+                _trauma = Mathf.Max(0f, _trauma - shakeDecay * Time.unscaledDeltaTime);
+            }
+            transform.SetPositionAndRotation(camPos, rot);
 
             float fov = baseFov;
             if (motor != null)

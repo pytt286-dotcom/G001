@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Sealbound.Player
@@ -50,6 +51,47 @@ namespace Sealbound.Player
         public bool IsInvulnerable => IsDodging && (dodgeDuration - _dodgeTimer) < dodgeInvulnerableTime;
         public bool IsSprinting { get; private set; }
         public Vector3 PlanarVelocity => _planarVelocity;
+
+        /// <summary>Set by combat: scales how fast the player can steer while attacking (1 = free).</summary>
+        public float MoveSpeedMultiplier { get; set; } = 1f;
+        /// <summary>Set by combat: stops the motor turning the character toward the stick.</summary>
+        public bool RotationLocked { get; set; }
+        public event Action DodgeStarted;
+
+        float _hoverTimer;
+
+        /// <summary>Push the player along the ground, e.g. an attack lunge.</summary>
+        public void Lunge(Vector3 direction, float speed)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return;
+            _planarVelocity = direction.normalized * speed;
+        }
+
+        /// <summary>Hold the player in the air briefly, e.g. during an air attack.</summary>
+        public void Hover(float seconds)
+        {
+            _hoverTimer = Mathf.Max(_hoverTimer, seconds);
+            if (_verticalVelocity < 0f) _verticalVelocity = 0f;
+        }
+
+        public void FaceDirection(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return;
+            transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        }
+
+        /// <summary>Movement input relative to the camera, for other scripts (e.g. aiming attacks).</summary>
+        public Vector3 MoveInputWorld => GetCameraRelativeInput();
+
+        public bool TrySpendStamina(float amount)
+        {
+            if (Stamina < amount) return false;
+            Stamina -= amount;
+            _regenDelayTimer = staminaRegenDelay;
+            return true;
+        }
 
         CharacterController _cc;
         PlayerInputReader _input;
@@ -137,13 +179,14 @@ namespace Sealbound.Player
         void UpdateRunning(Vector3 wishDir, float dt)
         {
             bool hasInput = wishDir.sqrMagnitude > 0.01f;
-            IsSprinting = hasInput && _input.SprintHeld && Stamina > 0f && IsGrounded;
+            IsSprinting = hasInput && _input.SprintHeld && Stamina > 0f && IsGrounded && MoveSpeedMultiplier >= 1f;
 
             float speed = IsSprinting ? sprintSpeed : runSpeed;
-            Vector3 target = wishDir * speed;
+            Vector3 target = wishDir * speed * MoveSpeedMultiplier;
             float rate = hasInput ? acceleration : deceleration;
             if (!IsGrounded) rate *= airControl;
             if (_recoveryTimer > 0f) rate *= 0.5f;
+            if (MoveSpeedMultiplier < 1f) rate *= 0.35f; // let attack lunges carry
 
             // Turning sharply keeps momentum feeling snappy rather than slidey.
             if (hasInput && IsGrounded && Vector3.Dot(_planarVelocity.normalized, wishDir.normalized) < -0.3f)
@@ -151,7 +194,7 @@ namespace Sealbound.Player
 
             _planarVelocity = Vector3.MoveTowards(_planarVelocity, target, rate * dt);
 
-            if (hasInput)
+            if (hasInput && !RotationLocked)
             {
                 Quaternion look = Quaternion.LookRotation(wishDir, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * dt);
@@ -171,6 +214,12 @@ namespace Sealbound.Player
 
         void UpdateGravity(float dt)
         {
+            if (_hoverTimer > 0f)
+            {
+                _hoverTimer -= dt;
+                _verticalVelocity = Mathf.Max(_verticalVelocity - gravity * 0.1f * dt, -1f);
+                return;
+            }
             float g = gravity;
             if (IsDodging && !IsGrounded) g *= 0.25f; // brief hang time on air dodges
             else if (_verticalVelocity < 0f) g *= fallGravityMultiplier;
@@ -196,6 +245,8 @@ namespace Sealbound.Player
                 _verticalVelocity = Mathf.Max(_verticalVelocity, 0f);
             }
             transform.rotation = Quaternion.LookRotation(_dodgeDirection, Vector3.up);
+            _hoverTimer = 0f;
+            DodgeStarted?.Invoke();
         }
 
         void UpdateDodge(float dt)

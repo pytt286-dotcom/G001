@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Sealbound.CameraRig;
+using Sealbound.Combat;
 using Sealbound.Player;
 using Sealbound.UI;
 using UnityEngine;
@@ -35,6 +36,7 @@ namespace Sealbound.Core
             BuildGround(root);
             BuildCourse(root);
             BuildScaleMarkers(root);
+            BuildTrainingYard(root);
 
             var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
             SetupCamera(player);
@@ -180,13 +182,123 @@ namespace Sealbound.Core
 
             foreach (Transform t in visual.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
 
+            var swordPivot = BuildSword(visual);
+
             player.AddComponent<PlayerInputReader>();
             var motor = player.AddComponent<PlayerMotor>();
             motor.visual = visual;
+            var combat = player.AddComponent<PlayerCombat>();
+            combat.swordPivot = swordPivot;
 
             var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
             hud.motor = motor;
+            hud.combat = combat;
             return player;
+        }
+
+        static Transform BuildSword(Transform visual)
+        {
+            var pivot = new GameObject("Sword Pivot").transform;
+            pivot.SetParent(visual, false);
+            pivot.localPosition = new Vector3(0.4f, 1.25f, 0.1f);
+
+            Part(pivot, "Grip", new Vector3(0f, 0f, 0f), new Vector3(0.06f, 0.06f, 0.28f), Wood);
+            Part(pivot, "Guard", new Vector3(0f, 0f, 0.16f), new Vector3(0.36f, 0.06f, 0.07f), Iron);
+            Part(pivot, "Blade", new Vector3(0f, 0f, 0.85f), new Vector3(0.14f, 0.04f, 1.3f), Iron);
+            Part(pivot, "Rune Edge", new Vector3(0f, 0.025f, 0.85f), new Vector3(0.04f, 0.01f, 1.1f), Rune);
+
+            var tip = new GameObject("Blade Tip").transform;
+            tip.SetParent(pivot, false);
+            tip.localPosition = new Vector3(0f, 0f, 1.45f);
+            var trail = tip.gameObject.AddComponent<TrailRenderer>();
+            trail.time = 0.1f;
+            trail.minVertexDistance = 0.05f;
+            trail.widthCurve = new AnimationCurve(new Keyframe(0f, 0.35f), new Keyframe(1f, 0f));
+            var shader = Shader.Find("Sprites/Default");
+            if (shader != null) trail.sharedMaterial = new Material(shader);
+            var g = new Gradient();
+            g.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Rune, 1f) },
+                new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
+            trail.colorGradient = g;
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trail.emitting = false;
+
+            foreach (Transform t in pivot.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
+            return pivot;
+        }
+
+        static void Part(Transform parent, string name, Vector3 localPos, Vector3 size, Color color)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            Object.Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = size;
+            Paint(go, color);
+        }
+
+        // ---------- Training yard (Milestone 2) ----------
+
+        static void BuildTrainingYard(Transform root)
+        {
+            var yard = new GameObject("Training Yard").transform;
+            yard.SetParent(root);
+
+            Box(yard, "Yard Floor", new Vector3(7f, 0.02f, -8f), new Vector3(16f, 0.04f, 14f), Stone);
+            Dummy(yard, new Vector3(4f, 0f, -12f), 1f, false);
+            Dummy(yard, new Vector3(7f, 0f, -9f), 1f, false);
+            Dummy(yard, new Vector3(4f, 0f, -5f), 1f, false);
+            Dummy(yard, new Vector3(10f, 0f, -12.5f), 1f, false);
+            Dummy(yard, new Vector3(10.6f, 0f, -11f), 1f, false);
+            Dummy(yard, new Vector3(11.4f, 0f, -12.2f), 1f, false);
+            Dummy(yard, new Vector3(12f, 0f, -5f), 1.9f, true);
+        }
+
+        static void Dummy(Transform parent, Vector3 pos, float scale, bool armoured)
+        {
+            var root = new GameObject(armoured ? "Armoured Dummy" : "Training Dummy");
+            root.transform.SetParent(parent);
+            root.transform.position = pos;
+            root.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+
+            var pivot = new GameObject("Wobble").transform;
+            pivot.SetParent(root.transform, false);
+
+            Color body = armoured ? DarkStone : new Color(0.85f, 0.72f, 0.45f);
+            var renderers = new List<Renderer>();
+            renderers.Add(Primitive(pivot, PrimitiveType.Cylinder, "Post", new Vector3(0f, 0.6f, 0f) * scale, new Vector3(0.18f, 0.6f, 0.18f) * scale, Wood, true));
+            renderers.Add(Primitive(pivot, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.35f, 0f) * scale, new Vector3(0.75f, 0.6f, 0.75f) * scale, body, true));
+            renderers.Add(Primitive(pivot, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.05f, 0f) * scale, Vector3.one * 0.45f * scale, body, true));
+            renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Arms", new Vector3(0f, 1.55f, 0f) * scale, new Vector3(1.4f, 0.14f, 0.14f) * scale, Wood, false));
+            if (armoured)
+            {
+                renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Stone Plate", new Vector3(0f, 1.4f, -0.36f) * scale, new Vector3(0.6f, 0.7f, 0.08f) * scale, Stone, false));
+                renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Rune", new Vector3(0f, 1.45f, -0.41f) * scale, new Vector3(0.18f, 0.18f, 0.02f) * scale, Rune, false));
+            }
+
+            var health = root.AddComponent<Health>();
+            health.maxHealth = armoured ? 300f : 80f;
+            health.damageMultiplier = armoured ? 0.4f : 1f;
+
+            var dummy = root.AddComponent<TrainingDummy>();
+            dummy.wobblePivot = pivot;
+            dummy.flashRenderers = renderers.ToArray();
+            dummy.label = armoured ? "Armoured (golem stone)" : "Training Dummy";
+            dummy.labelHeight = 2.6f * scale;
+        }
+
+        static Renderer Primitive(Transform parent, PrimitiveType type, string name, Vector3 localPos, Vector3 size, Color color, bool keepCollider)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            if (!keepCollider) Object.Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = size;
+            Paint(go, color);
+            return go.GetComponent<Renderer>();
         }
 
         static void SetupCamera(GameObject player)

@@ -19,9 +19,13 @@ namespace Sealbound.Player
         public bool JumpPressed { get; private set; }
         /// <summary>True for one frame when dodge was pressed.</summary>
         public bool DodgePressed { get; private set; }
+        /// <summary>True for one frame when light attack was pressed.</summary>
+        public bool AttackPressed { get; private set; }
+        /// <summary>True for one frame when heavy attack was pressed.</summary>
+        public bool HeavyPressed { get; private set; }
 
         InputActionMap _map;
-        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge;
+        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy;
 
         void Awake()
         {
@@ -53,6 +57,12 @@ namespace Sealbound.Player
             _dodge.AddBinding("<Keyboard>/c");
             _dodge.AddBinding("<Mouse>/rightButton");
             _dodge.AddBinding("<Gamepad>/buttonEast");
+
+            _attack = _map.AddAction("Attack", InputActionType.Button, "<Mouse>/leftButton");
+            _attack.AddBinding("<Gamepad>/buttonWest");
+
+            _heavy = _map.AddAction("Heavy", InputActionType.Button, "<Keyboard>/e");
+            _heavy.AddBinding("<Gamepad>/buttonNorth");
         }
 
         void OnEnable() => _map.Enable();
@@ -69,6 +79,9 @@ namespace Sealbound.Player
             JumpHeld = _jump.IsPressed();
             JumpPressed = _jump.WasPressedThisFrame();
             DodgePressed = _dodge.WasPressedThisFrame() && !(cursorFree && _dodge.activeControl?.device is Mouse);
+            // A click that recaptures the mouse should not also swing the sword.
+            AttackPressed = _attack.WasPressedThisFrame() && !(cursorFree && _attack.activeControl?.device is Mouse);
+            HeavyPressed = _heavy.WasPressedThisFrame();
         }
     }
 }
