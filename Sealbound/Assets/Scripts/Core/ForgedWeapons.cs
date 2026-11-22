@@ -9,10 +9,10 @@ namespace Sealbound.Core
     /// </summary>
     public static class ForgedWeapons
     {
-        static Material _steel, _leather, _brass, _wood, _burlap, _rope;
+        static Material _steel, _leather, _brass, _wood, _burlap, _rope, _straw, _timber;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; _burlap = null; _rope = null; _blade = null; }
+        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; _burlap = null; _rope = null; _straw = null; _timber = null; _blade = null; _tuft = null; }
 
         public static GameObject Sword(Transform parent)
         {
@@ -161,10 +161,126 @@ namespace Sealbound.Core
         /// <summary>Bark-textured wood, for posts and other rough timber.</summary>
         public static Material BarkWood() => Wood();
         /// <summary>Coarse straw-stuffed sacking, for training dummies.</summary>
-        public static Material Burlap() => _burlap != null ? _burlap : (_burlap = Lit("Burlap", new Color(0.6f, 0.49f, 0.33f), 0f, 0.08f));
+        public static Material Burlap()
+        {
+            if (_burlap != null) return _burlap;
+            Texture2D colour, normal;
+            BurlapTextures(out colour, out normal);
+            _burlap = Lit("Burlap", Color.white, 0f, 0.06f, colour, normal);
+            _burlap.mainTextureScale = new Vector2(5f, 4f);
+            if (_burlap.HasProperty("_BaseMap")) _burlap.SetTextureScale("_BaseMap", new Vector2(5f, 4f));
+            if (_burlap.HasProperty("_BumpScale")) _burlap.SetFloat("_BumpScale", 1.4f);
+            return _burlap;
+        }
+
+        /// <summary>Straw: pale dry gold.</summary>
+        public static Material Straw() => _straw != null ? _straw : (_straw = Lit("Straw", new Color(0.78f, 0.66f, 0.38f), 0f, 0.15f));
+
+        /// <summary>Lighter weathered timber for posts (the staff's bark, bleached).</summary>
+        public static Material Timber() => _timber != null ? _timber : (_timber = Lit("Timber", new Color(0.95f, 0.85f, 0.72f), 0f, 0.15f,
+            ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree"), ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree_Normal")));
+
+        /// <summary>
+        /// A coarse sackcloth weave made in code: over-under threads with uneven thickness and stains,
+        /// plus a matching normal map so the weave catches the light.
+        /// </summary>
+        static void BurlapTextures(out Texture2D colour, out Texture2D normal)
+        {
+            const int n = 256, cell = 8; // 32 threads each way
+            var h = new float[n * n];
+            var rng = new System.Random(7);
+            var thick = new float[n / cell * 2];
+            for (int i = 0; i < thick.Length; i++) thick[i] = 0.75f + (float)rng.NextDouble() * 0.5f;
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    int cx = x / cell, cy = y / cell;
+                    float fx = (x % cell + 0.5f) / cell, fy = (y % cell + 0.5f) / cell;
+                    bool warpOnTop = ((cx + cy) & 1) == 0;
+                    // Across the thread: a rounded profile. Along it: a hump where it rises over the crossing thread.
+                    float warp = Mathf.Sin(fx * Mathf.PI) * thick[cx] * (0.55f + 0.45f * Mathf.Sin(fy * Mathf.PI));
+                    float weft = Mathf.Sin(fy * Mathf.PI) * thick[n / cell + cy] * (0.55f + 0.45f * Mathf.Sin(fx * Mathf.PI));
+                    float v = warpOnTop ? Mathf.Max(warp, weft * 0.6f) : Mathf.Max(weft, warp * 0.6f);
+                    v += (Mathf.PerlinNoise(x * 0.35f, y * 0.35f) - 0.5f) * 0.25f; // fibres
+                    h[y * n + x] = Mathf.Clamp01(v);
+                }
+            var px = new Color32[n * n];
+            var nx = new Color32[n * n];
+            Color dark = new Color(0.3f, 0.22f, 0.13f), light = new Color(0.74f, 0.62f, 0.43f);
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float v = h[y * n + x];
+                    float stain = Mathf.PerlinNoise(x * 0.015f + 3.1f, y * 0.015f + 7.7f);
+                    Color c = Color.Lerp(dark, light, Mathf.SmoothStep(0f, 1f, v)) * Mathf.Lerp(0.72f, 1.05f, stain);
+                    px[y * n + x] = c;
+                    float dx = h[y * n + (x + 1) % n] - h[y * n + (x + n - 1) % n];
+                    float dy = h[((y + 1) % n) * n + x] - h[((y + n - 1) % n) * n + x];
+                    var nrm = new Vector3(-dx * 2.2f, -dy * 2.2f, 1f).normalized;
+                    // Stored so URP reads it either way: x in red and alpha, y in green.
+                    byte r = (byte)Mathf.RoundToInt((nrm.x * 0.5f + 0.5f) * 255f);
+                    nx[y * n + x] = new Color32(r, (byte)Mathf.RoundToInt((nrm.y * 0.5f + 0.5f) * 255f), (byte)Mathf.RoundToInt((nrm.z * 0.5f + 0.5f) * 255f), r);
+                }
+            colour = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "Burlap", wrapMode = TextureWrapMode.Repeat, anisoLevel = 4 };
+            colour.SetPixels32(px);
+            colour.Apply(true, true);
+            normal = new Texture2D(n, n, TextureFormat.RGBA32, true, true) { name = "Burlap Normal", wrapMode = TextureWrapMode.Repeat, anisoLevel = 4 };
+            normal.SetPixels32(nx);
+            normal.Apply(true, true);
+        }
+
+        /// <summary>
+        /// A lumpy stuffed-sack version of a mesh: pushed in and out by noise and pulled in where
+        /// ropes tie it (<paramref name="ties"/> are heights in the mesh's own space).
+        /// </summary>
+        public static Mesh Lumpy(Mesh source, float amount, float[] ties, float seed)
+        {
+            var m = Object.Instantiate(source);
+            m.name = source.name + " (stuffed)";
+            var v = m.vertices;
+            var nrm = m.normals;
+            for (int i = 0; i < v.Length; i++)
+            {
+                Vector3 p = v[i];
+                float lump = Mathf.PerlinNoise(p.x * 3.1f + seed, p.y * 2.3f + p.z * 3.1f + seed * 0.7f) - 0.5f;
+                float pinch = 0f;
+                if (ties != null)
+                    foreach (float ty in ties) pinch = Mathf.Max(pinch, Mathf.Exp(-Mathf.Pow((p.y - ty) / 0.06f, 2f)));
+                Vector3 radial = new Vector3(p.x, 0f, p.z);
+                v[i] = p + nrm[i] * lump * amount - radial * pinch * 0.22f;
+            }
+            m.vertices = v;
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>A tuft of straw stalks bursting out of a tie, pointing up (+Y), about 0.2 m long.</summary>
+        static Mesh _tuft;
+        public static Mesh StrawTuft()
+        {
+            if (_tuft != null) return _tuft;
+            var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+            var rng = new System.Random(3);
+            var parts = new CombineInstance[22];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                float yaw = (float)rng.NextDouble() * 360f, tilt = 15f + (float)rng.NextDouble() * 55f;
+                float len = 0.09f + (float)rng.NextDouble() * 0.13f;
+                var rot = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(tilt, 0f, 0f);
+                parts[i] = new CombineInstance
+                {
+                    mesh = cube,
+                    transform = Matrix4x4.TRS(rot * new Vector3(0f, len * 0.5f, 0f), rot, new Vector3(0.006f, len, 0.006f))
+                };
+            }
+            _tuft = new Mesh { name = "Straw Tuft" };
+            _tuft.CombineMeshes(parts, true, true);
+            return _tuft;
+        }
         /// <summary>Dark hemp rope.</summary>
         public static Material Rope() => _rope != null ? _rope : (_rope = Lit("Rope", new Color(0.32f, 0.25f, 0.16f), 0f, 0.12f));
-        static Material Wood() => _wood != null ? _wood : (_wood = Lit("Staff wood", new Color(0.55f, 0.45f, 0.36f), 0f, 0.2f,
+        static Material Wood() => _wood != null ? _wood : (_wood = Lit("Staff wood", new Color(0.72f, 0.6f, 0.48f), 0f, 0.2f,
             ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree"), ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree_Normal")));
     }
 }

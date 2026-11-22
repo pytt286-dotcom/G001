@@ -61,6 +61,19 @@ namespace Sealbound.Player
             }
             av._mageBody.root.SetActive(false);
             av._active = av._swordBody;
+            if (av.IsRealistic)
+            {
+                // A soft key on the face, like a film's fill light: without it the face sits in the
+                // hood's (and its own) shadow and reads as a black hole under a bright sky.
+                var fill = new GameObject("Face Fill Light").AddComponent<Light>();
+                fill.transform.SetParent(visual, false);
+                fill.transform.localPosition = new Vector3(0.15f, av.modelHeight * 0.92f, 0.7f);
+                fill.type = LightType.Point;
+                fill.color = new Color(1f, 0.93f, 0.85f);
+                fill.range = 1.5f;
+                fill.intensity = 1.1f;
+                fill.shadows = LightShadows.None;
+            }
             return av;
         }
 
@@ -175,6 +188,7 @@ namespace Sealbound.Player
                 var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", tipLocal + dir * ((realistic ? 0.035f : 0.06f) / scale), Vector3.one * (orbSize / scale),
                     new Color(1f, 0.5f, 0.18f));
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (realistic) Sealbound.Combat.Glow.Make(orb.transform, Vector3.zero, 3.2f, new Color(2f, 0.9f, 0.3f, 0.55f)); // a soft halo round the ember
             }
 
             Shapes.SetLayerRecursive(go, 2);
@@ -314,6 +328,14 @@ namespace Sealbound.Player
                 grip = b.handSlot.position + fingers * 0.75f;
                 Vector3 across = (b.index.position - b.pinky.position).normalized;
                 held = Quaternion.LookRotation(across, fingers.normalized) * b.align;
+                if (b == _mageBody)
+                {
+                    // At rest the staff stands upright at her side, leaning a touch forward and out,
+                    // rather than lying along the knuckles like a sword.
+                    Transform vis = _motor != null && _motor.visual != null ? _motor.visual : transform;
+                    Vector3 upright = (vis.up + vis.forward * 0.12f + vis.right * 0.06f).normalized;
+                    held = Quaternion.LookRotation(upright, -vis.forward) * b.align;
+                }
             }
             b.weapon.position = grip;
             b.weapon.rotation = _armWeight >= 0.999f ? swing : Quaternion.Slerp(held, swing, _armWeight);

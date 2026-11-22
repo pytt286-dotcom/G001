@@ -352,24 +352,54 @@ namespace Sealbound.Core
         /// </summary>
         static void RealDummy(Transform pivot, float scale, bool armoured, List<Renderer> flash)
         {
-            var wood = ForgedWeapons.BarkWood();
+            var wood = ForgedWeapons.Timber();
             var sack = ForgedWeapons.Burlap();
             var rope = ForgedWeapons.Rope();
+            float seed = pivot.position.x * 1.7f + pivot.position.z * 0.9f;
             Dressed(pivot, scale, PrimitiveType.Cylinder, "Post", new Vector3(0f, 1.05f, 0f), new Vector3(0.14f, 1.05f, 0.14f), wood, true, Vector3.zero);
             Dressed(pivot, scale, PrimitiveType.Cylinder, "Crossbar", new Vector3(0f, 1.6f, 0.02f), new Vector3(0.09f, 0.72f, 0.09f), wood, false, new Vector3(0f, 0f, 90f));
             Dressed(pivot, scale, PrimitiveType.Cylinder, "Foot", new Vector3(0f, 0.06f, 0f), new Vector3(0.5f, 0.06f, 0.5f), wood, false, Vector3.zero);
-            flash.Add(Dressed(pivot, scale, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.3f, 0f), new Vector3(0.62f, 0.5f, 0.5f), sack, true, Vector3.zero));
-            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.0f, 0f), new Vector3(0.36f, 0.4f, 0.34f), sack, true, new Vector3(0f, 0f, 6f)));
-            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Arm Sack L", new Vector3(-0.62f, 1.6f, 0.02f), new Vector3(0.2f, 0.2f, 0.2f), sack, false, Vector3.zero));
-            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Arm Sack R", new Vector3(0.62f, 1.6f, 0.02f), new Vector3(0.2f, 0.2f, 0.2f), sack, false, Vector3.zero));
-            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Neck", new Vector3(0f, 1.8f, 0f), new Vector3(0.24f, 0.025f, 0.22f), rope, false, Vector3.zero);
-            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Waist", new Vector3(0f, 1.0f, 0f), new Vector3(0.6f, 0.03f, 0.48f), rope, false, Vector3.zero);
+            // A stuffed sack body, tied in at the waist and gathered at the neck, and a sack head.
+            var body = Dressed(pivot, scale, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.3f, 0f), new Vector3(0.62f, 0.5f, 0.5f), sack, true, Vector3.zero);
+            Stuff(body, 0.09f, new[] { -0.6f, 0.84f }, seed);
+            flash.Add(body);
+            var head = Dressed(pivot, scale, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.0f, 0f), new Vector3(0.36f, 0.4f, 0.34f), sack, true, new Vector3(0f, 0f, 6f));
+            Stuff(head, 0.07f, null, seed + 5f);
+            flash.Add(head);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var arm = Dressed(pivot, scale, PrimitiveType.Sphere, side < 0 ? "Arm Sack L" : "Arm Sack R", new Vector3(0.58f * side, 1.6f, 0.02f), new Vector3(0.24f, 0.19f, 0.19f), sack, false, Vector3.zero);
+                Stuff(arm, 0.08f, null, seed + side * 3f);
+                flash.Add(arm);
+                Tuft(pivot, scale, new Vector3(0.7f * side, 1.6f, 0.02f), new Vector3(0f, 0f, -90f * side));
+            }
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Neck", new Vector3(0f, 1.72f, 0f), new Vector3(0.37f, 0.025f, 0.3f), rope, false, Vector3.zero);
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Waist", new Vector3(0f, 1.0f, 0f), new Vector3(0.5f, 0.03f, 0.41f), rope, false, Vector3.zero);
+            Tuft(pivot, scale, new Vector3(0f, 1.74f, 0f), Vector3.zero);
+            Tuft(pivot, scale, new Vector3(0f, 0.98f, 0f), new Vector3(180f, 0f, 0f));
             if (armoured)
             {
                 var plate = Primitive(pivot, PrimitiveType.Cube, "Stone Plate", new Vector3(0f, 1.38f, -0.27f) * scale, new Vector3(0.56f, 0.64f, 0.1f) * scale, Color.white, false);
                 plate.sharedMaterial = RealArt.Surface(RealArt.GolemStone, 0.8f, 0.3f, Color.white);
                 flash.Add(Primitive(pivot, PrimitiveType.Sphere, "Rune", new Vector3(0f, 1.42f, -0.33f) * scale, new Vector3(0.14f, 0.14f, 0.05f) * scale, Rune, false));
             }
+        }
+
+        static void Stuff(Renderer r, float amount, float[] ties, float seed)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf != null) mf.sharedMesh = ForgedWeapons.Lumpy(mf.sharedMesh, amount, ties, seed);
+        }
+
+        static void Tuft(Transform pivot, float scale, Vector3 pos, Vector3 euler)
+        {
+            var go = new GameObject("Straw");
+            go.transform.SetParent(pivot, false);
+            go.transform.localPosition = pos * scale;
+            go.transform.localRotation = Quaternion.Euler(euler);
+            go.transform.localScale = Vector3.one * scale;
+            go.AddComponent<MeshFilter>().sharedMesh = ForgedWeapons.StrawTuft();
+            go.AddComponent<MeshRenderer>().sharedMaterial = ForgedWeapons.Straw();
         }
 
         static Renderer Dressed(Transform pivot, float scale, PrimitiveType type, string name, Vector3 pos, Vector3 size, Material m, bool collider, Vector3 euler)

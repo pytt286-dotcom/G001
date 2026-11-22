@@ -89,6 +89,7 @@ namespace Sealbound.Dev
             }
 
             Shot("06_training_yard", new Vector3(-6f, 6f, -22f), new Vector3(7f, 0.5f, -8f), 55f);
+            Shot("06b_dummy_close", new Vector3(6.2f, 1.8f, -9.6f), new Vector3(4f, 1.45f, -12f), 45f);
             Shot("07_field_wide", new Vector3(0f, 22f, -45f), new Vector3(0f, 2f, 55f), 60f);
             Shot("08_ruins", new Vector3(8f, 7f, 42f), new Vector3(0f, 5f, 70f), 55f);
             Shot("08b_valley_eye_level", new Vector3(4f, 1.7f, -14f), new Vector3(-2f, 7f, 80f), 60f);

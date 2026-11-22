@@ -25,16 +25,17 @@ namespace Sealbound.Combat
         public static PlayerBolt Fire(Vector3 from, Vector3 dir, Transform target, float speed, float radius, float damage,
             float impact, bool pierce, Color color, GameObject caster, Action<bool, float> onHit)
         {
-            // Realistic look: a small white-hot core that lights its surroundings, with a thin fiery streak.
-            // The hit radius stays the same; only the drawn ball is smaller.
+            // Realistic look: no solid ball, just a soft fiery glow round a white-hot centre that lights
+            // its surroundings, with a thin streak behind. The hit radius stays the same.
             bool real = RealArt.Has;
-            float drawn = real ? Mathf.Min(radius * 2f, 0.2f) : radius * 2f;
-            var go = Shapes.Make(PrimitiveType.Sphere, null, "Ember Bolt", from, Vector3.one * drawn,
-                real ? Color.Lerp(color, Color.white, 0.45f) : color, false, true);
-            go.transform.position = from;
-            go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            float drawn = real ? 0.1f : radius * 2f;
+            GameObject go;
             if (real)
             {
+                go = new GameObject("Ember Bolt");
+                go.layer = 2;
+                Glow.Make(go.transform, Vector3.zero, 0.7f, new Color(color.r * 2.2f, color.g * 2.2f, color.b * 2.2f, 0.8f));
+                Glow.Make(go.transform, Vector3.zero, 0.22f, new Color(2.4f, 2.1f, 1.6f, 1f));
                 var light = go.AddComponent<Light>();
                 light.type = LightType.Point;
                 light.color = color;
@@ -42,9 +43,11 @@ namespace Sealbound.Combat
                 light.intensity = 2.2f;
                 light.shadows = LightShadows.None;
             }
+            else go = Shapes.Make(PrimitiveType.Sphere, null, "Ember Bolt", from, Vector3.one * drawn, color, false, true);
+            go.transform.position = from;
             var trail = go.AddComponent<TrailRenderer>();
             trail.time = real ? 0.12f : 0.15f;
-            trail.widthCurve = new AnimationCurve(new Keyframe(0f, real ? drawn * 0.9f : radius * 1.6f), new Keyframe(1f, 0f));
+            trail.widthCurve = new AnimationCurve(new Keyframe(0f, real ? drawn : radius * 1.6f), new Keyframe(1f, 0f));
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var shader = Shader.Find("Sprites/Default");
             if (shader != null) trail.sharedMaterial = new Material(shader);
