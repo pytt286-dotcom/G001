@@ -25,11 +25,27 @@ namespace Sealbound.Combat
         public static PlayerBolt Fire(Vector3 from, Vector3 dir, Transform target, float speed, float radius, float damage,
             float impact, bool pierce, Color color, GameObject caster, Action<bool, float> onHit)
         {
-            var go = Shapes.Make(PrimitiveType.Sphere, null, "Ember Bolt", from, Vector3.one * radius * 2f, color, false, true);
+            // Realistic look: a small white-hot core that lights its surroundings, with a thin fiery streak.
+            // The hit radius stays the same; only the drawn ball is smaller.
+            bool real = RealArt.Has;
+            float drawn = real ? Mathf.Min(radius * 2f, 0.2f) : radius * 2f;
+            var go = Shapes.Make(PrimitiveType.Sphere, null, "Ember Bolt", from, Vector3.one * drawn,
+                real ? Color.Lerp(color, Color.white, 0.45f) : color, false, true);
             go.transform.position = from;
+            go.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (real)
+            {
+                var light = go.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = color;
+                light.range = 4f;
+                light.intensity = 2.2f;
+                light.shadows = LightShadows.None;
+            }
             var trail = go.AddComponent<TrailRenderer>();
-            trail.time = 0.15f;
-            trail.widthCurve = new AnimationCurve(new Keyframe(0f, radius * 1.6f), new Keyframe(1f, 0f));
+            trail.time = real ? 0.12f : 0.15f;
+            trail.widthCurve = new AnimationCurve(new Keyframe(0f, real ? drawn * 0.9f : radius * 1.6f), new Keyframe(1f, 0f));
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var shader = Shader.Find("Sprites/Default");
             if (shader != null) trail.sharedMaterial = new Material(shader);
             trail.startColor = color; trail.endColor = new Color(color.r, color.g, color.b, 0f);

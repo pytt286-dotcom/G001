@@ -9,10 +9,10 @@ namespace Sealbound.Core
     /// </summary>
     public static class ForgedWeapons
     {
-        static Material _steel, _leather, _brass, _wood;
+        static Material _steel, _leather, _brass, _wood, _burlap, _rope;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; }
+        static void ResetStatics() { _steel = null; _leather = null; _brass = null; _wood = null; _burlap = null; _rope = null; _blade = null; }
 
         public static GameObject Sword(Transform parent)
         {
@@ -35,18 +35,20 @@ namespace Sealbound.Core
         {
             var root = new GameObject("Sealer Staff");
             root.transform.SetParent(parent, false);
-            // A slightly crooked shaft of three tapering pieces, held a third of the way up.
-            Vector3 a = new Vector3(0f, -0.6f, 0f), b = new Vector3(0.012f, 0.05f, 0.006f), c = new Vector3(-0.01f, 0.65f, -0.008f), d = new Vector3(0.018f, 1.02f, 0.01f);
-            Shaft(root.transform, a, b, 0.019f);
-            Shaft(root.transform, b, c, 0.021f);
-            Shaft(root.transform, c, d, 0.026f);
+            // A slightly crooked shaft of three tapering pieces, held low so most of it rises above the hand.
+            Vector3 a = new Vector3(0f, -0.42f, 0f), b = new Vector3(0.012f, 0.25f, 0.006f), c = new Vector3(-0.01f, 0.85f, -0.008f), d = new Vector3(0.018f, 1.22f, 0.01f);
+            Shaft(root.transform, a, b, 0.028f);
+            Shaft(root.transform, b, c, 0.031f);
+            Shaft(root.transform, c, d, 0.036f);
+            // A leather wrap where the hand holds it.
+            Part(root.transform, PrimitiveType.Cylinder, "Wrap", new Vector3(0.002f, 0.02f, 0.001f), new Vector3(0.068f, 0.11f, 0.068f), Leather());
             // A carved head: a knot of wood cupping the ember (the ember itself is added by the hero).
-            Part(root.transform, PrimitiveType.Sphere, "Knot", d + new Vector3(0f, 0.02f, 0f), new Vector3(0.075f, 0.06f, 0.075f), Wood());
+            Part(root.transform, PrimitiveType.Sphere, "Knot", d + new Vector3(0f, 0.02f, 0f), new Vector3(0.1f, 0.085f, 0.1f), Wood());
             for (int i = 0; i < 3; i++)
             {
                 float ang = i * 120f;
-                var prong = Part(root.transform, PrimitiveType.Capsule, "Prong", d + Quaternion.Euler(0f, ang, 0f) * new Vector3(0.032f, 0.07f, 0f),
-                    new Vector3(0.022f, 0.06f, 0.022f), Wood());
+                var prong = Part(root.transform, PrimitiveType.Capsule, "Prong", d + Quaternion.Euler(0f, ang, 0f) * new Vector3(0.042f, 0.09f, 0f),
+                    new Vector3(0.03f, 0.075f, 0.03f), Wood());
                 prong.transform.localRotation = Quaternion.Euler(0f, ang, -18f);
             }
             return root;
@@ -151,9 +153,17 @@ namespace Sealbound.Core
             return m;
         }
 
-        static Material Steel() => _steel != null ? _steel : (_steel = Lit("Steel", new Color(0.78f, 0.79f, 0.8f), 1f, 0.78f));
-        static Material Leather() => _leather != null ? _leather : (_leather = Lit("Leather", new Color(0.2f, 0.12f, 0.07f), 0f, 0.3f));
-        static Material Brass() => _brass != null ? _brass : (_brass = Lit("Brass", new Color(0.72f, 0.56f, 0.3f), 1f, 0.6f));
+        // Not fully metallic: the photo sky has a dark lower half, and a perfect mirror of it turns the blade navy.
+        static Material Steel() => _steel != null ? _steel : (_steel = Lit("Steel", new Color(0.86f, 0.87f, 0.88f), 0.55f, 0.66f));
+        static Material Leather() => _leather != null ? _leather : (_leather = Lit("Leather", new Color(0.26f, 0.16f, 0.09f), 0f, 0.3f));
+        static Material Brass() => _brass != null ? _brass : (_brass = Lit("Brass", new Color(0.8f, 0.63f, 0.36f), 0.6f, 0.55f));
+
+        /// <summary>Bark-textured wood, for posts and other rough timber.</summary>
+        public static Material BarkWood() => Wood();
+        /// <summary>Coarse straw-stuffed sacking, for training dummies.</summary>
+        public static Material Burlap() => _burlap != null ? _burlap : (_burlap = Lit("Burlap", new Color(0.6f, 0.49f, 0.33f), 0f, 0.08f));
+        /// <summary>Dark hemp rope.</summary>
+        public static Material Rope() => _rope != null ? _rope : (_rope = Lit("Rope", new Color(0.32f, 0.25f, 0.16f), 0f, 0.12f));
         static Material Wood() => _wood != null ? _wood : (_wood = Lit("Staff wood", new Color(0.55f, 0.45f, 0.36f), 0f, 0.2f,
             ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree"), ArtLibrary.LoadTexture("Art/MegaKit/Textures/Bark_TwistedTree_Normal")));
     }

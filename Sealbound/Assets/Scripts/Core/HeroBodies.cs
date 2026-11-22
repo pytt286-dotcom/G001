@@ -199,9 +199,9 @@ namespace Sealbound.Core
                 else if (n.Contains("hair") || n.Contains("brow")) m = Lit(n.Contains("2") ? "hair2" : "hair1",
                     n.Contains("2") ? "T_Hair_2_BaseColor" : "T_Hair_1_BaseColor", n.Contains("2") ? "T_Hair_2_Normal" : "T_Hair_1_Normal", null, 0.3f, true);
                 else if (n.Contains("superhero")) m = Lit(female ? "faceF" : "faceM",
-                    female ? "T_Superhero_Female_Dark_BaseColor" : "T_Superhero_Male_Dark", female ? "T_Superhero_Female_Normal" : "T_Superhero_Male_Normal", null, 0.4f, false);
+                    female ? "T_Superhero_Female_Light_BaseColor|T_Superhero_Female_Dark_BaseColor" : "T_Superhero_Male_Ligh|T_Superhero_Male_Light|T_Superhero_Male_Dark", female ? "T_Superhero_Female_Normal" : "T_Superhero_Male_Normal", null, 0.4f, false);
                 else if (n.Contains("regular")) m = Lit(female ? "skinF" : "skinM",
-                    female ? "T_Regular_Female_Dark_BaseColor" : "T_Regular_Male_Dark_BaseColor", female ? "T_Regular_Female_Normal" : "T_Regular_Male_Normal", null, 0.4f, false);
+                    female ? "T_Regular_Female_Light_BaseColor|T_Regular_Female_Dark_BaseColor" : "T_Regular_Male_Light_BaseColor|T_Regular_Male_Light|T_Regular_Male_Dark_BaseColor", female ? "T_Regular_Female_Normal" : "T_Regular_Male_Normal", null, 0.4f, false);
                 else m = Lit("outfit " + outfitColour, outfitColour, "T_Ranger_Normal", "T_Ranger_ORM", 0f, false);
                 mats[i] = m;
             }
@@ -215,7 +215,10 @@ namespace Sealbound.Core
         static Material Lit(string key, string colour, string normal, string orm, float smoothness, bool cutout)
         {
             if (Materials.TryGetValue(key, out var cached) && cached != null) return cached;
-            var baseTex = ArtLibrary.LoadTexture(Textures + colour);
+            // The colour may list alternatives ("Light|Dark"): the first one that is present wins.
+            Texture baseTex = null;
+            foreach (var option in colour.Split('|'))
+                if ((baseTex = ArtLibrary.LoadTexture(Textures + option)) != null) break;
             var normalTex = ArtLibrary.LoadTexture(Textures + normal);
             var ormTex = orm != null ? ArtLibrary.LoadTexture(Textures + orm) : null;
             var scan = Resources.Load<Shader>("Shaders/SealboundTriplanar");

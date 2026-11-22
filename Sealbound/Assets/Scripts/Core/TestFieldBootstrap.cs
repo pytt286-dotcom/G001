@@ -45,8 +45,9 @@ namespace Sealbound.Core
             LookSettings.Apply(Camera.main);
             var heroAvatar = player.GetComponent<PlayerAvatar>();
             if (heroAvatar == null || !heroAvatar.IsRealistic) ToonOutline.Add(player.GetComponentsInChildren<Renderer>(true)); // ink lines suit the cartoon heroes only
-            foreach (var d in Object.FindObjectsByType<TrainingDummy>(FindObjectsSortMode.None))
-                ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
+            if (!RealArt.Has)
+                foreach (var d in Object.FindObjectsByType<TrainingDummy>(FindObjectsSortMode.None))
+                    ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
             // Built after the scenery so the grey-box reskin leaves the golem's own stone alone.
@@ -320,14 +321,18 @@ namespace Sealbound.Core
 
             Color body = armoured ? DarkStone : new Color(0.85f, 0.72f, 0.45f);
             var renderers = new List<Renderer>();
-            renderers.Add(Primitive(pivot, PrimitiveType.Cylinder, "Post", new Vector3(0f, 0.6f, 0f) * scale, new Vector3(0.18f, 0.6f, 0.18f) * scale, Wood, true));
-            renderers.Add(Primitive(pivot, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.35f, 0f) * scale, new Vector3(0.75f, 0.6f, 0.75f) * scale, body, true));
-            renderers.Add(Primitive(pivot, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.05f, 0f) * scale, Vector3.one * 0.45f * scale, body, true));
-            renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Arms", new Vector3(0f, 1.55f, 0f) * scale, new Vector3(1.4f, 0.14f, 0.14f) * scale, Wood, false));
-            if (armoured)
+            if (RealArt.Has) RealDummy(pivot, scale, armoured, renderers);
+            else
             {
-                renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Stone Plate", new Vector3(0f, 1.4f, -0.36f) * scale, new Vector3(0.6f, 0.7f, 0.08f) * scale, Stone, false));
-                renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Rune", new Vector3(0f, 1.45f, -0.41f) * scale, new Vector3(0.18f, 0.18f, 0.02f) * scale, Rune, false));
+                renderers.Add(Primitive(pivot, PrimitiveType.Cylinder, "Post", new Vector3(0f, 0.6f, 0f) * scale, new Vector3(0.18f, 0.6f, 0.18f) * scale, Wood, true));
+                renderers.Add(Primitive(pivot, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.35f, 0f) * scale, new Vector3(0.75f, 0.6f, 0.75f) * scale, body, true));
+                renderers.Add(Primitive(pivot, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.05f, 0f) * scale, Vector3.one * 0.45f * scale, body, true));
+                renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Arms", new Vector3(0f, 1.55f, 0f) * scale, new Vector3(1.4f, 0.14f, 0.14f) * scale, Wood, false));
+                if (armoured)
+                {
+                    renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Stone Plate", new Vector3(0f, 1.4f, -0.36f) * scale, new Vector3(0.6f, 0.7f, 0.08f) * scale, Stone, false));
+                    renderers.Add(Primitive(pivot, PrimitiveType.Cube, "Rune", new Vector3(0f, 1.45f, -0.41f) * scale, new Vector3(0.18f, 0.18f, 0.02f) * scale, Rune, false));
+                }
             }
 
             var health = root.AddComponent<Health>();
@@ -339,6 +344,40 @@ namespace Sealbound.Core
             dummy.flashRenderers = renderers.ToArray();
             dummy.label = armoured ? "Armoured (golem stone)" : "Training Dummy";
             dummy.labelHeight = 2.6f * scale;
+        }
+
+        /// <summary>
+        /// Realistic look: a timber post and crossbar with a straw-stuffed sack body and head, tied with rope.
+        /// The armoured one wears a slab of golem stone with a glowing rune.
+        /// </summary>
+        static void RealDummy(Transform pivot, float scale, bool armoured, List<Renderer> flash)
+        {
+            var wood = ForgedWeapons.BarkWood();
+            var sack = ForgedWeapons.Burlap();
+            var rope = ForgedWeapons.Rope();
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Post", new Vector3(0f, 1.05f, 0f), new Vector3(0.14f, 1.05f, 0.14f), wood, true, Vector3.zero);
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Crossbar", new Vector3(0f, 1.6f, 0.02f), new Vector3(0.09f, 0.72f, 0.09f), wood, false, new Vector3(0f, 0f, 90f));
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Foot", new Vector3(0f, 0.06f, 0f), new Vector3(0.5f, 0.06f, 0.5f), wood, false, Vector3.zero);
+            flash.Add(Dressed(pivot, scale, PrimitiveType.Capsule, "Body", new Vector3(0f, 1.3f, 0f), new Vector3(0.62f, 0.5f, 0.5f), sack, true, Vector3.zero));
+            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Head", new Vector3(0f, 2.0f, 0f), new Vector3(0.36f, 0.4f, 0.34f), sack, true, new Vector3(0f, 0f, 6f)));
+            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Arm Sack L", new Vector3(-0.62f, 1.6f, 0.02f), new Vector3(0.2f, 0.2f, 0.2f), sack, false, Vector3.zero));
+            flash.Add(Dressed(pivot, scale, PrimitiveType.Sphere, "Arm Sack R", new Vector3(0.62f, 1.6f, 0.02f), new Vector3(0.2f, 0.2f, 0.2f), sack, false, Vector3.zero));
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Neck", new Vector3(0f, 1.8f, 0f), new Vector3(0.24f, 0.025f, 0.22f), rope, false, Vector3.zero);
+            Dressed(pivot, scale, PrimitiveType.Cylinder, "Rope Waist", new Vector3(0f, 1.0f, 0f), new Vector3(0.6f, 0.03f, 0.48f), rope, false, Vector3.zero);
+            if (armoured)
+            {
+                var plate = Primitive(pivot, PrimitiveType.Cube, "Stone Plate", new Vector3(0f, 1.38f, -0.27f) * scale, new Vector3(0.56f, 0.64f, 0.1f) * scale, Color.white, false);
+                plate.sharedMaterial = RealArt.Surface(RealArt.GolemStone, 0.8f, 0.3f, Color.white);
+                flash.Add(Primitive(pivot, PrimitiveType.Sphere, "Rune", new Vector3(0f, 1.42f, -0.33f) * scale, new Vector3(0.14f, 0.14f, 0.05f) * scale, Rune, false));
+            }
+        }
+
+        static Renderer Dressed(Transform pivot, float scale, PrimitiveType type, string name, Vector3 pos, Vector3 size, Material m, bool collider, Vector3 euler)
+        {
+            var r = Primitive(pivot, type, name, pos * scale, size * scale, Color.white, collider);
+            r.sharedMaterial = m;
+            r.transform.localRotation = Quaternion.Euler(euler);
+            return r;
         }
 
         static Renderer Primitive(Transform parent, PrimitiveType type, string name, Vector3 localPos, Vector3 size, Color color, bool keepCollider)
