@@ -43,10 +43,9 @@ namespace Sealbound.Core
         static bool? _has;
         static List<AnimationClip> _clips;
         static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
-        static Texture2D _flatOrm;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _has = null; _clips = null; Materials.Clear(); _flatOrm = null; }
+        static void ResetStatics() { _has = null; _clips = null; Materials.Clear(); }
 
         public static bool Has
         {

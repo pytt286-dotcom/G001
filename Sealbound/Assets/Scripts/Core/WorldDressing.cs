@@ -279,6 +279,7 @@ namespace Sealbound.Core
 
         static void PlaceYardProps(Transform root)
         {
+            if (_real) return; // the chunky cartoon props look like toys next to the realistic heroes
             // A weapon rack, barrels and crates around the yard's edge.
             Place(root, ArtLibrary.Dungeon + "sword_shield", new Vector3(15.5f, 0f, -14f), -90f, 1.4f);
             Place(root, ArtLibrary.Dungeon + "sword_shield_gold", new Vector3(15.5f, 0f, -10f), -90f, 1.4f);

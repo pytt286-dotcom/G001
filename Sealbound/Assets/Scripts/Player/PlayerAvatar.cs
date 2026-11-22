@@ -99,7 +99,7 @@ namespace Sealbound.Player
             b.pivot = pivot;
             // Realistic bodies: weapons sized in metres (a 1 m sword, a 1.7 m staff); cartoon bodies: the pack's own scale.
             float length = pr.realistic ? (sword ? 1.05f : 1.7f) : 0f;
-            b.weapon = BuildWeapon(pivot, weaponProp, b.root.transform.localScale.x, sword, length, out b.align);
+            b.weapon = BuildWeapon(pivot, weaponProp, b.root.transform.localScale.x, sword, length, pr.realistic, out b.align);
             return b;
         }
 
@@ -110,17 +110,18 @@ namespace Sealbound.Player
             if (go == null) return null;
             go.name = sword ? "Sword Sealer (Quaternius)" : "Mage Sealer (Quaternius)";
             go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
+            go.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // these models are made facing the other way
             var b = new Body { root = go, profile = HeroBodies.Universal };
             b.scale = ArtLibrary.FitHeight(go, sword ? modelHeight : modelHeight * 0.97f);
             b.anim = CharacterAnimator.Attach(go, HeroBodies.Clips());
             return b;
         }
 
-        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, out Quaternion align)
+        Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, bool realistic, out Quaternion align)
         {
             align = Quaternion.identity;
-            var go = ArtLibrary.Spawn(ArtLibrary.Props + prop, pivot);
+            // Realistic heroes carry a steel sword and a carved staff; cartoon heroes the pack's props.
+            var go = realistic ? (isSword ? ForgedWeapons.Sword(pivot) : ForgedWeapons.Staff(pivot)) : ArtLibrary.Spawn(ArtLibrary.Props + prop, pivot);
             if (go == null) return null;
             go.name = "Weapon Model";
             var t = go.transform;
@@ -170,7 +171,8 @@ namespace Sealbound.Player
             else
             {
                 // A glowing ember at the staff's head: the Mage's beat cue.
-                var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", tipLocal + dir * (0.06f / scale), Vector3.one * (0.16f / scale),
+                float orbSize = realistic ? 0.075f : 0.16f;
+                var orb = Shapes.Make(PrimitiveType.Sphere, t, "Ember Orb", tipLocal + dir * ((realistic ? 0.035f : 0.06f) / scale), Vector3.one * (orbSize / scale),
                     new Color(1f, 0.5f, 0.18f));
                 orb.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
