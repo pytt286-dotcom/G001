@@ -134,6 +134,7 @@ namespace Sealbound.Dev
 
             yield return GolemTour(motor);
             yield return ForgeTour(motor);
+            yield return SoulMergeTour(motor);
             DescribeAmbientOcclusion();
             Finish();
         }
@@ -285,6 +286,65 @@ namespace Sealbound.Dev
                 Shot("22_core_staff", p.position + p.forward * 2.4f + p.right * 0.6f + Vector3.up * 1.6f, p.position + p.right * 0.3f + Vector3.up * 1.3f, 45f);
                 CallPrivate(combat, "EquipKit", combat.swordKit, false);
             }
+        }
+
+        IEnumerator SoulMergeTour(PlayerMotor motor)
+        {
+            var shrine = FindAnyObjectByType<Sealbound.Core.SoulShrine>();
+            var merge = motor.GetComponent<SoulMerge>();
+            var health = motor.GetComponent<Sealbound.Combat.Health>();
+            Line("Soul shrine found: " + (shrine != null) + ", soul merge on player: " + (merge != null));
+            if (shrine == null || merge == null) yield break;
+            var p = motor.transform;
+
+            // Bind the spirit the long way: ten shards made whole at the shrine.
+            Sealbound.Loot.Inventory.Add(Sealbound.Loot.ItemCatalog.GolemSpiritShard, Sealbound.Loot.ItemCatalog.ShardsPerSpirit);
+            Vector3 s = shrine.transform.position;
+            Vector3 front = shrine.transform.forward, right = shrine.transform.right;
+            motor.Teleport(s + front * 2.2f + Vector3.up * 0.2f);
+            yield return new WaitForSeconds(0.8f);
+            Line($"At the shrine: in reach {shrine.InReach}; prompt: {Sealbound.Core.SoulShrine.PromptText()}");
+            Shot("23_soul_shrine", s + front * 7f + right * 3f + Vector3.up * 3f, s + Vector3.up * 1.3f, 55f);
+            string said = shrine.TryBind();
+            Line($"Bind: \"{said}\"; bound {Sealbound.Loot.Inventory.BoundSpirit}; shards left {Sealbound.Loot.Inventory.Count(Sealbound.Loot.ItemCatalog.GolemSpiritShard)}; spirits {Sealbound.Loot.Inventory.Count(Sealbound.Loot.ItemCatalog.GolemSpirit)}");
+            yield return new WaitForSeconds(0.6f);
+            Shot("23b_shrine_bound", s + front * 5f + right * 2f + Vector3.up * 2.4f, s + Vector3.up * 1.6f, 55f);
+
+            // Merge, out in the training yard among the dummies.
+            motor.Teleport(new Vector3(7f, 0.2f, -6.5f));
+            yield return new WaitForSeconds(0.6f);
+            float baseMax = health.maxHealth, baseSpeed = motor.runSpeed;
+            Line($"Merge with an empty gauge: {merge.TryMerge()} (should be False)");
+            merge.FillGauge();
+            Line($"Merge with a full gauge: {merge.TryMerge()}; max health {baseMax:0} -> {health.maxHealth:0}, health {health.Current:0}, damage taken x{health.damageMultiplier:0.00}, speed x{motor.SpeedScale:0.00}");
+            yield return new WaitForSeconds(0.9f);
+            Shot("24_golem_merge_front", p.position + p.forward * 3.4f + Vector3.up * 1.6f, p.position + Vector3.up * 1.05f, 42f);
+            Shot("24b_golem_merge_back", p.position - p.forward * 3.4f + p.right * 1.2f + Vector3.up * 1.7f, p.position + Vector3.up * 1.05f, 42f);
+
+            // Fortress Stance: a heavy hit hurts but does not knock you back.
+            var hit = new Sealbound.Combat.DamageInfo { Amount = 10f, Point = p.position + Vector3.up, Direction = -p.forward, Source = gameObject, Impact = 1f };
+            float before = health.Current;
+            health.TryDamage(hit, out float dealt);
+            yield return null;
+            Line($"Fortress Stance: took {dealt:0.0} of 10 ({before:0} -> {health.Current:0}), knocked down {motor.IsStunned} (should be False)");
+
+            // Rune Quake next to the dummies.
+            float dummyBefore = 0f;
+            var dummies = FindObjectsByType<Sealbound.Combat.TrainingDummy>(FindObjectsSortMode.None);
+            foreach (var d in dummies) { var h = d.GetComponent<Sealbound.Combat.Health>(); if (h != null) dummyBefore += h.Current; }
+            Line($"Rune Quake: {merge.TryRuneQuake()}, again at once: {merge.TryRuneQuake()} (should be False, cooldown {merge.QuakeCooldownLeft:0.0}s)");
+            yield return new WaitForSeconds(0.2f);
+            Shot("25_rune_quake", p.position + p.forward * 6f + p.right * 4f + Vector3.up * 4f, p.position + Vector3.up * 0.5f, 55f);
+            yield return new WaitForSeconds(0.5f);
+            float dummyAfter = 0f;
+            foreach (var d in dummies) { var h = d.GetComponent<Sealbound.Combat.Health>(); if (h != null) dummyAfter += h.Current; }
+            Line($"Rune Quake damage on the dummies: {dummyBefore - dummyAfter:0}");
+
+            // Time runs out.
+            merge.EndMerge(true);
+            yield return new WaitForSeconds(0.5f);
+            Line($"After the merge: merged {merge.Merged}, max health {health.maxHealth:0} (was {baseMax:0}), damage taken x{health.damageMultiplier:0.00}, speed x{motor.SpeedScale:0.00}, run speed {motor.runSpeed:0.0} (was {baseSpeed:0.0}), gauge {merge.Gauge:0}");
+            Shot("26_merge_ended", p.position + p.forward * 3.4f + Vector3.up * 1.6f, p.position + Vector3.up * 1.05f, 42f);
         }
 
         /// <summary>Reports whether the ambient occlusion pass is really on the renderer the game uses.</summary>

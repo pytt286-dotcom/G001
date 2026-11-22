@@ -52,6 +52,13 @@ namespace Sealbound.Combat
 
         public void ResetHealth() => Current = maxHealth;
 
+        /// <summary>Changes the maximum (e.g. during a soul merge), keeping current health within it.</summary>
+        public void SetMaxHealth(float max)
+        {
+            maxHealth = Mathf.Max(1f, max);
+            Current = Mathf.Min(Current, maxHealth);
+        }
+
         public void Heal(float amount)
         {
             if (IsDead) return;

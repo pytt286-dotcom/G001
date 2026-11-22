@@ -127,6 +127,15 @@ namespace Sealbound.UI
                 float f = combat.Focus / combat.maxFocus;
                 Bar(x, y - 46f, w, h, f, combat.FocusFull ? new Color(1f, 0.85f, 0.3f) : new Color(0.85f, 0.65f, 0.25f),
                     combat.FocusFull ? "Focus FULL: heavy (E) = SEALBREAKER" : "Focus (perfect timing & links)");
+                var merge = combat.GetComponent<SoulMerge>();
+                if (merge != null && merge.HasSpirit)
+                {
+                    Color blue = new Color(0.45f, 0.75f, 1f);
+                    string title = merge.Merged
+                        ? $"GOLEM MERGE {Mathf.CeilToInt(merge.TimeLeft)}s   Rune Quake: V {(merge.QuakeCooldownLeft > 0f ? $"({merge.QuakeCooldownLeft:0.0}s)" : "READY")}"
+                        : merge.GaugeFull ? "Soul Gauge FULL: V (R3) = SOUL MERGE" : $"Soul Gauge ({merge.SpiritName})";
+                    Bar(x, y - 138f, w, h, merge.Gauge / merge.maxGauge, merge.Merged || merge.GaugeFull ? blue : blue * 0.7f, title);
+                }
                 DrawSkills();
                 DrawChain();
                 DrawPopups();
@@ -158,9 +167,11 @@ namespace Sealbound.UI
                 "break the glowing runes, then hit the exposed core.\n" +
                 "Beaten creatures: hold G (d-pad up) to SEAL. Pack: I\n" +
                 "Forge (by the start): G to open, craft golem weapons\n" +
+                "Soul shrine (west of the start): G to bind a spirit.\n" +
+                "Full Soul Gauge: V / R3 = SOUL MERGE, then V = Rune Quake\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 368f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 364f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 412f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 408f), text, _label);
         }
 
         void DrawBossBar()

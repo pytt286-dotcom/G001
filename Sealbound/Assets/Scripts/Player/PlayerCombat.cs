@@ -71,6 +71,15 @@ namespace Sealbound.Player
         public float CooldownTotal(int i) => i >= 0 && i < _kit.skills.Length ? _kit.skills[i].cooldown : 1f;
         /// <summary>Text popups for the HUD: "PERFECT", "LINK", "TOO EARLY"...</summary>
         public event Action<string, Color> Feedback;
+        /// <summary>An attack landed (damage dealt). The Soul Gauge fills from this.</summary>
+        public event Action<float> HitLanded;
+        /// <summary>An enemy attack passed through a dodge.</summary>
+        public event Action Dodged;
+        /// <summary>Extra damage from a soul merge (1 = none).</summary>
+        public float DamageBoost { get; set; } = 1f;
+
+        /// <summary>Shows a popup on the HUD (used by the soul merge).</summary>
+        public void Announce(string text, Color colour) => Feedback?.Invoke(text, colour);
 
         static readonly Color PerfectColor = new Color(1f, 0.85f, 0.3f);
         static readonly Color LinkColor = new Color(0.45f, 0.85f, 1f);
@@ -120,7 +129,7 @@ namespace Sealbound.Player
         bool RunestoneBlade => _kit == swordKit && SwordWeapon == Sealbound.Loot.ItemCatalog.RunestoneBlade;
         bool CoreStaff => _kit == mageKit && StaffWeapon == Sealbound.Loot.ItemCatalog.GolemCoreStaff;
         /// <summary>Forged weapons hit 15% harder.</summary>
-        float WeaponDamage => RunestoneBlade || CoreStaff ? 1.15f : 1f;
+        float WeaponDamage => (RunestoneBlade || CoreStaff ? 1.15f : 1f) * DamageBoost;
 
         /// <summary>The weapon model changed: pick up its trail and beat flash again.</summary>
         public void RefreshWeapon() => EquipKit(_kit, false);
@@ -398,6 +407,7 @@ namespace Sealbound.Player
             else _landedPrevious = true;
             ComboHits++;
             _sinceCombat = 0f;
+            HitLanded?.Invoke(a.damage * _bonus);
             HitStop.Trigger(a.hitStop);
             ThirdPersonCamera.Shake(a.shake);
             if (_audio) _audio.PlayHit(a.impact > 0.6f);
@@ -464,6 +474,7 @@ namespace Sealbound.Player
         {
             Focus = Mathf.Min(maxFocus, Focus + 8f);
             _sinceCombat = 0f;
+            Dodged?.Invoke();
             Feedback?.Invoke("DODGED", LinkColor);
             if (_audio) _audio.PlayPerfect();
         }
@@ -501,7 +512,7 @@ namespace Sealbound.Player
                     Impact = Mathf.Clamp01(a.impact * (_bonus > 1.5f ? 1.3f : 1f)),
                     Launch = a.launchSpeed > 0f ? 10f : (a == _kit.airAttack ? 4.5f : 0f)
                 };
-                if (h.TryDamage(info, out _)) landed = true;
+                if (h.TryDamage(info, out float dealt)) { landed = true; HitLanded?.Invoke(dealt); }
             }
 
             if (landed)

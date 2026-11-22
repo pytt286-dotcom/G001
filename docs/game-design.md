@@ -267,6 +267,8 @@ If a player obtains a creature's **spirit**, they can bind it at the **soul shri
   2. *Fortress Stance (passive):* cannot be knocked down while merged.
   3. *Unbroken (unlocked at higher merge level):* survive one deadly hit with 1 health.
 
+**In the test field now (Milestone 8):** the soul shrine stands west of the camp. Press **G** there to bind the Golem Spirit, or to make it whole from 10 spirit shards. With a spirit bound, the **Soul Gauge** fills as you land hits, dodge attacks and take hits. When it is full, **V** (R3 on a controller) merges you with the golem for 40 seconds: stone skin with glowing runes, 50% more health, 40% less damage taken, 10% more damage, 15% slower, and Fortress Stance. Press **V** again for **Rune Quake** (6-second cooldown), which throws nearby goblins into the air. *Unbroken* arrives later, with merge levels.
+
 **Example: Emberwing Wyvern merge (Sky)**
 - **Look:** leathery wings, ember-lit scales, a tail.
 - **Skills:** a fire breath cone; a fast dive strike; passive: faster flight.

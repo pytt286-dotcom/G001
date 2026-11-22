@@ -31,9 +31,11 @@ namespace Sealbound.Player
         public bool InteractHeld { get; private set; }
         public bool InteractPressed { get; private set; }
         public bool InventoryPressed { get; private set; }
+        /// <summary>True for one frame when Soul Merge was pressed (and, while merged, the creature's signature skill).</summary>
+        public bool MergePressed { get; private set; }
 
         InputActionMap _map;
-        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass, _interact, _inventory;
+        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass, _interact, _inventory, _merge;
         readonly InputAction[] _skills = new InputAction[3];
 
         void Awake()
@@ -82,6 +84,9 @@ namespace Sealbound.Player
             _inventory = _map.AddAction("Inventory", InputActionType.Button, "<Keyboard>/i");
             _inventory.AddBinding("<Gamepad>/dpad/down");
 
+            _merge = _map.AddAction("SoulMerge", InputActionType.Button, "<Keyboard>/v");
+            _merge.AddBinding("<Gamepad>/rightStickPress");
+
             string[] keys = { "<Keyboard>/q", "<Keyboard>/r", "<Keyboard>/f" };
             string[] pads = { "<Gamepad>/leftShoulder", "<Gamepad>/rightShoulder", "<Gamepad>/rightTrigger" };
             for (int i = 0; i < 3; i++)
@@ -112,6 +117,7 @@ namespace Sealbound.Player
             InteractHeld = _interact.IsPressed();
             InteractPressed = _interact.WasPressedThisFrame();
             InventoryPressed = _inventory.WasPressedThisFrame();
+            MergePressed = _merge.WasPressedThisFrame();
             SkillPressed = -1;
             for (int i = 0; i < 3; i++)
                 if (_skills[i].WasPressedThisFrame()) { SkillPressed = i; break; }

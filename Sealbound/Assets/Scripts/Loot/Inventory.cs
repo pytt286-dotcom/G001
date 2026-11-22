@@ -20,19 +20,21 @@ namespace Sealbound.Loot
             public List<Pity> pity = new List<Pity>();
             public int hunts;
             public string sword = "", staff = "";
+            public string bound = "";
         }
 
         static Dictionary<string, int> _counts;
         static Dictionary<string, int> _pity;
         static int _hunts;
         static string _sword = "", _staff = "";
+        static string _bound = "";
         static bool _dirty;
 
         /// <summary>An item was added: (item, how many, total now).</summary>
         public static event Action<ItemDef, int, int> Added;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _counts = null; _pity = null; _hunts = 0; _sword = ""; _staff = ""; _dirty = false; Added = null; }
+        static void ResetStatics() { _counts = null; _pity = null; _hunts = 0; _sword = ""; _staff = ""; _bound = ""; _dirty = false; Added = null; SpiritBound = null; }
 
         static string SavePath => Path.Combine(Application.persistentDataPath, "sealbound_inventory.json");
 
@@ -110,6 +112,24 @@ namespace Sealbound.Loot
             Save();
         }
 
+        /// <summary>The spirit bound at the soul shrine for battle ("" = none). One at a time.</summary>
+        public static string BoundSpirit { get { Load(); return Count(_bound) > 0 ? _bound : ""; } }
+
+        /// <summary>A spirit was bound at the shrine.</summary>
+        public static event Action<ItemDef> SpiritBound;
+
+        /// <summary>Binds an owned spirit for battle. Returns false if it is not owned.</summary>
+        public static bool BindSpirit(string id)
+        {
+            var def = ItemCatalog.Get(id);
+            if (def == null || def.kind != ItemKind.Spirit || Count(id) <= 0) return false;
+            _bound = id;
+            _dirty = true;
+            Save();
+            SpiritBound?.Invoke(def);
+            return true;
+        }
+
         public static void CountHunt()
         {
             Load();
@@ -124,7 +144,7 @@ namespace Sealbound.Loot
             _counts = new Dictionary<string, int>();
             _pity = new Dictionary<string, int>();
             _hunts = 0;
-            _sword = ""; _staff = "";
+            _sword = ""; _staff = ""; _bound = "";
             _dirty = true;
             Save();
         }
@@ -145,6 +165,7 @@ namespace Sealbound.Loot
                 _hunts = data.hunts;
                 _sword = data.sword ?? "";
                 _staff = data.staff ?? "";
+                _bound = data.bound ?? "";
             }
             catch (Exception ex)
             {
@@ -158,7 +179,7 @@ namespace Sealbound.Loot
             _dirty = false;
             try
             {
-                var data = new SaveData { hunts = _hunts, sword = _sword, staff = _staff };
+                var data = new SaveData { hunts = _hunts, sword = _sword, staff = _staff, bound = _bound };
                 foreach (var kv in _counts) data.items.Add(new Entry { id = kv.Key, count = kv.Value });
                 foreach (var kv in _pity) data.pity.Add(new Pity { creature = kv.Key, failed = kv.Value });
                 File.WriteAllText(SavePath, JsonUtility.ToJson(data, true));

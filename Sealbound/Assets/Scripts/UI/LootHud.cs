@@ -59,7 +59,29 @@ namespace Sealbound.UI
                 if (kb.digit1Key.wasPressedThisFrame && recipes.Count > 0) UseRecipe(recipes[0]);
                 if (kb.digit2Key.wasPressedThisFrame && recipes.Count > 1) UseRecipe(recipes[1]);
             }
+            // The soul shrine binds a spirit with G.
+            var shrine = Sealbound.Core.SoulShrine.Current;
+            if (shrine != null && shrine.InReach && !forgeOpen && input != null && input.InteractPressed && GolemSeal.Current == null)
+            {
+                string said = shrine.TryBind();
+                if (said != null) { _shrineNote = said; _shrineNoteBorn = Time.unscaledTime; }
+            }
             _feed.RemoveAll(l => Time.unscaledTime - l.Born > FeedLife);
+        }
+
+        string _shrineNote;
+        float _shrineNoteBorn = -99f;
+
+        void DrawShrinePrompt()
+        {
+            var shrine = Sealbound.Core.SoulShrine.Current;
+            if (shrine == null || !shrine.InReach || GolemSeal.Current != null) return;
+            float w = Mathf.Min(760f, Screen.width - 40f), h = 40f, x = (Screen.width - w) / 2f, y = Screen.height * 0.64f;
+            Rect(new Rect(x, y, w, h), new Color(0.02f, 0.04f, 0.08f, 0.62f));
+            Rect(new Rect(x, y, w, 3f), new Color(0.55f, 0.8f, 1f, 0.9f));
+            GUI.Label(new Rect(x, y, w, h), "<b>" + Sealbound.Core.SoulShrine.PromptText() + "</b>", new GUIStyle(_center) { fontSize = 17 });
+            if (!string.IsNullOrEmpty(_shrineNote) && Time.unscaledTime - _shrineNoteBorn < 3.5f)
+                GUI.Label(new Rect(x, y - 38f, w, 34f), $"<b><color=#9fd0ff>{_shrineNote}</color></b>", new GUIStyle(_center) { fontSize = 20 });
         }
 
         public void SetForgeOpen(bool open)
@@ -104,6 +126,7 @@ namespace Sealbound.UI
                 _small.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
             }
             DrawSealPrompt();
+            DrawShrinePrompt();
             DrawForge();
             DrawFeed();
             if (inventoryOpen) DrawInventory();
@@ -181,7 +204,9 @@ namespace Sealbound.UI
             // How close the golem's spirit is.
             int failed = Inventory.FailedSpiritRolls(LootTables.GolemName);
             int shards = Inventory.Count(ItemCatalog.GolemSpiritShard);
-            string spirit = Inventory.Count(ItemCatalog.GolemSpirit) > 0 ? "You hold the Golem Spirit. Bind it at the soul shrine (coming soon)." :
+            string spirit = Inventory.BoundSpirit == ItemCatalog.GolemSpirit ? "The Golem Spirit is bound. Fill the Soul Gauge in battle, then press V to soul merge." :
+                Inventory.Count(ItemCatalog.GolemSpirit) > 0 ? "You hold the Golem Spirit. Bind it at the soul shrine, west of the camp." :
+                shards >= ItemCatalog.ShardsPerSpirit ? "You have enough shards to make the Golem Spirit whole at the soul shrine, west of the camp." :
                 $"Golem Spirit: {LootTables.GolemSpiritChance(failed) * 100f:0}% chance on your next seal  ·  shards {shards}/{ItemCatalog.ShardsPerSpirit}";
             Rect(new Rect(x + 16f, ry + 6f, w - 32f, 44f), new Color(0.6f, 0.75f, 1f, 0.08f));
             GUI.Label(new Rect(x + 28f, ry + 10f, w - 56f, 40f), spirit, new GUIStyle(_small) { fontSize = 14 });

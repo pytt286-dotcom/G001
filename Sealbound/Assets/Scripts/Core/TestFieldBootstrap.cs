@@ -51,6 +51,7 @@ namespace Sealbound.Core
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
             ForgeStation.Build(root, new Vector3(-9f, 0f, -3f), 90f); // the Sealers' forge, near where you start
+            SoulShrine.Build(root, new Vector3(-10f, 0f, -12f), 59f); // the soul shrine, where spirits are bound
             // Built after the scenery so the grey-box reskin leaves the golem's own stone alone.
             var golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
             var hud = Object.FindAnyObjectByType<DebugHud>();
@@ -168,6 +169,7 @@ namespace Sealbound.Core
             var health = player.AddComponent<Health>();
             health.maxHealth = 100f;
             var vitals = player.AddComponent<PlayerVitals>();
+            player.AddComponent<SoulMerge>();
 
             // Real characters (KayKit Knight and Mage) when the free art is in the project,
             // otherwise the grey-box stand-in.

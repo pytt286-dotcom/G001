@@ -55,6 +55,8 @@ namespace Sealbound.Player
 
         /// <summary>Set by combat: scales how fast the player can steer while attacking (1 = free).</summary>
         public float MoveSpeedMultiplier { get; set; } = 1f;
+        /// <summary>A lasting change to running speed, e.g. the heavy stone body of a Golem soul merge.</summary>
+        public float SpeedScale { get; set; } = 1f;
         /// <summary>Set by combat: stops the motor turning the character toward the stick.</summary>
         public bool RotationLocked { get; set; }
         public event Action DodgeStarted;
@@ -241,7 +243,7 @@ namespace Sealbound.Player
             IsSprinting = hasInput && _input.SprintHeld && Stamina > 0f && IsGrounded && MoveSpeedMultiplier >= 1f;
 
             float speed = IsSprinting ? sprintSpeed : runSpeed;
-            Vector3 target = wishDir * speed * MoveSpeedMultiplier;
+            Vector3 target = wishDir * speed * MoveSpeedMultiplier * SpeedScale;
             float rate = hasInput ? acceleration : deceleration;
             if (!IsGrounded) rate *= airControl;
             if (_recoveryTimer > 0f) rate *= 0.5f;

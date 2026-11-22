@@ -24,6 +24,8 @@ namespace Sealbound.Player
         public float HurtFlash { get; private set; }
         public event Action Fell;
         public event Action Respawned;
+        /// <summary>When true, hits still hurt but no longer knock you back or break your attack (Fortress Stance).</summary>
+        public Func<bool> Unstoppable;
 
         PlayerMotor _motor;
         PlayerCombat _combat;
@@ -47,6 +49,11 @@ namespace Sealbound.Player
             _sinceHit = 0f;
             HurtFlash = 1f;
             if (Health.IsDead) return;
+            if (Unstoppable != null && Unstoppable())
+            {
+                ThirdPersonCamera.Shake(0.15f + info.Impact * 0.15f);
+                return;
+            }
             _motor.Stagger(info.Direction, knockback * (0.5f + info.Impact), hitStun + info.Impact * 0.2f);
             if (_combat != null) _combat.Interrupt();
             HitStop.Trigger(0.05f + info.Impact * 0.05f);
