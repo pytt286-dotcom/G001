@@ -13,7 +13,7 @@ namespace Sealbound.Combat
         static Mesh _quad;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _soft = null; _ring = null; _quad = null; }
+        static void ResetStatics() { _soft = null; _ring = null; _quad = null; _streak = null; }
 
         Material _material;
         Color _color;
@@ -119,6 +119,34 @@ namespace Sealbound.Combat
             _soft.SetPixels32(px);
             _soft.Apply(false, true);
             return _soft;
+        }
+
+        static Texture2D _streak;
+
+        /// <summary>A soft additive material for sword trails: bright down the middle, fading to nothing at the edges.</summary>
+        public static Material TrailMaterial()
+        {
+            if (_streak == null)
+            {
+                const int n = 32;
+                _streak = new Texture2D(4, n, TextureFormat.RGBA32, false) { name = "Soft Streak", wrapMode = TextureWrapMode.Clamp };
+                var px = new Color32[4 * n];
+                for (int y = 0; y < n; y++)
+                {
+                    float v = (y + 0.5f) / n * 2f - 1f;
+                    byte a = (byte)Mathf.RoundToInt(Mathf.Pow(Mathf.Clamp01(1f - v * v), 2f) * 255f);
+                    for (int x = 0; x < 4; x++) px[y * 4 + x] = new Color32(255, 255, 255, a);
+                }
+                _streak.SetPixels32(px);
+                _streak.Apply(false, true);
+            }
+            var m = NewMaterial(Color.white);
+            m.name = "Trail";
+            m.mainTexture = _streak;
+            if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", _streak);
+            if (m.HasProperty("_ColorMode")) m.SetFloat("_ColorMode", 0f); // multiply by the trail's own colours
+            m.EnableKeyword("_COLORCOLOR_ON");
+            return m;
         }
 
         static Texture2D Ring()

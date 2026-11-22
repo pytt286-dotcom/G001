@@ -51,7 +51,7 @@ namespace Sealbound.Core
             // Flames: soft tongues of light that rise and flicker in the fire mouth.
             f._flames = new Glow[4];
             for (int i = 0; i < f._flames.Length; i++)
-                f._flames[i] = Glow.Make(t, new Vector3(-0.27f + i * 0.18f, 0.55f, 0.72f), 0.45f, new Color(2.8f, 1.3f, 0.35f, 0.85f));
+                f._flames[i] = Glow.Make(t, new Vector3(-0.27f + i * 0.18f, 0.55f, 0.72f), 0.45f, new Color(3f, 0.95f, 0.18f, 0.85f));
             Glow.Make(t, new Vector3(0f, 1.25f, 0.1f), 0.9f, new Color(2.2f, 0.9f, 0.25f, 0.5f)); // embers on the bed
             var fireGo = new GameObject("Forge Fire");
             fireGo.transform.SetParent(t, false);

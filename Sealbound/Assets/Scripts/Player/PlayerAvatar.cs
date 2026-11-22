@@ -213,15 +213,17 @@ namespace Sealbound.Player
                 tip.SetParent(t, false);
                 tip.localPosition = tipLocal;
                 var trail = tip.gameObject.AddComponent<TrailRenderer>();
-                trail.time = 0.1f;
-                trail.minVertexDistance = 0.05f;
-                trail.widthCurve = new AnimationCurve(new Keyframe(0f, 0.35f), new Keyframe(1f, 0f));
-                var shader = Shader.Find("Sprites/Default");
-                if (shader != null) trail.sharedMaterial = new Material(shader);
+                // A soft, thin streak of light that fades fast: a swoosh, not a sail.
+                trail.time = 0.09f;
+                trail.minVertexDistance = 0.04f;
+                trail.widthCurve = new AnimationCurve(new Keyframe(0f, 0.16f), new Keyframe(0.4f, 0.08f), new Keyframe(1f, 0f));
+                trail.sharedMaterial = Sealbound.Combat.Glow.TrailMaterial();
+                bool forgedRune = forged == Sealbound.Loot.ItemCatalog.RunestoneBlade;
+                Color tint = forgedRune ? new Color(0.35f, 0.7f, 1f) : new Color(0.75f, 0.85f, 1f);
                 var g = new Gradient();
                 g.SetKeys(
-                    new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(new Color(0.35f, 0.75f, 0.95f), 1f) },
-                    new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) });
+                    new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(tint, 0.5f) },
+                    new[] { new GradientAlphaKey(0.6f, 0f), new GradientAlphaKey(0.25f, 0.5f), new GradientAlphaKey(0f, 1f) });
                 trail.colorGradient = g;
                 trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 trail.emitting = false;

@@ -110,16 +110,16 @@ namespace Sealbound.Core
                     new Vector3(0.03f, 0.11f, 0.03f), Stone());
                 talon.transform.localRotation = Quaternion.Euler(0f, ang, 24f); // splayed open so the core shows
             }
-            var core = Crystal(root.transform, "Golem Core", coreAt, new Vector3(0.15f, 0.19f, 0.15f), CoreGlow());
+            var core = Crystal(root.transform, "Golem Core", coreAt, new Vector3(0.2f, 0.25f, 0.2f), CoreGlow());
             core.transform.localRotation = Quaternion.Euler(0f, 30f, 0f);
             // Its fire lights the hand and face, and glows softly round it.
-            Sealbound.Combat.Glow.Make(core.transform, Vector3.zero, 3.2f, new Color(2.6f, 1.1f, 0.3f, 0.7f));
+            Sealbound.Combat.Glow.Make(core.transform, Vector3.zero, 2.6f, new Color(2.8f, 1.0f, 0.25f, 0.75f));
             var fire = new GameObject("Core Light").AddComponent<Light>();
             fire.transform.SetParent(core.transform, false);
             fire.type = LightType.Point;
             fire.color = CoreFire;
-            fire.range = 2.5f;
-            fire.intensity = 1.6f;
+            fire.range = 1.8f;
+            fire.intensity = 0.9f;
             fire.shadows = LightShadows.None;
             var socket = new GameObject("Core Socket").transform; // the hero's ember cue sits inside the core
             socket.SetParent(root.transform, false);
