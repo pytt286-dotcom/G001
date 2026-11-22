@@ -212,7 +212,7 @@ namespace Sealbound.Player
         AttackData ReadRequest(out int skillIndex)
         {
             skillIndex = -1;
-            if (_motor.IsDodging) return null;
+            if (_motor.IsDodging || _motor.IsStunned) return null;
 
             int s = _input.SkillPressed;
             if (s >= 0 && s < skills.Length)
@@ -392,6 +392,27 @@ namespace Sealbound.Player
             else EndChain();
         }
 
+        /// <summary>Called when the player is hit: the current attack and chain are lost.</summary>
+        public void Interrupt()
+        {
+            if (_current != null)
+            {
+                _previousKind = _current.kind;
+                ReleaseMotor();
+                _current = null;
+            }
+            EndChain();
+        }
+
+        /// <summary>Called when an enemy attack passes through the player's dodge.</summary>
+        public void NotifyDodged()
+        {
+            Focus = Mathf.Min(maxFocus, Focus + 8f);
+            _sinceCombat = 0f;
+            Feedback?.Invoke("DODGED", LinkColor);
+            if (_audio) _audio.PlayPerfect();
+        }
+
         void ReleaseMotor()
         {
             _motor.RotationLocked = false;
@@ -408,7 +429,7 @@ namespace Sealbound.Player
             for (int i = 0; i < count; i++)
             {
                 var h = _overlap[i].GetComponentInParent<Health>();
-                if (h == null || h == _ownHealth || _hitThisSwing.Contains(h)) continue;
+                if (h == null || h.gameObject == gameObject || _hitThisSwing.Contains(h)) continue;
 
                 Vector3 closest = _overlap[i].ClosestPoint(center);
                 Vector3 to = closest - transform.position; to.y = 0f;
@@ -421,7 +442,8 @@ namespace Sealbound.Player
                     Point = closest,
                     Direction = to.sqrMagnitude > 0.01f ? to.normalized : transform.forward,
                     Source = gameObject,
-                    Impact = Mathf.Clamp01(a.impact * (_bonus > 1.5f ? 1.3f : 1f))
+                    Impact = Mathf.Clamp01(a.impact * (_bonus > 1.5f ? 1.3f : 1f)),
+                    Launch = a.launchSpeed > 0f ? 10f : (a == airSlash ? 4.5f : 0f)
                 };
                 if (h.TryDamage(info, out _)) landed = true;
             }
@@ -448,7 +470,7 @@ namespace Sealbound.Player
             for (int i = 0; i < count; i++)
             {
                 var h = _overlap[i].GetComponentInParent<Health>();
-                if (h == null || h == _ownHealth || h.IsDead) continue;
+                if (h == null || h.gameObject == gameObject || h.IsDead) continue;
                 Vector3 to = h.transform.position - transform.position; to.y = 0f;
                 float angle = Vector3.Angle(baseDir, to);
                 if (angle > aimAssistAngle) continue;

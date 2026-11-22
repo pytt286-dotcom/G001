@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sealbound.Enemies;
 using Sealbound.Player;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ namespace Sealbound.UI
     {
         public PlayerMotor motor;
         public PlayerCombat combat;
+        public PlayerVitals vitals;
+        public GoblinWarren warren;
         public bool showControls = true;
 
         struct Popup { public string Text; public Color Color; public float Born; }
@@ -46,8 +49,33 @@ namespace Sealbound.UI
                 _big = new GUIStyle(_label) { alignment = TextAnchor.MiddleCenter, fontSize = 34, fontStyle = FontStyle.Bold };
             }
 
-            // Stamina and Focus bars
+            // Hurt flash around the screen edges
+            if (vitals != null && vitals.HurtFlash > 0f)
+            {
+                var c = new Color(0.8f, 0.05f, 0.05f, vitals.HurtFlash * 0.35f);
+                float t = 60f;
+                DrawRect(new Rect(0, 0, Screen.width, t), c);
+                DrawRect(new Rect(0, Screen.height - t, Screen.width, t), c);
+                DrawRect(new Rect(0, 0, t, Screen.height), c);
+                DrawRect(new Rect(Screen.width - t, 0, t, Screen.height), c);
+            }
+
+            if (warren != null)
+            {
+                string status = warren.StatusText;
+                if (!string.IsNullOrEmpty(status))
+                {
+                    var st = new GUIStyle(_center) { fontSize = 20 };
+                    DrawRect(new Rect(Screen.width / 2f - 330f, 14f, 660f, 34f), new Color(0f, 0f, 0f, 0.45f));
+                    GUI.Label(new Rect(Screen.width / 2f - 330f, 14f, 660f, 34f), $"<b>{status}</b>", st);
+                }
+            }
+
+            // Health, Stamina and Focus bars
             float w = 260f, h = 14f, x = 24f, y = Screen.height - 44f;
+            if (vitals != null)
+                Bar(x, y - 92f, w, h + 4f, vitals.Health.Current / vitals.Health.maxHealth, new Color(0.85f, 0.2f, 0.2f),
+                    $"Health {Mathf.CeilToInt(vitals.Health.Current)}");
             Bar(x, y, w, h, motor.Stamina / motor.maxStamina, new Color(0.35f, 0.85f, 0.45f), "Stamina");
             if (combat != null)
             {
@@ -57,6 +85,14 @@ namespace Sealbound.UI
                 DrawSkills();
                 DrawChain();
                 DrawPopups();
+            }
+
+            if (vitals != null && vitals.IsDown)
+            {
+                DrawRect(new Rect(0, 0, Screen.width, Screen.height), new Color(0f, 0f, 0f, 0.45f));
+                GUI.Label(new Rect(0, Screen.height * 0.4f, Screen.width, 50f), "YOU FELL", _big);
+                GUI.Label(new Rect(0, Screen.height * 0.4f + 50f, Screen.width, 30f),
+                    $"Your squad drags you back to camp in {Mathf.Max(0f, vitals.RespawnIn):0.0}s", _center);
             }
 
             if (!showControls) return;

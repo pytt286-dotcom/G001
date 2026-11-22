@@ -59,6 +59,31 @@ namespace Sealbound.Player
         public event Action DodgeStarted;
 
         float _hoverTimer;
+        float _stunTimer;
+
+        /// <summary>True while knocked back by a hit: no running, jumping or dodging.</summary>
+        public bool IsStunned => _stunTimer > 0f;
+
+        /// <summary>Knock the player back and take away control briefly.</summary>
+        public void Stagger(Vector3 direction, float speed, float seconds)
+        {
+            direction.y = 0f;
+            _stunTimer = Mathf.Max(_stunTimer, seconds);
+            _dodgeTimer = 0f;
+            _hoverTimer = 0f;
+            _planarVelocity = direction.sqrMagnitude > 0.0001f ? direction.normalized * speed : Vector3.zero;
+        }
+
+        /// <summary>Move the player instantly (respawning).</summary>
+        public void Teleport(Vector3 position)
+        {
+            _cc.enabled = false;
+            transform.position = position;
+            _cc.enabled = true;
+            _planarVelocity = Vector3.zero;
+            _verticalVelocity = 0f;
+            _stunTimer = 0f;
+        }
 
         /// <summary>Push the player along the ground, e.g. an attack lunge.</summary>
         public void Lunge(Vector3 direction, float speed)
@@ -147,11 +172,17 @@ namespace Sealbound.Player
 
             Vector3 wishDir = GetCameraRelativeInput();
 
-            if (_input.DodgePressed) TryStartDodge(wishDir);
+            if (_input.DodgePressed && !IsStunned) TryStartDodge(wishDir);
 
             if (IsDodging)
             {
                 UpdateDodge(dt);
+            }
+            else if (IsStunned)
+            {
+                _stunTimer -= dt;
+                IsSprinting = false;
+                _planarVelocity = Vector3.MoveTowards(_planarVelocity, Vector3.zero, deceleration * 0.3f * dt);
             }
             else
             {

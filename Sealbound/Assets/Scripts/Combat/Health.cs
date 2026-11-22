@@ -11,6 +11,8 @@ namespace Sealbound.Combat
         public GameObject Source;
         /// <summary>0 = light tap, 1 = big finisher. Drives knockback and screen feedback.</summary>
         public float Impact;
+        /// <summary>Upward speed given to the target (launchers). 0 = none.</summary>
+        public float Launch;
     }
 
     /// <summary>Hit points for anything that can be damaged: players, creatures, dummies.</summary>
@@ -45,5 +47,11 @@ namespace Sealbound.Combat
         }
 
         public void ResetHealth() => Current = maxHealth;
+
+        public void Heal(float amount)
+        {
+            if (IsDead) return;
+            Current = Mathf.Min(maxHealth, Current + amount);
+        }
     }
 }

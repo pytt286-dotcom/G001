@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Sealbound.CameraRig;
 using Sealbound.Combat;
+using Sealbound.Enemies;
 using Sealbound.Player;
 using Sealbound.UI;
 using UnityEngine;
@@ -41,6 +42,9 @@ namespace Sealbound.Core
 
             var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
             SetupCamera(player);
+            var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
+            var hud = Object.FindAnyObjectByType<DebugHud>();
+            if (hud != null) hud.warren = warren;
         }
 
         // ---------- World ----------
@@ -193,10 +197,14 @@ namespace Sealbound.Core
             var combat = player.AddComponent<PlayerCombat>();
             combat.swordPivot = swordPivot;
             combat.timingCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
+            var health = player.AddComponent<Health>();
+            health.maxHealth = 100f;
+            var vitals = player.AddComponent<PlayerVitals>();
 
             var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
             hud.motor = motor;
             hud.combat = combat;
+            hud.vitals = vitals;
             return player;
         }
 
@@ -303,6 +311,51 @@ namespace Sealbound.Core
             go.transform.localScale = size;
             Paint(go, color);
             return go.GetComponent<Renderer>();
+        }
+
+        // ---------- Goblin Warren (Milestone 3) ----------
+
+        static GoblinWarren BuildGoblinWarren(Transform root, Vector3 center, Transform player)
+        {
+            var w = new GameObject("Goblin Warren").transform;
+            w.SetParent(root);
+            w.position = center;
+
+            Color dirt = new Color(0.42f, 0.32f, 0.2f);
+            Color hole = new Color(0.12f, 0.09f, 0.06f);
+            Color banner = new Color(0.75f, 0.15f, 0.12f);
+
+            var floor = Primitive(w, PrimitiveType.Cylinder, "Warren Floor", Vector3.zero, new Vector3(30f, 0.03f, 30f), dirt, false);
+            floor.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+
+            var burrows = new List<Vector3>();
+            for (int i = 0; i < 6; i++)
+            {
+                float a = i * 60f + 15f;
+                Vector3 local = Quaternion.Euler(0f, a, 0f) * Vector3.forward * 10.5f;
+                Primitive(w, PrimitiveType.Sphere, "Burrow Mound", local + Vector3.up * 0.1f, new Vector3(3f, 0.9f, 3f), dirt, true);
+                Primitive(w, PrimitiveType.Cylinder, "Burrow Hole", local + Vector3.up * 0.52f, new Vector3(1.3f, 0.02f, 1.3f), hole, false);
+                burrows.Add(center + local + Quaternion.Euler(0f, a, 0f) * Vector3.back * 2f);
+            }
+
+            // Tall red banners so the warren can be found from the training field.
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 local = Quaternion.Euler(0f, i * 90f + 45f, 0f) * Vector3.forward * 15f;
+                Primitive(w, PrimitiveType.Cylinder, "Banner Pole", local + Vector3.up * 5f, new Vector3(0.25f, 5f, 0.25f), Wood, true);
+                Primitive(w, PrimitiveType.Cube, "Banner", local + new Vector3(0f, 8.3f, 0f) + Quaternion.Euler(0f, i * 90f + 45f, 0f) * Vector3.right * 0.9f,
+                    new Vector3(1.6f, 2.6f, 0.08f), banner, false).transform.localRotation = Quaternion.Euler(0f, i * 90f + 45f, 0f);
+            }
+
+            // A few boulders for cover from slingers.
+            Primitive(w, PrimitiveType.Sphere, "Boulder", new Vector3(4f, 0.6f, 3f), new Vector3(2.2f, 1.6f, 2f), DarkStone, true);
+            Primitive(w, PrimitiveType.Sphere, "Boulder", new Vector3(-5f, 0.6f, -2f), new Vector3(2.6f, 1.8f, 2.2f), DarkStone, true);
+            Primitive(w, PrimitiveType.Sphere, "Boulder", new Vector3(1f, 0.5f, -6f), new Vector3(1.8f, 1.3f, 1.8f), DarkStone, true);
+
+            var warren = w.gameObject.AddComponent<GoblinWarren>();
+            warren.player = player;
+            warren.burrows = burrows.ToArray();
+            return warren;
         }
 
         static void SetupCamera(GameObject player)
