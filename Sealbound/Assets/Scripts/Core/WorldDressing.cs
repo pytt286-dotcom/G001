@@ -75,6 +75,7 @@ namespace Sealbound.Core
             {
                 // The painted terrain replaces the flat green ground and the path tiles.
                 HideRenderer(ArtLibrary.FindDeep(field, "Ground"));
+                HideRenderer(ArtLibrary.FindDeep(field, "Warren Floor")); // the terrain paints trampled earth there
                 foreach (Transform t in field) if (t.name == "Path") HideRenderer(t);
             }
 
@@ -175,7 +176,7 @@ namespace Sealbound.Core
         static readonly string[] NaturePines = { "Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5" };
         static readonly string[] NatureTwisted = { "TwistedTree_1", "TwistedTree_2", "TwistedTree_3", "TwistedTree_4", "TwistedTree_5" };
         static readonly string[] NatureDead = { "DeadTree_1", "DeadTree_2", "DeadTree_3" };
-        static readonly string[] NatureBushes = { "Bush_Common", "Bush_Common", "Bush_Common_Flowers", "Fern_1", "Plant_1", "Plant_7" };
+        static readonly string[] NatureBushes = { "Bush_Common", "Bush_Common_Flowers", "Bush_Common_Flowers", "Fern_1", "Fern_1", "Plant_1", "Plant_7" };
         static readonly string[] ScanSmallRocks = { "rock_07", "rock_09", "stone_01" };
         static readonly string[] ScanBigRocks = { "boulder_01", "namaqualand_boulder_02", "rock_moss_set_01", "rock_moss_set_02" };
 
@@ -184,9 +185,9 @@ namespace Sealbound.Core
         {
             float roll = Range(0f, 1f);
             string name; float height;
-            if (roll < 0.55f) { name = Pick(NaturePines); height = Range(11f, 19f); }
-            else if (roll < 0.85f) { name = Pick(NatureTrees); height = Range(8f, 13f); }
-            else if (roll < 0.95f) { name = Pick(NatureTwisted); height = Range(7f, 11f); }
+            if (roll < 0.58f) { name = Pick(NaturePines); height = Range(11f, 19f); }
+            else if (roll < 0.86f) { name = Pick(NatureTrees); height = Range(8f, 13f); }
+            else if (roll < 0.9f) { name = Pick(NatureTwisted); height = Range(7f, 11f); } // red autumn crowns: a few accents
             else { name = Pick(NatureDead); height = Range(6f, 10f); }
             var tree = PlaceNature(parent, name, p, height, 0.15f);
             if (solid) AddTrunkMetres(tree, 0.5f, 6f);

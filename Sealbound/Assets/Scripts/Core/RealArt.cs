@@ -219,6 +219,11 @@ namespace Sealbound.Core
             // The pack tints its grey-green leaf and grass textures in the material: keep that tint.
             Color tint = imported != null && imported.HasProperty("_BaseColor") ? imported.GetColor("_BaseColor")
                        : imported != null && imported.HasProperty("_Color") ? imported.color : Color.white;
+            // Some of the pack's textures are white masks meant to be coloured by its own shader: colour them here.
+            string tn = tex.name;
+            if (tn == "Grass") tint = new Color(0.42f, 0.6f, 0.22f);
+            else if (tn == "Leaves_NormalTree" || tn == "Leaves_TwistedTree" || tn == "Leaves") tint = new Color(0.36f, 0.55f, 0.2f);
+            else if (tn == "Leaf_Pine") tint = new Color(0.2f, 0.36f, 0.14f);
             tint.a = 1f;
             m.color = tint;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint);
