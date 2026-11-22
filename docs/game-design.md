@@ -1,11 +1,11 @@
 # Project G001: Game Design Document
 
-**Working title:** *The Sealers* (placeholder, see Open Questions)
+**Working title:** *Sealbound* (to confirm with a name check before the Steam page)
 **Owner:** Pytt
-**Status:** First draft, ready for review
+**Status:** Core decisions locked (22 November 2026)
 **Last updated:** 22 November 2026
 
-This document describes what the game is, how it plays, and what we build first. It is written in plain language on purpose. Anything marked **Open question** is a creative call for Pytt to make, and each one has a recommended answer at the end of the document.
+This document describes what the game is, how it plays, and what we build first. It is written in plain language on purpose. Pytt's core creative decisions are recorded in section 16.
 
 ---
 
@@ -46,7 +46,7 @@ A medieval world with castles, swords, sailing ships and candlelight, with almos
 
 There are several kingdoms. Each has its own Sealer army. The story takes place in the strongest, richest one.
 
-- **The main kingdom** (name to be decided, **Open question 1**). A proud, wealthy kingdom whose Sealer army is the best in the world. Its capital is the players' home base (the "hub"): a walled city with the Sealer academy, forges, a soul shrine and an arena.
+- **The Kingdom of Valdremor.** A proud, wealthy kingdom whose Sealer army is the best in the world. Its capital, also called Valdremor, is the players' home base (the "hub"): a walled city with the Sealer academy, forges, a soul shrine and an arena.
 - **Rival and neighbour kingdoms** (to be designed later). They appear in the story as allies, rivals, or places that need help. Their Sealers can appear as characters, but players always belong to the main kingdom.
 
 ### 4.3 What is a "seal"?
@@ -80,7 +80,7 @@ Pytt wants religions portrayed as creatures and monsters. This is a powerful the
 
 ## 5. The Sealer and its three forces
 
-Every recruit trains at the Sealer academy. At the end of training (the tutorial), they choose one of three forces, much like trainees choosing a military branch. Players can later switch or train a second force (**Open question 4**).
+Every recruit trains at the Sealer academy. At the end of training (the tutorial), they choose one of three forces, much like trainees choosing a military branch. Each character keeps one main force. Later, they can train a second force through a special questline.
 
 ### 5.1 The Sky Force
 
@@ -88,7 +88,7 @@ Every recruit trains at the Sealer academy. At the end of training (the tutorial
 
 - **Handles:** dragons, wyverns, giant birds, storm spirits, flying beasts.
 - **Battlefield:** mid-air, cliffs, storm clouds, floating islands.
-- **Special movement:** the **Skyrig**, a wing harness powered by wind magic. It lets Sky Force soldiers glide, dive, boost upward and hover for short moments. At higher ranks they can also call a tamed flying mount (**Open question 6**).
+- **Special movement:** the **Skyrig**, a wing harness powered by wind magic. It lets Sky Force soldiers glide, dive, boost upward and hover for short moments. At higher ranks they can also ride a tamed flying mount, such as a young dragon or a griffin (added after the first slices).
 - **Feel:** fast, dramatic, three-dimensional. Dodging means rolling through the air.
 
 ### 5.2 The Realm Force
@@ -140,7 +140,7 @@ Within each force, players choose a class. Classes are the same in every force, 
 | **Mage** | Magic damage and control | Area spells, slows, traps, elemental weak points. |
 | **Ranger** | Long-range damage | Bows and crossbows. Hits weak spots from a distance. |
 | **Monk** | Agile fighter and support | Unarmed or staff combat, fast movement, small heals and buffs. |
-| **Cleric** *(proposed)* | Healer | Heals and protects the team. Uses the game's invented faiths. |
+| **Cleric** *(added after the first slice)* | Healer | Heals and protects the team. Uses the game's invented faiths. |
 
 **Force twists (examples):**
 
@@ -223,7 +223,7 @@ At the kingdom's **forge**, players turn parts into gear.
 - Each creature unlocks its own **weapon set** for every class. A Bastion Golem sword looks like carved runestone; an Emberwing bow glows with ember veins.
 - Creature weapons carry a small piece of the creature's power, for example "Golem sword: hits break enemy armour".
 - Weapons can be **upgraded** with more parts from the same creature, so players hunt favourite creatures again.
-- Armour sets follow the same idea (**Open question 7**: weapons only, or armour too).
+- Armour sets follow the same idea. Weapons come first; creature armour is added later.
 
 ### 8.3 Soul merging (the signature feature)
 
@@ -236,7 +236,7 @@ If a player obtains a creature's **spirit**, they can bind it at the **soul shri
 
 **Limits:**
 - **Duration:** 30 to 60 seconds, depending on the creature's tier.
-- **Cooldown:** a few minutes, or a **Soul Gauge** that fills as you fight. *Recommended: the Soul Gauge*, because it rewards active play.
+- **Soul Gauge:** instead of a fixed cooldown, a gauge fills as you fight (dealing damage, blocking, breaking weak points). When full, you can merge. This rewards active play.
 - A player can **bind one spirit at a time** for battle, but can own many and swap between missions.
 - Merges have their own levels. Using a merge often makes it stronger and can unlock a third skill.
 
@@ -285,7 +285,7 @@ Repeatable missions chosen from a **mission board** in the hub.
 
 ### 9.3 Co-op and bots
 
-- A party holds **up to 4 players** (recommended, **Open question 2**).
+- A party holds **up to 4 players**.
 - Empty slots are filled by **bot companions**: Sealer squadmates controlled by the computer, each with a class and simple tactics. Players can recruit and upgrade favourite bot companions.
 - Solo players can always finish everything with bots. Nothing is locked behind having friends online.
 
@@ -367,19 +367,19 @@ The goal: prove the core loop is fun, *hunt → seal → craft → merge*, befor
 
 ---
 
-## 16. Open questions for Pytt
+## 16. Decisions locked by Pytt
 
-Each one has a recommendation, so you can simply reply "go with your picks" or change any of them.
+Pytt approved all of these on 22 November 2026. Change them only with Pytt's say-so.
 
-| # | Question | Recommended answer |
+| # | Question | Decision |
 |---|---|---|
-| 1 | What is the main kingdom called? | **Valdremor**. Other options: Aurelon, Caldreth, Highmark. |
-| 2 | How many players in one party? | **4.** Large enough for teamwork and a mix of forces, small enough to keep fights readable. Bots fill empty slots. |
-| 3 | What is the game called? | **"Sealbound"** or **"The Sealers"**. We should check the name is not already taken on Steam before deciding. |
-| 4 | Can a player change force after choosing? | **Yes, but it costs effort.** Each character has one main force, and a second force can be trained later through a special questline. Keeps the choice meaningful without locking players out. |
-| 5 | Should we add a Cleric (healer) class? | **Yes**, later. Co-op boss fights are better with a healer, and it ties into the world's invented faiths. |
-| 6 | Does the Sky Force ride mounts, like tamed dragons or griffins? | **Yes, at higher ranks**, on top of the Skyrig. It fits the dragon theme and is a big draw, but it is a lot of work, so not in the first slices. |
-| 7 | Does crafting make armour too, or only weapons? | **Both**, but weapons first. Armour sets add to the "wear your trophies" pillar. |
-| 8 | Merge limit: a fixed cooldown, or a Soul Gauge that fills as you fight? | **Soul Gauge.** It rewards active play and works better in PVP. |
-| 9 | Are merges allowed in ranked PVP? | **Yes, with a shorter duration** and levelled stats, so they matter but do not decide every match. |
-| 10 | Is the approach to religion (ancient myths and invented faiths only, no living religions as monsters) okay? | **Yes.** It keeps the dark "faith as a monster" theme while protecting the game from bans and backlash. |
+| 1 | What is the main kingdom called? | **Valdremor.** |
+| 2 | How many players in one party? | **4.** Bots fill empty slots. Full squad PVP is 4v4. |
+| 3 | What is the game called? | **Sealbound** (working title). We check the name is free on Steam and online before the Steam page goes up. *The Sealers* is the backup. |
+| 4 | Can a player change force after choosing? | **One main force per character**, and a second force can be trained later through a special questline. |
+| 5 | Is there a Cleric (healer) class? | **Yes**, added after the first slice. |
+| 6 | Does the Sky Force ride mounts? | **Yes, at higher ranks**, on top of the Skyrig. Not in the first slices. |
+| 7 | Does crafting make armour too? | **Both weapons and armour**, weapons first. |
+| 8 | Merge limit: fixed cooldown or Soul Gauge? | **Soul Gauge** that fills as you fight. |
+| 9 | Are merges allowed in ranked PVP? | **Yes**, with a shorter duration and levelled stats. |
+| 10 | How are religions handled? | **Ancient myths and the game's own invented faiths only.** Living religions are never portrayed as monsters. |
