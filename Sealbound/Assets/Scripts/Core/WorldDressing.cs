@@ -381,7 +381,7 @@ namespace Sealbound.Core
         static void BuildRealForest(Transform forest, Vector3 centre)
         {
             // The surrounding forest, climbing the hills: denser further out.
-            for (int i = 0; i < 620; i++)
+            for (int i = 0; i < 440; i++)
             {
                 float r = Mathf.Lerp(55f, 230f, Mathf.Sqrt(Range(0f, 1f)));
                 Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;

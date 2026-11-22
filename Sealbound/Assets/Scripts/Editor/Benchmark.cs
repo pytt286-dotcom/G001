@@ -18,7 +18,7 @@ namespace Sealbound.EditorTools
         const string ActiveKey = "Sealbound.Benchmark.Active";
         const string OutKey = "Sealbound.Benchmark.Out";
         const string StartKey = "Sealbound.Benchmark.Start";
-        const double TimeoutSeconds = 240;
+        const double TimeoutSeconds = 480;
 
         static Benchmark()
         {

@@ -21,7 +21,7 @@ namespace Sealbound.Core
         public bool adaptive = true;
 
         public const int TargetFps = 60;
-        const float MinScale = 0.55f;
+        const float MinScale = 0.5f;
 
         RenderPipelineAsset _original;
         UniversalRenderPipelineAsset _asset;
@@ -29,6 +29,11 @@ namespace Sealbound.Core
         float _avgDt = 1f / 60f;
         float _judgeTimer;
         float _slowFor, _fastFor;
+        float _gpuMs;
+        readonly FrameTiming[] _timing = new FrameTiming[1];
+
+        /// <summary>How long the graphics chip took for the last frames, in milliseconds (0 if the computer doesn't say).</summary>
+        public float GpuMs => _gpuMs;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -46,6 +51,7 @@ namespace Sealbound.Core
         {
             Instance = this;
             QualitySettings.vSyncCount = 0;
+            Application.runInBackground = true;
             Application.targetFrameRate = TargetFps;
 
             var current = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
@@ -84,11 +90,17 @@ namespace Sealbound.Core
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.25f);
             _avgDt = Mathf.Lerp(_avgDt, dt, 0.05f);
             Fps = 1f / Mathf.Max(0.0001f, _avgDt);
+            FrameTimingManager.CaptureFrameTimings();
+            if (FrameTimingManager.GetLatestTimings(1, _timing) > 0 && _timing[0].gpuFrameTime > 0.0)
+                _gpuMs = Mathf.Lerp(_gpuMs, (float)_timing[0].gpuFrameTime, 0.08f);
             if (!adaptive || _asset == null) return;
 
-            // Too slow for a while: draw fewer pixels. Comfortably fast for a while: draw more again.
-            if (_avgDt > 1f / 50f) { _slowFor += dt; _fastFor = 0f; }
-            else if (_avgDt < 1f / 57f) { _fastFor += dt; _slowFor = 0f; }
+            // The frame cap hides how hard the graphics chip works, so judge by its own time when we can:
+            // over budget for a while, draw fewer pixels; comfortably under for a while, draw more again.
+            bool slow = _gpuMs > 0f ? _gpuMs > 16f : _avgDt > 1f / 50f;
+            bool fast = _gpuMs > 0f ? _gpuMs < 11.5f : _avgDt < 1f / 57f;
+            if (slow) { _slowFor += dt; _fastFor = 0f; }
+            else if (fast) { _fastFor += dt; _slowFor = 0f; }
             else { _slowFor = 0f; _fastFor = 0f; }
 
             _judgeTimer -= dt;

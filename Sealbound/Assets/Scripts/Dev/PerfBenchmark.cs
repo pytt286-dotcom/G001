@@ -89,7 +89,8 @@ namespace Sealbound.Dev
             long gc0 = GC.GetAllocatedBytesForCurrentThread();
             int gcCount0 = GC.CollectionCount(0);
             float start = Time.realtimeSinceStartup;
-            while (Time.realtimeSinceStartup - start < seconds)
+            int guard = 0;
+            while (Time.realtimeSinceStartup - start < seconds && guard++ < 2000)
             {
                 each?.Invoke();
                 yield return null;
@@ -107,6 +108,12 @@ namespace Sealbound.Dev
             float p99 = sorted.Count > 0 ? sorted[Mathf.Clamp(Mathf.FloorToInt(sorted.Count * 0.99f), 0, sorted.Count - 1)] : 0f;
             float worst = sorted.Count > 0 ? sorted[sorted.Count - 1] : 0f;
             var perf = Performance.Instance;
+            // A stall (the window losing focus, say) would swamp the average: leave such frames out and count them.
+            int stalls = _frames.RemoveAll(f => f > 1f);
+            if (stalls > 0) { total = 0f; foreach (var f in _frames) total += f; n = Mathf.Max(1, _frames.Count); sorted = new List<float>(_frames); sorted.Sort(); }
+            p99 = sorted.Count > 0 ? sorted[Mathf.Clamp(Mathf.FloorToInt(sorted.Count * 0.99f), 0, sorted.Count - 1)] : 0f;
+            worst = sorted.Count > 0 ? sorted[sorted.Count - 1] : 0f;
+            if (stalls > 0) name += $" ({stalls} stalled frame(s) left out)";
             Line($"{name} | {n / Mathf.Max(0.001f, total):0} | {1f / Mathf.Max(0.0001f, p99):0} | {worst * 1000f:0} | " +
                  $"{(_timed > 0 ? _cpu / _timed : 0):0.0} | {(_timed > 0 ? _gpu / _timed : 0):0.0} | {allocated / 1024f / n:0.0} (GCs {GC.CollectionCount(0) - gcCount0}) | {(perf != null ? perf.RenderScale : 1f):0.00}");
         }

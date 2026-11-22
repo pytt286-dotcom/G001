@@ -98,7 +98,7 @@ namespace Sealbound.UI
                 var fs = new GUIStyle(_label) { alignment = TextAnchor.UpperRight, fontSize = 13 };
                 Color fc = perf.Fps >= 50f ? new Color(0.6f, 1f, 0.6f) : perf.Fps >= 30f ? new Color(1f, 0.85f, 0.4f) : new Color(1f, 0.45f, 0.4f);
                 fs.normal.textColor = fc;
-                GUI.Label(new Rect(Screen.width - 230f, 6f, 220f, 20f), $"{perf.Fps:0} fps · resolution {perf.RenderScale * 100f:0}%  (F3)", fs);
+                GUI.Label(new Rect(Screen.width - 330f, 6f, 320f, 20f), $"{perf.Fps:0} fps · GPU {perf.GpuMs:0} ms · resolution {perf.RenderScale * 100f:0}%  (F3)", fs);
             }
 
             if (BossEngaged) DrawBossBar();
