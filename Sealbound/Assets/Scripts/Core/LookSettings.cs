@@ -85,7 +85,7 @@ namespace Sealbound.Core
             color.postExposure.Override(real ? 0.1f : 0.15f);
 
             var wb = profile.Add<WhiteBalance>(true);
-            wb.temperature.Override(real ? 6f : 8f);
+            wb.temperature.Override(real ? 0f : 8f); // neutral for the photo look: warmth made the grass yellow
 
             // Film-style tone curve for the photo-real look; softer and brighter for the cartoon look.
             var tone = profile.Add<Tonemapping>(true);
@@ -96,7 +96,7 @@ namespace Sealbound.Core
                 // Warm light, cool shadows: the golden-hour feel of an animated film.
                 var smh = profile.Add<ShadowsMidtonesHighlights>(true);
                 smh.shadows.Override(new Vector4(0.94f, 0.98f, 1.06f, 0f));
-                smh.highlights.Override(new Vector4(1.05f, 1.0f, 0.93f, 0f));
+                smh.highlights.Override(new Vector4(1.03f, 1.0f, 0.97f, 0f));
             }
 
             var vignette = profile.Add<Vignette>(true);

@@ -192,18 +192,24 @@ namespace Sealbound.Core
             if (prefab == null) return null;
             var go = Object.Instantiate(prefab, parent, false);
             go.name = name;
+            bool green = name.StartsWith("Bush"); // bushes share the twisted tree's red autumn leaves: keep them green
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = FoliageMaterial(mats[i]);
+                for (int i = 0; i < mats.Length; i++) mats[i] = FoliageMaterial(mats[i], green);
                 r.sharedMaterials = mats;
             }
             return go;
         }
 
-        public static Material FoliageMaterial(Material imported)
+        public static Material FoliageMaterial(Material imported, bool noAutumn = false)
         {
             Texture tex = imported != null ? imported.mainTexture : null;
+            if (noAutumn && tex != null && tex.name == "Leaves_TwistedTree_C")
+            {
+                var greenLeaves = ArtLibrary.LoadTexture("Art/MegaKit/Textures/Leaves_NormalTree_C");
+                if (greenLeaves != null) tex = greenLeaves;
+            }
             string n = (imported != null ? imported.name : "") + " " + (tex != null ? tex.name : "");
             n = n.ToLowerInvariant();
             if (tex == null) tex = GuessNatureTexture(n);

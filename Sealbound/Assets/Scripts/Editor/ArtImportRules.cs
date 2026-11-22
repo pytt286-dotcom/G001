@@ -12,7 +12,7 @@ namespace Sealbound.EditorTools
         const string ArtRoot = "Assets/Resources/Art/";
 
         // Bump this whenever a rule changes so Unity re-imports the art with the new rules.
-        public override uint GetVersion() => 4;
+        public override uint GetVersion() => 5;
 
         static bool IsArt(string path) => path.Replace('\\', '/').StartsWith(ArtRoot);
         static bool IsRigged(string path) => path.Contains("/Characters/") || path.Contains("/Animations/");
@@ -101,7 +101,7 @@ namespace Sealbound.EditorTools
             if (assetPath.Contains("/PolyHaven/") || assetPath.Contains("/MegaKit/"))
             {
                 t.maxTextureSize = 2048;
-                t.anisoLevel = 4;
+                t.anisoLevel = 8;
                 t.filterMode = FilterMode.Trilinear;
                 t.wrapMode = TextureWrapMode.Repeat;
                 if (file.EndsWith("_nor") || file.EndsWith("_Normal"))

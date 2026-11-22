@@ -125,6 +125,9 @@ namespace Sealbound.Core
                 smoothness = 0.05f,
                 metallic = 0f,
             };
+            // Grass textures lean yellow under the warm sun: pull them toward a fresh highland green.
+            if (slug == RealArt.Meadow || slug == RealArt.MeadowMix || slug == RealArt.Grass)
+                l.diffuseRemapMax = new Vector4(0.78f, 0.95f, 0.72f, 1f);
             l.name = slug;
             return l;
         }
@@ -155,7 +158,7 @@ namespace Sealbound.Core
                     float warren = Mathf.Clamp01((18f - new Vector2(w.x + 45f, w.z + 15f).magnitude) / 5f);
                     forest = Mathf.Max(forest, warren);
 
-                    float rock = Mathf.Clamp01((steep - 24f) / 12f);
+                    float rock = Mathf.Clamp01((steep - 34f) / 12f); // bare rock only on the steepest slopes
 
                     float g = (1f - forest) * (1f - trail) * (1f - rock);
                     float f = forest * (1f - trail) * (1f - rock);
