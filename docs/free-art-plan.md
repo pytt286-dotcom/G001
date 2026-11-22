@@ -1,6 +1,6 @@
 # Free art plan (no spending)
 
-**Status:** for Pytt to approve. **Cost: $0.**
+**Status:** approved, and the packs are downloaded. **Cost: $0.**
 **Checked:** 22 November 2026.
 
 Pytt doesn't want to spend money yet. This plan gets the best look possible for free, using only art that is legally free to use in a commercial game (one we sell on Steam).
@@ -26,7 +26,7 @@ The two makers below, **KayKit** (Kay Lousberg) and **Quaternius**, both make ch
 | **Goblins** | [Quaternius: LowPoly Animated Monsters](https://quaternius.itch.io/lowpoly-animated-monsters) | Animated cartoon monsters (attack, walk, jump and more) in a style that matches. We'll recolour and dress one up as the Burrow Goblin. |
 | **Forest** | [KayKit Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest) (free tier) | 100+ trees, bushes, grass and rocks. |
 | **More nature** | [Quaternius Stylized Nature MegaKit](https://opengameart.org/content/stylized-nature-megakit) (standard version) | 68 more trees, plants, flowers and rocks. |
-| **Ruins and stone** | KayKit Dungeon pack (I still need to confirm its free tier) | Walls, pillars and arches for the Runestone Ruins. If it isn't free, we use the rocks from the nature packs. |
+| **Ruins and stone** | [KayKit Dungeon Pack](https://kaylousberg.itch.io/kaykit-dungeon-remastered) (free tier, CC0) | 200+ walls, pillars, arches, floors, torches and props for the Runestone Ruins. |
 | **Extra animations** | [KayKit Character Animations](https://kaylousberg.itch.io/kaykit-animations) | 29 more CC0 animations (combo attack, spin attack, rolls, dashes). |
 
 ### The Bastion Golem
@@ -52,3 +52,11 @@ The packs are free downloads on itch.io. Two ways:
 2. **You download them:** on each pack page, click **Download Now**, then **"No thanks, just take me to the downloads"**, then download the zip files. Tell me when they're in your Downloads folder.
 
 Either way, I then bring them into the game and replace the shapes.
+
+## What we found after downloading (22 November 2026)
+
+- **Downloaded, all $0 and CC0:** KayKit Adventurers 2.0 (free), KayKit Forest Nature Pack 1.0 (free), KayKit Dungeon Pack 1.1 (free), Quaternius LowPoly Animated Monsters, and the Quaternius Stylized Nature MegaKit (standard).
+- **Fewer animations than advertised.** The free Adventurers 2.0 tier has about 25 animations (idle, walk, run, jump, hit, death, throw, spawn and a few more), but **no sword or spell attacks**. So the attacks are animated by code: the arm follows the same timed swing arcs the combat already uses. This keeps the rhythm timing exact.
+- **No goblin in the monster pack.** It has a slime, a bat, a skeleton and a small dragon. So the goblins are made from KayKit adventurers instead: shrunk, with green skin, a bigger head and long pointed ears, holding a dagger (Burrowers) or throwing rocks (Slingers). The monster pack is saved for later creatures. Its zip has no licence file, so its CC0 status rests on the download page.
+- **KayKit Character Animations** turned out to be an older pack for the previous character version, so it was skipped.
+- **The Nature MegaKit is 117 MB**, mostly large textures. It's kept on the Mac for later and isn't in the project yet; the KayKit forest pieces cover the first slice.

@@ -59,7 +59,8 @@ namespace Sealbound.Player
             RespawnIn = respawnDelay;
             _motor.Stagger(Vector3.zero, 0f, respawnDelay + 0.2f);
             if (_combat != null) _combat.Interrupt();
-            if (_motor.visual != null) _motor.visual.localRotation = Quaternion.Euler(-80f, 0f, 0f);
+            // Stand-in body tips over; a real model plays its death animation instead.
+            if (_motor.visual != null && GetComponent<PlayerAvatar>() == null) _motor.visual.localRotation = Quaternion.Euler(-80f, 0f, 0f);
             Fell?.Invoke();
         }
 

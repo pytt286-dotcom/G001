@@ -10,7 +10,8 @@ namespace Sealbound.Core
     /// </summary>
     public static class ToonOutline
     {
-        static Material _material;
+        static Material _material, _skinMaterial;
+        static readonly Color Ink = new Color(0.08f, 0.06f, 0.05f);
 
         public static void Add(IEnumerable<Renderer> parts, float thickness = 0.022f)
         {
@@ -27,7 +28,14 @@ namespace Sealbound.Core
             var list = new List<Renderer>(parts);
             foreach (var part in list)
             {
-                if (part == null || part.name == "Outline" || part is TrailRenderer) continue;
+                if (SkinnedOutline.IsOutline(part)) continue;
+                if (part is SkinnedMeshRenderer skinned)
+                {
+                    // Animated characters: an outline that bends with the same bones.
+                    if (_skinMaterial == null) _skinMaterial = SkinnedOutline.NewMaterial(Ink, thickness);
+                    SkinnedOutline.Add(skinned, _skinMaterial, "Ink Outline");
+                    continue;
+                }
                 var mf = part.GetComponent<MeshFilter>();
                 if (mf == null || mf.sharedMesh == null) continue;
 

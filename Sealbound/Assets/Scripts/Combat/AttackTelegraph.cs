@@ -17,15 +17,27 @@ namespace Sealbound.Combat
         public float thickness = 0.045f;
 
         readonly List<Renderer> _outlines = new List<Renderer>();
-        Material _material;
+        Material _material, _skinMaterial;
         bool _visible;
 
         public void Build(IEnumerable<Renderer> parts)
         {
             _material = CreateOutlineMaterial();
-            foreach (var part in parts)
+            foreach (var part in new List<Renderer>(parts))
             {
-                if (part == null) continue;
+                if (Core.SkinnedOutline.IsOutline(part)) continue;
+                if (part is SkinnedMeshRenderer skinned)
+                {
+                    // Animated body parts: an outline that bends with the same bones.
+                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness);
+                    var outline = Core.SkinnedOutline.Add(skinned, _skinMaterial, "Outline");
+                    if (outline != null)
+                    {
+                        outline.enabled = false;
+                        _outlines.Add(outline);
+                    }
+                    continue;
+                }
                 var mf = part.GetComponent<MeshFilter>();
                 if (mf == null || mf.sharedMesh == null) continue;
 
@@ -79,6 +91,7 @@ namespace Sealbound.Combat
             _material.color = c;
             if (_material.HasProperty("_BaseColor")) _material.SetColor("_BaseColor", c);
             if (_material.HasProperty("_EmissionColor")) _material.SetColor("_EmissionColor", c);
+            if (_skinMaterial != null) _skinMaterial.SetColor("_BaseColor", c);
         }
 
         Material CreateOutlineMaterial()

@@ -15,7 +15,7 @@ namespace Sealbound.Enemies
     public class Goblin : MonoBehaviour
     {
         public enum Kind { Burrower, Slinger }
-        enum State { Emerging, Circling, Approaching, Windup, Strike, Recover, Stagger, Airborne, Dead }
+        public enum State { Emerging, Circling, Approaching, Windup, Strike, Recover, Stagger, Airborne, Dead }
 
         public Kind kind;
 
@@ -40,6 +40,8 @@ namespace Sealbound.Enemies
         public Renderer[] tintRenderers;
 
         public bool IsDead => _state == State.Dead;
+        public State CurrentState => _state;
+        public float StateTime => _stateTime;
 
         float _slowMultiplier = 1f, _slowTimer;
         public bool IsSlowed => _slowTimer > 0f;
@@ -85,6 +87,33 @@ namespace Sealbound.Enemies
             var vis = new GameObject("Visual").transform;
             vis.SetParent(go.transform, false);
 
+            var health = go.AddComponent<Health>();
+            health.maxHealth = kind == Kind.Burrower ? 45f : 30f;
+
+            var g = go.AddComponent<Goblin>();
+            g.kind = kind;
+            g.visual = vis;
+
+            // A real (reshaped KayKit) body when the free art is in the project, otherwise grey-box shapes.
+            var parts = GoblinAvatar.TryBuild(g, vis, kind);
+            g.tintRenderers = parts != null ? parts.ToArray() : BuildStandInBody(vis, kind);
+            ToonOutline.Add(vis.GetComponentsInChildren<Renderer>());
+            g._telegraph = go.AddComponent<AttackTelegraph>();
+            g._telegraph.Build(vis.GetComponentsInChildren<Renderer>());
+            g._target = target;
+            if (kind == Kind.Slinger)
+            {
+                g.circleRadius = 9f;
+                g.windupTime = 0.6f;
+                g.recoverTime = 0.8f;
+                g.damage = 8f;
+                g.attackDelay = new Vector2(1.5f, 3.5f);
+            }
+            return g;
+        }
+
+        static Renderer[] BuildStandInBody(Transform vis, Kind kind)
+        {
             Color skin = kind == Kind.Burrower ? new Color(0.45f, 0.62f, 0.25f) : new Color(0.55f, 0.58f, 0.3f);
             Color cloth = kind == Kind.Burrower ? new Color(0.4f, 0.26f, 0.15f) : new Color(0.55f, 0.2f, 0.18f);
             var body = Shapes.Make(PrimitiveType.Capsule, vis, "Body", new Vector3(0f, 0.5f, 0f), new Vector3(0.6f, 0.45f, 0.55f), cloth);
@@ -100,26 +129,7 @@ namespace Sealbound.Enemies
             else
                 Shapes.Make(PrimitiveType.Sphere, vis, "Rock Pouch", new Vector3(-0.3f, 0.45f, 0.1f), Vector3.one * 0.25f, new Color(0.45f, 0.42f, 0.38f));
 
-            var health = go.AddComponent<Health>();
-            health.maxHealth = kind == Kind.Burrower ? 45f : 30f;
-
-            var g = go.AddComponent<Goblin>();
-            g.kind = kind;
-            g.visual = vis;
-            g.tintRenderers = new[] { body.GetComponent<Renderer>(), head.GetComponent<Renderer>(), earL.GetComponent<Renderer>(), earR.GetComponent<Renderer>() };
-            ToonOutline.Add(vis.GetComponentsInChildren<Renderer>());
-            g._telegraph = go.AddComponent<AttackTelegraph>();
-            g._telegraph.Build(vis.GetComponentsInChildren<Renderer>());
-            g._target = target;
-            if (kind == Kind.Slinger)
-            {
-                g.circleRadius = 9f;
-                g.windupTime = 0.6f;
-                g.recoverTime = 0.8f;
-                g.damage = 8f;
-                g.attackDelay = new Vector2(1.5f, 3.5f);
-            }
-            return g;
+            return new[] { body.GetComponent<Renderer>(), head.GetComponent<Renderer>(), earL.GetComponent<Renderer>(), earR.GetComponent<Renderer>() };
         }
 
         // ---------- Lifecycle ----------
@@ -360,7 +370,9 @@ namespace Sealbound.Enemies
         {
             if (visual != null)
             {
-                visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(-85f, 0f, 0f), 1f - Mathf.Exp(-10f * dt));
+                // The stand-in tips over; a real body plays its death animation instead.
+                if (GetComponent<GoblinAvatar>() == null)
+                    visual.localRotation = Quaternion.Slerp(visual.localRotation, Quaternion.Euler(-85f, 0f, 0f), 1f - Mathf.Exp(-10f * dt));
                 if (_stateTime > 0.5f) visual.localScale = Vector3.one * Mathf.Max(0f, 1f - (_stateTime - 0.5f) / 0.5f);
             }
             if (_stateTime > 1.05f) Destroy(gameObject);

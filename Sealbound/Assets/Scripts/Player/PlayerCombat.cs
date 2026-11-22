@@ -53,6 +53,9 @@ namespace Sealbound.Player
         public Transform staffPivot;
         public Renderer swordCueRenderer;
         public Renderer staffCueRenderer;
+        [Tooltip("The sword's beat cue is the whole weapon model (real art), not a glowing strip.")]
+        public bool swordCueIsWeapon;
+        public bool staffCueIsWeapon;
         public Vector3 restEuler = new Vector3(35f, 25f, 0f);
 
         // ---- read by the HUD ----
@@ -81,6 +84,7 @@ namespace Sealbound.Player
         TrailRenderer _trail;
         Material _cueMaterial;
         Color _cueBase;
+        bool _cueWhole;
         float _cueFlash;
 
         AttackData _current;
@@ -124,6 +128,7 @@ namespace Sealbound.Player
             if (_weapon != null) _weapon.localRotation = Quaternion.Euler(restEuler);
 
             var cue = sword ? swordCueRenderer : staffCueRenderer;
+            _cueWhole = sword ? swordCueIsWeapon : staffCueIsWeapon;
             _cueMaterial = null;
             if (cue != null)
             {
@@ -571,6 +576,13 @@ namespace Sealbound.Player
         {
             if (_cueMaterial == null) return;
             _cueFlash = Mathf.MoveTowards(_cueFlash, 0f, dt * 5f);
+            if (_cueWhole)
+            {
+                // A painted weapon: keep its colours, flash white on the beat and glow gold at full Focus.
+                _cueMaterial.color = Color.Lerp(FocusFull ? Color.Lerp(_cueBase, PerfectColor, 0.35f) : _cueBase, Color.white, _cueFlash);
+                _cueMaterial.SetColor("_EmissionColor", Color.Lerp(FocusFull ? PerfectColor * 0.8f : Color.black, Color.white * 2.5f, _cueFlash));
+                return;
+            }
             Color glow = FocusFull ? PerfectColor : _cueBase;
             _cueMaterial.color = Color.Lerp(glow, Color.white, _cueFlash);
             _cueMaterial.SetColor("_EmissionColor", Color.Lerp(glow * 1.5f, Color.white * 6f, _cueFlash));

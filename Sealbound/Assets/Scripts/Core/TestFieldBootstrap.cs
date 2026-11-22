@@ -47,6 +47,7 @@ namespace Sealbound.Core
             foreach (var d in Object.FindObjectsByType<TrainingDummy>(FindObjectsSortMode.None))
                 ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
+            WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
             var hud = Object.FindAnyObjectByType<DebugHud>();
             if (hud != null) hud.warren = warren;
         }
@@ -149,7 +150,7 @@ namespace Sealbound.Core
 
         static GameObject BuildPlayer(Vector3 position)
         {
-            var player = new GameObject("Sealer Recruit (stand-in)");
+            var player = new GameObject("Sealer Recruit");
             player.layer = 2; // Ignore Raycast, so the camera does not collide with the player
             player.transform.position = position;
 
@@ -164,7 +165,60 @@ namespace Sealbound.Core
             // Visual pivot sits at the feet so squash-and-stretch stays grounded.
             var visual = new GameObject("Visual").transform;
             visual.SetParent(player.transform, false);
+            visual.gameObject.layer = 2;
 
+            player.AddComponent<PlayerInputReader>();
+            var motor = player.AddComponent<PlayerMotor>();
+            motor.visual = visual;
+            player.AddComponent<AudioSource>();
+            player.AddComponent<CombatAudio>();
+            var combat = player.AddComponent<PlayerCombat>();
+            var health = player.AddComponent<Health>();
+            health.maxHealth = 100f;
+            var vitals = player.AddComponent<PlayerVitals>();
+
+            // Real characters (KayKit Knight and Mage) when the free art is in the project,
+            // otherwise the grey-box stand-in.
+            var swordPivot = NewPivot(visual, "Sword Pivot");
+            var staffPivot = NewPivot(visual, "Staff Pivot");
+            var avatar = PlayerAvatar.TryBuild(player, visual, swordPivot, staffPivot);
+            if (avatar != null)
+            {
+                combat.swordCueRenderer = avatar.CueRenderer(true);
+                combat.swordCueIsWeapon = true;
+                combat.staffCueRenderer = avatar.CueRenderer(false);
+            }
+            else
+            {
+                player.name = "Sealer Recruit (stand-in)";
+                BuildStandInBody(visual);
+                BuildSword(swordPivot);
+                BuildStaff(staffPivot);
+                combat.swordCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
+                combat.staffCueRenderer = staffPivot.Find("Ember Orb").GetComponent<Renderer>();
+            }
+            staffPivot.gameObject.SetActive(false);
+            combat.swordPivot = swordPivot;
+            combat.staffPivot = staffPivot;
+
+            var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
+            hud.motor = motor;
+            hud.combat = combat;
+            hud.vitals = vitals;
+            return player;
+        }
+
+        static Transform NewPivot(Transform visual, string name)
+        {
+            var pivot = new GameObject(name).transform;
+            pivot.SetParent(visual, false);
+            pivot.localPosition = new Vector3(0.4f, 1.25f, 0.1f);
+            pivot.gameObject.layer = 2;
+            return pivot;
+        }
+
+        static void BuildStandInBody(Transform visual)
+        {
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             Object.Destroy(body.GetComponent<Collider>());
@@ -190,36 +244,10 @@ namespace Sealbound.Core
             Paint(visor, Rune);
 
             foreach (Transform t in visual.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
-
-            var swordPivot = BuildSword(visual);
-
-            player.AddComponent<PlayerInputReader>();
-            var motor = player.AddComponent<PlayerMotor>();
-            motor.visual = visual;
-            player.AddComponent<AudioSource>();
-            player.AddComponent<CombatAudio>();
-            var combat = player.AddComponent<PlayerCombat>();
-            combat.swordPivot = swordPivot;
-            combat.swordCueRenderer = swordPivot.Find("Rune Edge").GetComponent<Renderer>();
-            var staffPivot = BuildStaff(visual);
-            combat.staffPivot = staffPivot;
-            combat.staffCueRenderer = staffPivot.Find("Ember Orb").GetComponent<Renderer>();
-            var health = player.AddComponent<Health>();
-            health.maxHealth = 100f;
-            var vitals = player.AddComponent<PlayerVitals>();
-
-            var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
-            hud.motor = motor;
-            hud.combat = combat;
-            hud.vitals = vitals;
-            return player;
         }
 
-        static Transform BuildSword(Transform visual)
+        static void BuildSword(Transform pivot)
         {
-            var pivot = new GameObject("Sword Pivot").transform;
-            pivot.SetParent(visual, false);
-            pivot.localPosition = new Vector3(0.4f, 1.25f, 0.1f);
 
             Part(pivot, "Grip", new Vector3(0f, 0f, 0f), new Vector3(0.06f, 0.06f, 0.28f), Wood);
             Part(pivot, "Guard", new Vector3(0f, 0f, 0.16f), new Vector3(0.36f, 0.06f, 0.07f), Iron);
@@ -244,14 +272,10 @@ namespace Sealbound.Core
             trail.emitting = false;
 
             foreach (Transform t in pivot.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
-            return pivot;
         }
 
-        static Transform BuildStaff(Transform visual)
+        static void BuildStaff(Transform pivot)
         {
-            var pivot = new GameObject("Staff Pivot").transform;
-            pivot.SetParent(visual, false);
-            pivot.localPosition = new Vector3(0.4f, 1.25f, 0.1f);
 
             Part(pivot, "Shaft", new Vector3(0f, 0f, 0.55f), new Vector3(0.07f, 0.07f, 1.7f), Wood);
             Part(pivot, "Head Ring", new Vector3(0f, 0f, 1.42f), new Vector3(0.28f, 0.28f, 0.06f), Iron);
@@ -264,8 +288,6 @@ namespace Sealbound.Core
             Paint(orb, new Color(1f, 0.5f, 0.18f));
 
             foreach (Transform t in pivot.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
-            pivot.gameObject.SetActive(false);
-            return pivot;
         }
 
         static void Part(Transform parent, string name, Vector3 localPos, Vector3 size, Color color)
