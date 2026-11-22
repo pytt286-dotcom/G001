@@ -116,8 +116,8 @@ namespace Sealbound.Loot
                     var r = mesh.AddComponent<MeshRenderer>();
                     r.sharedMaterial = PartMaterial(_def, fang ? 0f : core ? 2.2f : 1.4f);
                     r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    mesh.transform.localScale = core ? Vector3.one * 0.36f : fang ? new Vector3(0.07f, 0.16f, 0.07f) : new Vector3(0.13f, 0.3f, 0.13f);
-                    _halo = Glow.Make(root, Vector3.zero, core ? 1.1f : 0.7f, new Color(g.r * 1.8f, g.g * 1.8f, g.b * 1.8f, fang ? 0.3f : 0.65f));
+                    mesh.transform.localScale = core ? Vector3.one * 0.46f : fang ? new Vector3(0.09f, 0.2f, 0.09f) : new Vector3(0.19f, 0.42f, 0.19f);
+                    _halo = Glow.Make(root, Vector3.zero, core ? 1.4f : 0.95f, new Color(g.r * 1.8f, g.g * 1.8f, g.b * 1.8f, fang ? 0.3f : 0.65f));
                     if (core) AddLight(g, 4f, 2f);
                     break;
                 }
@@ -126,8 +126,8 @@ namespace Sealbound.Loot
             if (_def.rarity >= Rarity.Rare)
             {
                 Color rc = _def.RarityColour;
-                var pillar = Glow.Make(transform, new Vector3(0f, 2.2f, 0f), 1f, new Color(rc.r * 1.5f, rc.g * 1.5f, rc.b * 1.5f, 0.45f));
-                pillar.transform.localScale = new Vector3(0.35f, 5f, 1f);
+                var pillar = Glow.Make(transform, new Vector3(0f, 3f, 0f), 1f, new Color(rc.r * 2.6f, rc.g * 2.6f, rc.b * 2.6f, 0.75f));
+                pillar.transform.localScale = new Vector3(0.55f, 7f, 1f);
                 pillar.name = "Light Pillar";
                 pillar.gameObject.SetActive(false); // shown once it lands
             }

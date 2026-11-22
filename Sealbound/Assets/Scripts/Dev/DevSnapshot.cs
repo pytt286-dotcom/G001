@@ -202,7 +202,8 @@ namespace Sealbound.Dev
             yield return new WaitForSeconds(GolemSeal.HoldSeconds * 0.6f);
             var seal = GolemSeal.Current;
             Line($"Sealing: in reach {(seal != null && seal.InReach)}, holding {(seal != null && seal.Holding)}, progress {(seal != null ? seal.Progress : -1f):P0}");
-            Shot("17_sealing", centre + side * 15f + Quaternion.Euler(0f, 90f, 0f) * side * 9f + Vector3.up * 5f, centre + side * 4f + Vector3.up * 3f, 60f);
+            Vector3 across = Quaternion.Euler(0f, 90f, 0f) * side;
+            Shot("17_sealing", centre + side * 12.5f + across * 3f + Vector3.up * 4.5f, centre + side * 3f + Vector3.up * 4f, 64f);
             float w2 = 0f;
             while (golem != null && w2 < 5f) { w2 += Time.deltaTime; yield return null; }
             GolemSeal.DevHold = false;
@@ -217,6 +218,17 @@ namespace Sealbound.Dev
             foreach (var kv in counts) sb.Append(kv.Key).Append(" x").Append(kv.Value).Append(", ");
             Line($"Loot on the ground: {drops.Count} pickups: {sb}");
             Shot("18b_loot_on_ground", centre + side * 12f + Vector3.up * 2.6f, centre + Vector3.up * 0.6f, 60f);
+            // A close look at the best drop still lying there.
+            Sealbound.Loot.LootDrop best = null;
+            foreach (var d in drops) if (d != null && (best == null || d.Item.rarity > best.Item.rarity)) best = d;
+            if (best != null)
+            {
+                Vector3 bp = best.transform.position;
+                Vector3 back = Vector3.ProjectOnPlane(bp - centre, Vector3.up).normalized;
+                if (back.sqrMagnitude < 0.01f) back = side;
+                Line("Close-up of: " + best.Item.displayName);
+                Shot("18c_loot_close", bp + back * 3.5f + Vector3.up * 1.6f, bp + Vector3.up * 0.4f, 55f);
+            }
 
             // Walk over every drop so it flies into the pack.
             foreach (var d in drops)

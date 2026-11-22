@@ -41,8 +41,8 @@ namespace Sealbound.Enemies
             go.transform.position = new Vector3(golem.transform.position.x, golem.transform.position.y + 0.06f, golem.transform.position.z);
             var s = go.AddComponent<GolemSeal>();
             s._golem = golem;
-            s._circle = Glow.MakeRing(go.transform, Vector3.zero, Reach * 1.6f, new Color(Gold.r * 1.6f, Gold.g * 1.6f, Gold.b * 1.6f, 0.9f));
-            s._innerCircle = Glow.MakeRing(go.transform, new Vector3(0f, 0.02f, 0f), Reach * 0.9f, new Color(Gold.r * 1.4f, Gold.g * 1.4f, Gold.b * 1.4f, 0.9f));
+            s._circle = Glow.MakeRing(go.transform, Vector3.zero, Reach * 1.6f, new Color(Gold.r * 2.4f, Gold.g * 2.4f, Gold.b * 2.4f, 1f));
+            s._innerCircle = Glow.MakeRing(go.transform, new Vector3(0f, 0.02f, 0f), Reach * 0.9f, new Color(Gold.r * 2.2f, Gold.g * 2.2f, Gold.b * 2.2f, 1f));
             s._circle.SetStrength(0f);
             s._innerCircle.SetStrength(0f);
             var lightGo = new GameObject("Seal Light");
@@ -87,8 +87,8 @@ namespace Sealbound.Enemies
 
             // The circle fades in, then brightens and turns as the seal takes hold.
             float open = Mathf.Clamp01(_age / 1.2f);
-            _circle.SetStrength(open * (0.35f + 0.65f * Progress));
-            _innerCircle.SetStrength(open * Progress);
+            _circle.SetStrength(open * (0.6f + 0.4f * Progress));
+            _innerCircle.SetStrength(open * (0.25f + 0.75f * Progress));
             _circle.transform.Rotate(0f, 0f, dt * (8f + 70f * Progress), Space.Self);
             _innerCircle.transform.Rotate(0f, 0f, -dt * (12f + 110f * Progress), Space.Self);
             _light.intensity = 0.6f * open + 5f * Progress;
