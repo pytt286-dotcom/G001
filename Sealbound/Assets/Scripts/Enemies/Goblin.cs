@@ -57,9 +57,9 @@ namespace Sealbound.Enemies
         bool _strikeDone;
         float _flash;
         Material[] _mats;
+        AttackTelegraph _telegraph;
         Color[] _baseColors;
 
-        static readonly Color Telegraph = new Color(1f, 0.15f, 0.1f);
 
         // ---------- Creation ----------
 
@@ -97,6 +97,8 @@ namespace Sealbound.Enemies
             g.kind = kind;
             g.visual = vis;
             g.tintRenderers = new[] { body.GetComponent<Renderer>(), head.GetComponent<Renderer>(), earL.GetComponent<Renderer>(), earR.GetComponent<Renderer>() };
+            g._telegraph = go.AddComponent<AttackTelegraph>();
+            g._telegraph.Build(vis.GetComponentsInChildren<Renderer>());
             g._target = target;
             if (kind == Kind.Slinger)
             {
@@ -333,6 +335,7 @@ namespace Sealbound.Enemies
 
         void OnSealed()
         {
+            if (_telegraph != null) _telegraph.Hide();
             GoblinDirector.ReleaseToken(this);
             SetState(State.Dead);
             _cc.enabled = false;
@@ -356,9 +359,14 @@ namespace Sealbound.Enemies
             _flash = Mathf.MoveTowards(_flash, 0f, dt * 6f);
             float warn = _state == State.Windup ? Mathf.Clamp01(_stateTime / windupTime) : 0f;
             for (int i = 0; i < _mats.Length; i++)
+                _mats[i].color = Color.Lerp(_baseColors[i], Color.white, _flash);
+
+            // Warning: a red outline that grows brighter and pulses faster as the attack nears.
+            if (_telegraph != null)
             {
-                Color c = Color.Lerp(_baseColors[i], Telegraph, warn * 0.85f);
-                _mats[i].color = Color.Lerp(c, Color.white, _flash);
+                if (_state == State.Windup) _telegraph.SetWarning(Mathf.Max(0.15f, warn));
+                else if (_state == State.Strike) _telegraph.SetStrike();
+                else _telegraph.Hide();
             }
             if (visual != null)
             {
