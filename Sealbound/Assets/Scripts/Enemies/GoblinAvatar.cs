@@ -151,8 +151,9 @@ namespace Sealbound.Enemies
             for (int i = 0; i < n; i++)
             {
                 int a = 2 + i, b = 2 + (i + 1) % n;
-                tris.Add(0); tris.Add(b); tris.Add(a);
-                tris.Add(1); tris.Add(a); tris.Add(b);
+                // Clockwise as seen from outside, so the faces point outwards.
+                tris.Add(0); tris.Add(a); tris.Add(b);
+                tris.Add(1); tris.Add(b); tris.Add(a);
             }
             _earMesh = new Mesh { name = "Goblin Ear" };
             _earMesh.SetVertices(verts);
