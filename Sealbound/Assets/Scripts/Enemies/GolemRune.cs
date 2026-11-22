@@ -35,9 +35,8 @@ namespace Sealbound.Enemies
             go.transform.localPosition = localPos;
 
             // A flat glowing rune set into the rock, with a light that glows on the stone around it.
-            var gem = Shapes.Make(PrimitiveType.Cube, go.transform, "Rune Gem", Vector3.zero, new Vector3(size, size, size * 0.4f), new Color(0.12f, 0.5f, 1f), true, true);
+            var gem = Shapes.Make(PrimitiveType.Sphere, go.transform, "Rune Gem", Vector3.zero, new Vector3(size, size, size * 0.4f), new Color(0.12f, 0.5f, 1f), true, true);
             gem.layer = 2;
-            gem.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
             gem.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             var health = go.AddComponent<Health>();

@@ -15,6 +15,9 @@ namespace Sealbound.Combat
         public Color strikeColor = new Color(1f, 0.95f, 0.8f);
         [Tooltip("Outline thickness in metres.")]
         public float thickness = 0.045f;
+        [Tooltip("Outline only the outside of the whole group of parts, not where parts overlap (for a body made of many rocks). " +
+                 "The parts must draw after the outline (render queue above Geometry+5).")]
+        public bool silhouetteOnly;
 
         readonly List<Renderer> _outlines = new List<Renderer>();
         Material _material, _skinMaterial;
@@ -29,7 +32,7 @@ namespace Sealbound.Combat
                 if (part is SkinnedMeshRenderer skinned)
                 {
                     // Animated body parts: an outline that bends with the same bones.
-                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness * 0.7f);
+                    if (_skinMaterial == null) _skinMaterial = NewShellMaterial();
                     var outline = Core.SkinnedOutline.Add(skinned, _skinMaterial, "Outline");
                     if (outline != null)
                     {
@@ -42,7 +45,7 @@ namespace Sealbound.Combat
                 if (mf == null || mf.sharedMesh == null) continue;
                 if (!Core.SkinnedOutline.IsBuiltInShape(mf.sharedMesh) && part is MeshRenderer still && Core.SkinnedOutline.Available)
                 {
-                    if (_skinMaterial == null) _skinMaterial = Core.SkinnedOutline.NewMaterial(warningColor, thickness * 0.7f);
+                    if (_skinMaterial == null) _skinMaterial = NewShellMaterial();
                     var shell = Core.SkinnedOutline.AddStill(still, _skinMaterial, "Outline");
                     if (shell != null) { shell.enabled = false; _outlines.Add(shell); }
                     continue;
@@ -99,6 +102,18 @@ namespace Sealbound.Combat
             if (_material.HasProperty("_BaseColor")) _material.SetColor("_BaseColor", c);
             if (_material.HasProperty("_EmissionColor")) _material.SetColor("_EmissionColor", c);
             if (_skinMaterial != null) _skinMaterial.SetColor("_BaseColor", c);
+        }
+
+        Material NewShellMaterial()
+        {
+            var m = Core.SkinnedOutline.NewMaterial(warningColor, thickness * 0.7f);
+            if (m != null && silhouetteOnly)
+            {
+                // No depth: the parts drawn afterwards paint over every inner edge, leaving only the outside rim.
+                m.SetFloat("_ZWrite", 0f);
+                m.renderQueue = (int)RenderQueue.Geometry + 5;
+            }
+            return m;
         }
 
         Material CreateOutlineMaterial()

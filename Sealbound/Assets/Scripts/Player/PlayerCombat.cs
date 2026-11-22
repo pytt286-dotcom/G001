@@ -585,7 +585,7 @@ namespace Sealbound.Player
             }
             Color glow = FocusFull ? PerfectColor : _cueBase;
             _cueMaterial.color = Color.Lerp(glow, Color.white, _cueFlash);
-            _cueMaterial.SetColor("_EmissionColor", Color.Lerp(glow * 1.5f, Color.white * 6f, _cueFlash));
+            _cueMaterial.SetColor("_EmissionColor", Color.Lerp(glow * 0.9f, Color.white * 2.5f, _cueFlash)); // strong enough to read, not a blinding blob
         }
     }
 }

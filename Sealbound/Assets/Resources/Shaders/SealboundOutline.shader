@@ -7,6 +7,7 @@ Shader "Sealbound/Outline"
     {
         _BaseColor ("Colour", Color) = (0.08, 0.06, 0.05, 1)
         _Width ("Width (metres)", Float) = 0.02
+        [Enum(Off, 0, On, 1)] _ZWrite ("Write depth (Off = outline only around the outside of a group)", Float) = 1
     }
     SubShader
     {
@@ -39,7 +40,7 @@ Shader "Sealbound/Outline"
             Name "Outline"
             Tags { "LightMode" = "UniversalForward" }
             Cull Front
-            ZWrite On
+            ZWrite [_ZWrite]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -73,7 +74,7 @@ Shader "Sealbound/Outline"
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
             Cull Front
-            ZWrite On
+            ZWrite [_ZWrite]
             ColorMask R
 
             HLSLPROGRAM
@@ -95,7 +96,7 @@ Shader "Sealbound/Outline"
             Name "DepthNormals"
             Tags { "LightMode" = "DepthNormals" }
             Cull Front
-            ZWrite On
+            ZWrite [_ZWrite]
 
             HLSLPROGRAM
             #pragma vertex vert

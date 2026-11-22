@@ -31,7 +31,7 @@ namespace Sealbound.Core
         static bool? _has, _hasNature;
         static readonly Dictionary<string, Material> Surfaces = new Dictionary<string, Material>();
         static readonly Dictionary<string, Material> ScanMaterials = new Dictionary<string, Material>();
-        static readonly Dictionary<Texture, Material> FoliageMaterials = new Dictionary<Texture, Material>();
+        static readonly Dictionary<(Texture, string), Material> FoliageMaterials = new Dictionary<(Texture, string), Material>();
         static Shader _triplanar;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -119,13 +119,14 @@ namespace Sealbound.Core
         /// Spawns a scanned model (rock, stump, shrub) with its own textures, scaled so its largest side is
         /// <paramref name="size"/> metres (0 keeps its real size). Returns null when it's missing.
         /// </summary>
-        public static GameObject Scan(string slug, Transform parent, float size = 0f, float moss = 0f)
+        public static GameObject Scan(string slug, Transform parent, float size = 0f, float moss = 0f, int onlyLod = -1, int queue = -1)
         {
             var prefab = ArtLibrary.LoadModel(Models + slug + "/" + slug);
             if (prefab == null) return null;
             var go = Object.Instantiate(prefab, parent, false);
             go.name = slug;
-            var mat = ScanMaterial(slug, moss);
+            if (onlyLod >= 0) KeepOneLod(go, onlyLod);
+            var mat = ScanMaterial(slug, moss, queue);
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -141,10 +142,30 @@ namespace Sealbound.Core
             return go;
         }
 
-        /// <summary>A scanned model's own textures (UV mapped), with optional extra moss on top.</summary>
-        public static Material ScanMaterial(string slug, float moss = 0f)
+        /// <summary>
+        /// Scans come with several levels of detail (name_LOD0, _LOD1...). Keeps just one, for things that are
+        /// always seen up close or that are outlined (the golem), falling back to the nearest level there is.
+        /// </summary>
+        static void KeepOneLod(GameObject go, int lod)
         {
-            string key = slug + "|" + moss;
+            var group = go.GetComponent<LODGroup>();
+            if (group != null) Object.DestroyImmediate(group);
+            var levels = new List<Renderer>();
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                if (r.name.Contains("_LOD")) levels.Add(r);
+            if (levels.Count < 2) return;
+            string want = "_LOD" + lod;
+            bool found = false;
+            foreach (var r in levels) if (r.name.EndsWith(want)) { found = true; break; }
+            if (!found) want = "_LOD0";
+            foreach (var r in levels)
+                if (!r.name.EndsWith(want)) Object.DestroyImmediate(r.gameObject);
+        }
+
+        /// <summary>A scanned model's own textures (UV mapped), with optional extra moss on top.</summary>
+        public static Material ScanMaterial(string slug, float moss = 0f, int queue = -1)
+        {
+            string key = slug + "|" + moss + "|" + queue;
             if (ScanMaterials.TryGetValue(key, out var m) && m != null) return m;
             if (TriplanarShader == null) return Shapes.Material(Color.gray, false);
             m = new Material(TriplanarShader) { name = slug + " (scan)" };
@@ -153,6 +174,7 @@ namespace Sealbound.Core
             SetMaps(m, "_BaseMap", "_NormalMap", "_ARMMap",
                 ArtLibrary.LoadTexture(ModelTexPath(slug, "diff")), ArtLibrary.LoadTexture(ModelTexPath(slug, "nor")), ArtLibrary.LoadTexture(ModelTexPath(slug, "arm")));
             if (moss > 0f) AddMoss(m, moss);
+            if (queue >= 0) m.renderQueue = queue;
             m.enableInstancing = true;
             ScanMaterials[key] = m;
             return m;
@@ -184,7 +206,7 @@ namespace Sealbound.Core
             n = n.ToLowerInvariant();
             if (tex == null) tex = GuessNatureTexture(n);
             if (tex == null) return imported != null ? imported : Shapes.Material(new Color(0.3f, 0.45f, 0.2f), false);
-            if (FoliageMaterials.TryGetValue(tex, out var m) && m != null) return m;
+            if (FoliageMaterials.TryGetValue((tex, imported != null ? imported.name : ""), out var m) && m != null) return m;
 
             bool cutout = IsCutout(tex.name.ToLowerInvariant()) || IsCutout(n);
             var lit = Shader.Find("Universal Render Pipeline/Lit");
@@ -192,7 +214,12 @@ namespace Sealbound.Core
             m.name = tex.name + " (nature)";
             m.mainTexture = tex;
             if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
-            m.color = Color.white;
+            // The pack tints its grey-green leaf and grass textures in the material: keep that tint.
+            Color tint = imported != null && imported.HasProperty("_BaseColor") ? imported.GetColor("_BaseColor")
+                       : imported != null && imported.HasProperty("_Color") ? imported.color : Color.white;
+            tint.a = 1f;
+            m.color = tint;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint);
             var normal = NatureNormal(tex.name);
             if (normal != null && m.HasProperty("_BumpMap"))
             {
@@ -211,7 +238,7 @@ namespace Sealbound.Core
                 m.SetOverrideTag("RenderType", "TransparentCutout");
             }
             m.enableInstancing = true;
-            FoliageMaterials[tex] = m;
+            FoliageMaterials[(tex, imported != null ? imported.name : "")] = m;
             return m;
         }
 

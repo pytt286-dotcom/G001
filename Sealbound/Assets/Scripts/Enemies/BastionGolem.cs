@@ -252,7 +252,8 @@ namespace Sealbound.Enemies
             {
                 // A scanned boulder, slightly bigger than its block so the pieces overlap like a natural rock body.
                 string slug = ScanFor(name);
-                var rock = RealArt.FitInsideBox(go.transform, RealArt.Scan(slug, null, 0f, 0.5f), 1.14f);
+                // One detail level only (it's outlined), drawn after the warning outline so only its outer rim shows.
+                var rock = RealArt.FitInsideBox(go.transform, RealArt.Scan(slug, null, 0f, 0.5f, 1, (int)UnityEngine.Rendering.RenderQueue.Geometry + 10), 1.14f);
                 if (rock != null)
                 {
                     Shapes.SetLayerRecursive(rock, 2);
@@ -292,6 +293,7 @@ namespace Sealbound.Enemies
         {
             var t = holder.gameObject.AddComponent<AttackTelegraph>();
             t.thickness = 0.16f;
+            t.silhouetteOnly = RealArt.Has; // a body of many rocks: outline its outside, not every rock
             var all = new List<Renderer>();
             foreach (var r in parts)
                 if (r != null) all.AddRange(r.transform.parent.GetComponentsInChildren<Renderer>());

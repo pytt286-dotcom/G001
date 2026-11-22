@@ -256,6 +256,12 @@ namespace Sealbound.Core
             var floor = ArtLibrary.FindDeep(field, "Yard Floor");
             if (floor == null) return;
             var r = floor.GetComponent<Renderer>();
+            if (_real && r != null)
+            {
+                r.sharedMaterial = RealArt.Surface(RealArt.Blocks, 2.2f, 0.12f);
+                PlaceYardProps(root);
+                return;
+            }
             if (r != null) r.enabled = false;
             float top = floor.position.y + floor.lossyScale.y * 0.5f;
             Vector3 c = floor.position, size = floor.lossyScale;
@@ -267,6 +273,11 @@ namespace Sealbound.Core
                     if (go != null) SetTop(go, top);
                 }
 
+            PlaceYardProps(root);
+        }
+
+        static void PlaceYardProps(Transform root)
+        {
             // A weapon rack, barrels and crates around the yard's edge.
             Place(root, ArtLibrary.Dungeon + "sword_shield", new Vector3(15.5f, 0f, -14f), -90f, 1.4f);
             Place(root, ArtLibrary.Dungeon + "sword_shield_gold", new Vector3(15.5f, 0f, -10f), -90f, 1.4f);
@@ -375,8 +386,7 @@ namespace Sealbound.Core
             {
                 Vector3 p = new Vector3(Range(-95f, 95f), 0f, Range(-60f, 160f));
                 if (!IsClear(p, 2f)) continue;
-                if (Range(0f, 1f) < 0.3f) PlaceScan(forest, Pick("shrub_02", "shrub_04", "fern_02"), p, Range(0.8f, 1.6f), 0.05f);
-                else PlaceNature(forest, Pick(NatureBushes), p, Range(0.6f, 1.4f), 0.05f);
+                PlaceNature(forest, Pick(NatureBushes), p, Range(0.6f, 1.4f), 0.05f);
             }
             // Fallen wood: stumps, dead trunks and branches under the trees.
             for (int i = 0; i < 50; i++)
@@ -384,8 +394,8 @@ namespace Sealbound.Core
                 float r = Mathf.Lerp(45f, 140f, Range(0f, 1f));
                 Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
                 if (!IsClear(p, 2f, worldEdge: false)) continue;
-                string slug = Pick("tree_stump_01", "tree_stump_01", "dead_tree_trunk", "dry_branches_medium_01");
-                float size = slug == "dead_tree_trunk" ? Range(4f, 7f) : slug == "tree_stump_01" ? Range(0.8f, 1.4f) : Range(1.5f, 2.5f);
+                string slug = Pick("tree_stump_01", "tree_stump_01", "dead_tree_trunk");
+                float size = slug == "dead_tree_trunk" ? Range(4f, 7f) : Range(0.8f, 1.4f);
                 var wood = PlaceScan(forest, slug, p, size, 0.1f);
                 if (slug == "dead_tree_trunk") AddBox(wood, 0.8f);
             }
@@ -410,7 +420,8 @@ namespace Sealbound.Core
             var ruins = new GameObject("Runestone Ruins").transform;
             ruins.SetParent(root, false);
 
-            // Old paving under the arena.
+            // Old paving under the arena (the real look uses the terrain's trail instead).
+            if (!_real)
             for (float x = -12f; x <= 12f; x += 4f)
                 for (float z = -12f; z <= 12f; z += 4f)
                 {

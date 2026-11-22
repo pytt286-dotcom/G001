@@ -92,12 +92,13 @@ namespace Sealbound.Dev
             Shot("07_field_wide", new Vector3(0f, 22f, -45f), new Vector3(0f, 2f, 55f), 60f);
             Shot("08_ruins", new Vector3(8f, 7f, 42f), new Vector3(0f, 5f, 70f), 55f);
             Shot("08b_valley_eye_level", new Vector3(4f, 1.7f, -14f), new Vector3(-2f, 7f, 80f), 60f);
-            Shot("08c_hills_west", new Vector3(-20f, 4f, 30f), new Vector3(-160f, 25f, 60f), 60f);
+            Shot("08c_hills_west", new Vector3(-62f, 15f, 100f), new Vector3(-200f, 30f, 95f), 60f);
+            DescribeNature();
 
             // The warren: step in so the goblins come out.
             motor.Teleport(new Vector3(-45f, 0.2f, -15f));
             yield return new WaitForSeconds(3.5f);
-            Shot("09_warren", new Vector3(-45f, 11f, -40f), new Vector3(-45f, 0.5f, -15f), 55f);
+            Shot("09_warren", new Vector3(-45f, 17f, -37f), new Vector3(-45f, 0.5f, -15f), 55f);
             var gob = FindAnyObjectByType<Goblin>();
             Line("Goblins out: " + FindObjectsByType<Goblin>(FindObjectsSortMode.None).Length);
             if (gob != null)
@@ -203,6 +204,24 @@ namespace Sealbound.Dev
             if (off.magnitude > 20f) from = golem.arenaCentre + off.normalized * 20f;
             from.y = height;
             Shot(name, from, g.position + Vector3.up * lookHeight, fov);
+        }
+
+        /// <summary>Lists the colour and texture of each nature model's materials (to track down odd colours).</summary>
+        void DescribeNature()
+        {
+            var seen = new HashSet<string>();
+            foreach (var r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                string model = r.transform.root != null ? r.gameObject.name : "";
+                foreach (var m in r.sharedMaterials)
+                {
+                    if (m == null || !m.name.EndsWith("(nature)")) continue;
+                    string key = r.name + "|" + m.name;
+                    if (!seen.Add(key) || seen.Count > 80) continue;
+                    Color c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
+                    Line($"Nature material on {r.name}: {m.name}, tint {c}, texture {(m.mainTexture != null ? m.mainTexture.name : "none")}");
+                }
+            }
         }
 
         static bool IsAttack(BastionGolem.State s) =>
