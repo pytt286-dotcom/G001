@@ -32,7 +32,7 @@ Each milestone ends with something you can play. Rough times assume steady work 
 | 2 | **Sword combat** | Swing a sword in combos, dodge-cancel attacks, and hit training dummies with impact (small camera shake, hit pause). | 1 to 2 weeks |
 | 3 | **Goblins** | Fight groups of Burrow Goblins that chase, surround and attack you. Health, damage and death work. | 1 week |
 | 4 | **Mage** | Switch to the Mage class: a fire bolt, an area spell and a slowing trap. | 1 week |
-| 5 | **Bastion Golem boss** | Fight the golem: slams, charges, a stomp, breakable arm runes, and a second phase. | 2 weeks |
+| 5 | **Bastion Golem boss** | Fight a golem about 15 m tall, as high as a castle tower: slams, charges, a ground-shaking stomp, breakable arm and leg runes, and a second phase. The camera pulls back so you feel how huge it is. | 2 to 3 weeks |
 | 6 | **Seal and drops** | Sealing the golem drops parts (Runestone Shards, Golem Core) and sometimes the Golem Spirit. An inventory shows what you have. | 1 week |
 | 7 | **Forge** | Craft the Runestone Blade (Sword) or Golem Core Staff (Mage) from golem parts, and see it in your hands. | 1 week |
 | 8 | **Soul merge** | Bind the Golem Spirit at the shrine, fill the Soul Gauge in a fight, and transform: stone skin, Rune Quake, Fortress Stance. | 2 weeks |
@@ -76,4 +76,5 @@ You don't need to understand these. They are written down so any future helper k
 | Combat doesn't feel smooth enough | Movement and combat come first (milestones 1 and 2) and get the most tuning time. |
 | Art packs don't match the *How To Train Your Dragon* style | We pick packs with a consistent stylised look and add a shared colour and lighting style. Custom art comes later. |
 | The merge isn't exciting | The merge gets its own milestone with strong visual effects and big but short power, so it feels special. |
+| Giant creatures are hard to make feel huge, or slow the game down | We test the golem's scale early with stand-in shapes, tune the camera, sound and ground-shake effects for size, and use simpler detail far from the camera so big creatures run smoothly. |
 | The project gets too big | Anything not in section 14 of the design document waits for a later slice. |

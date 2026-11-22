@@ -15,13 +15,14 @@ You are a recruit in **The Sealer**, the monster-hunting army of the most powerf
 
 ## 2. What makes this game special (design pillars)
 
-Every design decision should support at least one of these five pillars. If a feature supports none of them, we cut it.
+Every design decision should support at least one of these six pillars. If a feature supports none of them, we cut it.
 
 1. **Hunt the legend.** Every creature is a memorable boss with its own look, behaviour and weak points. Fighting one should feel like an event.
 2. **Wear your trophies.** What you seal becomes your gear and, with luck, your new form. Your character tells the story of what you have hunted.
 3. **The right force for the right fight.** Sky, Realm and Marine each own a battlefield: the air, the ground and the deep. Bringing the right team matters.
 4. **Fluid, fast combat.** Movement flows smoothly from running to dodging to attacking to flying or swimming. Controls feel responsive and light.
 5. **Prove it in the arena.** PVP gives players a reason to chase better gear, study what is strongest right now, and practise.
+6. **Grand and thrilling scale.** The more powerful a creature is, the bigger it is. Goblins are small, but an elder dragon fills the sky and a god towers over the battlefield. Fighting the greatest creatures should feel like fighting a mountain.
 
 ## 3. Big decisions already made
 
@@ -165,18 +166,36 @@ For the first playable slice we build only **Sword** and **Mage** (section 14).
 
 ### 7.2 Creature tiers
 
-| Tier | Name | Example | Spirit drop chance (starting idea) |
-|---|---|---|---|
-| 1 | Common | Goblin, giant spider | No spirit |
-| 2 | Elite | Troll, wyvern, sea serpent | Very low (about 1%) |
-| 3 | Great Beast | Stone golem, roc, young kraken | Low (about 3%) |
-| 4 | Legend | Elder dragon, colossus, abyssal kraken | Low (about 2%) |
-| 5 | Mythic | Demigod, ancient leviathan | Very low (about 1%) |
-| 6 | Divine | A god of the invented faiths | Event-only, special rules |
+| Tier | Name | Example | Typical size | Spirit drop chance (starting idea) |
+|---|---|---|---|---|
+| 1 | Common | Goblin, reef lurker | Smaller than a person, up to horse-sized | No spirit |
+| 2 | Elite | Troll, wyvern, sea serpent | 2 to 3 times a person's height (4 to 8 m) | Very low (about 1%) |
+| 3 | Great Beast | Stone golem, roc, young kraken | As tall as a house or a castle tower (10 to 25 m) | Low (about 3%) |
+| 4 | Legend | Elder dragon, colossus, abyssal kraken | Bigger than a castle (40 to 100 m) | Low (about 2%) |
+| 5 | Mythic | Demigod, ancient leviathan | The size of a hill or a small town (150 to 400 m) | Very low (about 1%) |
+| 6 | Divine | A god of the invented faiths | Mountain-sized, the whole battlefield | Event-only, special rules |
 
 Drop chances are starting points to tune later. A **"pity" system** guarantees a spirit after a long run of bad luck, so no one feels cheated (see 8.3).
 
-### 7.3 Starter creature roster (examples)
+### 7.3 Size and scale
+
+**Rule (set by Pytt): the more powerful a creature, the bigger it is.** Sizes follow the tier table above. Within a family, the stronger version is always the bigger one: a young dragon is the size of a house, an elder dragon is larger than a castle, and the greatest dragons blot out the sun. The same goes for krakens, serpents, golems, giants and gods. Small, weak creatures (goblins, imps) stay small, and they come in groups.
+
+How the fights change as creatures get bigger:
+
+- **Tiers 1 and 2: you fight them.** Normal combat with dodging, combos and spells.
+- **Tier 3: you fight their parts.** Players aim for legs, arms and weak points they can reach from the ground, in the air or in the water.
+- **Tier 4 and up: the creature is the battlefield.** Players climb onto it (Realm Anchor), fly around its head and wings (Skyrig), or swim between its tentacles (Tidecharm). Breaking body parts opens new areas and phases. The fight moves across a huge arena that the creature itself reshapes: crushed towers, falling rocks, tidal waves.
+- **Tier 5 and 6: a fight is a whole mission.** It happens in stages, moving from one part of the body to the next, with the whole team working together.
+
+To make size feel real:
+
+- The camera pulls back for giants, and stays close for small enemies.
+- Giants move slowly but cover huge distances. Their attacks shake the ground and throw up dust or water, and their roars are deep and loud.
+- Arenas include landmarks of known size (trees, houses, ships, castle walls) so players can see how massive the creature is.
+- Merge forms also scale with tier: a Legend merge makes the player noticeably bigger and grander than a Great Beast merge, though always kept small enough to stay playable.
+
+### 7.4 Starter creature roster (examples)
 
 **Sky Force**
 - **Emberwing Wyvern** (Elite): a fast, fire-spitting wyvern that hunts in pairs.
@@ -186,7 +205,7 @@ Drop chances are starting points to tune later. A **"pity" system** guarantees a
 **Realm Force**
 - **Burrow Goblins** (Common): small, sneaky, in groups.
 - **Weaver Matriarch** (Elite): a giant spider that fills caves with web traps.
-- **Bastion Golem** (Great Beast): a walking fortress of carved stone and old runes. **First playable slice boss.**
+- **Bastion Golem** (Great Beast): a walking fortress of carved stone and old runes, about 15 m tall, as high as a castle tower. **First playable slice boss.**
 - **The Hollow Colossus** (Legend, Storybound Realm): a giant made from a forgotten war story, slow but enormous, climbed with the Realm Anchor. *Our own original giant.*
 - **Dune Leviathan** (Legend, Storybound Realm): a vast sand creature that swims through desert dunes. *Our own original design.*
 
