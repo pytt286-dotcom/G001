@@ -17,7 +17,7 @@ namespace Sealbound.Core
         static readonly Dictionary<Color, Material> Materials = new Dictionary<Color, Material>();
         static Material _baseMaterial;
 
-        static readonly Color Grass = new Color(0.36f, 0.55f, 0.32f);
+        static readonly Color Grass = new Color(0.42f, 0.6f, 0.3f);
         static readonly Color Stone = new Color(0.58f, 0.56f, 0.52f);
         static readonly Color DarkStone = new Color(0.38f, 0.37f, 0.36f);
         static readonly Color Wood = new Color(0.55f, 0.38f, 0.22f);
@@ -42,6 +42,10 @@ namespace Sealbound.Core
 
             var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
             SetupCamera(player);
+            LookSettings.Apply(Camera.main);
+            ToonOutline.Add(player.GetComponentsInChildren<Renderer>(true));
+            foreach (var d in Object.FindObjectsByType<TrainingDummy>(FindObjectsSortMode.None))
+                ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             var hud = Object.FindAnyObjectByType<DebugHud>();
             if (hud != null) hud.warren = warren;

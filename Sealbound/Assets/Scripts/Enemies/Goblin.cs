@@ -107,6 +107,7 @@ namespace Sealbound.Enemies
             g.kind = kind;
             g.visual = vis;
             g.tintRenderers = new[] { body.GetComponent<Renderer>(), head.GetComponent<Renderer>(), earL.GetComponent<Renderer>(), earR.GetComponent<Renderer>() };
+            ToonOutline.Add(vis.GetComponentsInChildren<Renderer>());
             g._telegraph = go.AddComponent<AttackTelegraph>();
             g._telegraph.Build(vis.GetComponentsInChildren<Renderer>());
             g._target = target;
