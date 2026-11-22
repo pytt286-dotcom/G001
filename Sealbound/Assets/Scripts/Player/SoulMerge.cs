@@ -65,6 +65,7 @@ namespace Sealbound.Player
         readonly List<Material[]> _originals = new List<Material[]>();
         readonly List<Glow> _runes = new List<Glow>();
         Glow _ring;
+        Transform _feetRunes;
         Vector3 _baseScale = Vector3.one;
         static Material _stone;
 
@@ -133,6 +134,7 @@ namespace Sealbound.Player
             float breathe = 0.75f + 0.25f * Mathf.Sin(Time.time * 3f) + _pulse;
             foreach (var g in _runes) if (g != null) g.SetStrength(breathe);
             if (_ring != null) _ring.SetStrength(0.35f + 0.15f * Mathf.Sin(Time.time * 2f) + _pulse);
+            if (_feetRunes != null) _feetRunes.Rotate(0f, 20f * dt, 0f);
             if (_stone != null && _stone.HasProperty("_EmissionColor"))
                 _stone.SetColor("_EmissionColor", RuneBlue * (0.06f + 0.05f * Mathf.Sin(Time.time * 3f) + _pulse * 0.6f));
             if (TimeLeft <= 0f) EndMerge(true);
@@ -239,10 +241,18 @@ namespace Sealbound.Player
                 Color rune = new Color(0.2f, 0.65f, 2.4f, 1f);
                 AddRune(visual, new Vector3(0f, 1.28f, 0.2f), 0.42f, rune);    // the heart rune, front
                 AddRune(visual, new Vector3(0f, 1.3f, -0.2f), 0.42f, rune);    // and through the back
-                AddRune(visual, new Vector3(-0.24f, 1.45f, 0f), 0.28f, rune);  // shoulders
-                AddRune(visual, new Vector3(0.24f, 1.45f, 0f), 0.28f, rune);
                 AddRune(visual, new Vector3(0f, 0.98f, 0.17f), 0.26f, rune);   // belt
                 _ring = Glow.MakeRing(transform, new Vector3(0f, 0.06f, 0f), 2.6f, new Color(0.25f, 0.8f, 2.6f, 1f));
+                // Rune stones around the feet, in the golem's deep blue, so the circle reads in daylight.
+                _feetRunes = new GameObject("Merge Rune Circle").transform;
+                _feetRunes.SetParent(transform, false);
+                _feetRunes.localPosition = new Vector3(0f, 0.04f, 0f);
+                for (int i = 0; i < 16; i++)
+                {
+                    Vector3 q = Quaternion.Euler(0f, i * 22.5f, 0f) * Vector3.forward * 1.05f;
+                    var dash = Shapes.Make(PrimitiveType.Cube, _feetRunes, "Merge Rune", q, new Vector3(i % 2 == 0 ? 0.24f : 0.1f, 0.015f, 0.05f), new Color(0.12f, 0.5f, 1f), false, true);
+                    dash.transform.localRotation = Quaternion.Euler(0f, i * 22.5f + 90f, 0f);
+                }
                 return;
             }
 
@@ -255,6 +265,8 @@ namespace Sealbound.Player
             _runes.Clear();
             if (_ring != null) Destroy(_ring.gameObject);
             _ring = null;
+            if (_feetRunes != null) Destroy(_feetRunes.gameObject);
+            _feetRunes = null;
         }
 
         void AddRune(Transform visual, Vector3 localPos, float size, Color colour)
