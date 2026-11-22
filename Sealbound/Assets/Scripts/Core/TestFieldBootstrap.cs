@@ -1,0 +1,254 @@
+using System.Collections.Generic;
+using Sealbound.CameraRig;
+using Sealbound.Player;
+using Sealbound.UI;
+using UnityEngine;
+
+namespace Sealbound.Core
+{
+    /// <summary>
+    /// Milestone 1 test field. When a scene with no player is played, this builds a grey-box
+    /// training ground, a stand-in Sealer recruit and the follow camera, so pressing Play is all it takes.
+    /// </summary>
+    public static class TestFieldBootstrap
+    {
+        static readonly Dictionary<Color, Material> Materials = new Dictionary<Color, Material>();
+        static Material _baseMaterial;
+
+        static readonly Color Grass = new Color(0.36f, 0.55f, 0.32f);
+        static readonly Color Stone = new Color(0.58f, 0.56f, 0.52f);
+        static readonly Color DarkStone = new Color(0.38f, 0.37f, 0.36f);
+        static readonly Color Wood = new Color(0.55f, 0.38f, 0.22f);
+        static readonly Color Rune = new Color(0.35f, 0.75f, 0.95f);
+        static readonly Color RealmBrown = new Color(0.45f, 0.30f, 0.18f);
+        static readonly Color Iron = new Color(0.72f, 0.72f, 0.76f);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Build()
+        {
+            if (Object.FindAnyObjectByType<PlayerMotor>() != null) return; // a real level is in charge
+
+            Materials.Clear();
+            var root = new GameObject("Test Field").transform;
+
+            EnsureLight();
+            BuildGround(root);
+            BuildCourse(root);
+            BuildScaleMarkers(root);
+
+            var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
+            SetupCamera(player);
+        }
+
+        // ---------- World ----------
+
+        static void EnsureLight()
+        {
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.type == LightType.Directional) return;
+            var go = new GameObject("Sun");
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.intensity = 1.2f;
+            light.shadows = LightShadows.Soft;
+            go.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
+        }
+
+        static void BuildGround(Transform root)
+        {
+            var ground = Box(root, "Ground", new Vector3(0f, -0.5f, 0f), new Vector3(400f, 1f, 400f), Grass);
+            ground.isStatic = true;
+
+            // Darker path tiles so speed is easy to read while running.
+            for (int i = -10; i <= 30; i++)
+                Box(root, "Path", new Vector3(0f, 0.01f, i * 4f), new Vector3(3f, 0.02f, 2f), DarkStone);
+        }
+
+        static void BuildCourse(Transform root)
+        {
+            // Ramps of rising steepness.
+            Ramp(root, new Vector3(10f, 0f, 6f), 12f, 4f, 15f);
+            Ramp(root, new Vector3(16f, 0f, 6f), 12f, 4f, 30f);
+            Ramp(root, new Vector3(22f, 0f, 6f), 12f, 4f, 45f); // too steep to walk up
+
+            // Stairs.
+            for (int i = 0; i < 10; i++)
+                Box(root, "Stair", new Vector3(-12f, 0.2f + i * 0.4f, 4f + i * 0.7f), new Vector3(4f, 0.4f, 0.7f), Stone);
+            Box(root, "Stair Top", new Vector3(-12f, 3.8f, 13f), new Vector3(6f, 0.4f, 6f), Stone);
+
+            // Jumping platforms with growing gaps.
+            float z = 20f, h = 1f;
+            for (int i = 0; i < 7; i++)
+            {
+                Box(root, "Platform", new Vector3(-4f + (i % 2) * 8f, h * 0.5f, z), new Vector3(3f, h, 3f), Wood);
+                z += 4.5f + i * 0.4f;
+                h += 0.6f;
+            }
+
+            // Pillars to weave through while sprinting and dodging.
+            for (int x = 0; x < 5; x++)
+            for (int zz = 0; zz < 4; zz++)
+                Box(root, "Pillar", new Vector3(10f + x * 4f + (zz % 2) * 2f, 2f, 28f + zz * 4f), new Vector3(1f, 4f, 1f), Stone);
+
+            // A low wall and a gap to test camera collision.
+            Box(root, "Wall", new Vector3(-20f, 2.5f, 25f), new Vector3(0.8f, 5f, 18f), DarkStone);
+            Box(root, "Wall", new Vector3(-26f, 2.5f, 25f), new Vector3(0.8f, 5f, 18f), DarkStone);
+            Box(root, "Roof", new Vector3(-23f, 5.2f, 25f), new Vector3(7f, 0.4f, 18f), DarkStone);
+        }
+
+        /// <summary>
+        /// Size references from the design document (section 7.3): a person, a 15 m Great Beast
+        /// (the Bastion Golem) and a 60 m Legend, so the sense of scale can be judged early.
+        /// </summary>
+        static void BuildScaleMarkers(Transform root)
+        {
+            // Stand-in Bastion Golem, ~15 m tall, as tall as a castle tower.
+            var golem = new GameObject("Bastion Golem (scale stand-in, 15 m)").transform;
+            golem.SetParent(root);
+            golem.position = new Vector3(0f, 0f, 70f);
+            golem.rotation = Quaternion.Euler(0f, 180f, 0f);
+            BoxLocal(golem, "Leg L", new Vector3(-2.2f, 2.75f, 0f), new Vector3(2.4f, 5.5f, 2.6f), Stone);
+            BoxLocal(golem, "Leg R", new Vector3(2.2f, 2.75f, 0f), new Vector3(2.4f, 5.5f, 2.6f), Stone);
+            BoxLocal(golem, "Body", new Vector3(0f, 8.5f, 0f), new Vector3(8f, 6.5f, 4.5f), Stone);
+            BoxLocal(golem, "Head", new Vector3(0f, 13.3f, 0.4f), new Vector3(3.2f, 2.8f, 3f), DarkStone);
+            BoxLocal(golem, "Arm L", new Vector3(-5.6f, 7.5f, 0f), new Vector3(2.4f, 7.5f, 2.4f), DarkStone);
+            BoxLocal(golem, "Arm R", new Vector3(5.6f, 7.5f, 0f), new Vector3(2.4f, 7.5f, 2.4f), DarkStone);
+            BoxLocal(golem, "Rune Core", new Vector3(0f, 9f, -2.3f), new Vector3(1.6f, 1.6f, 0.2f), Rune);
+            BoxLocal(golem, "Eye L", new Vector3(-0.7f, 13.6f, -1.1f), new Vector3(0.5f, 0.3f, 0.2f), Rune);
+            BoxLocal(golem, "Eye R", new Vector3(0.7f, 13.6f, -1.1f), new Vector3(0.5f, 0.3f, 0.2f), Rune);
+
+            // A 60 m Legend-tier silhouette on the horizon (an elder dragon would be this size).
+            var legend = new GameObject("Legend tier marker (60 m)").transform;
+            legend.SetParent(root);
+            legend.position = new Vector3(-90f, 0f, 160f);
+            BoxLocal(legend, "Tower", new Vector3(0f, 30f, 0f), new Vector3(12f, 60f, 12f), DarkStone);
+            BoxLocal(legend, "Crown", new Vector3(0f, 61f, 0f), new Vector3(18f, 2f, 18f), Stone);
+        }
+
+        static void Ramp(Transform root, Vector3 basePos, float length, float width, float angle)
+        {
+            float rad = angle * Mathf.Deg2Rad;
+            float height = Mathf.Sin(rad) * length;
+            var t = Box(root, $"Ramp {angle:0}°", Vector3.zero, new Vector3(width, 0.4f, length), Stone).transform;
+            t.rotation = Quaternion.Euler(-angle, 0f, 0f);
+            t.position = basePos + new Vector3(0f, height * 0.5f, Mathf.Cos(rad) * length * 0.5f);
+        }
+
+        // ---------- Player ----------
+
+        static GameObject BuildPlayer(Vector3 position)
+        {
+            var player = new GameObject("Sealer Recruit (stand-in)");
+            player.layer = 2; // Ignore Raycast, so the camera does not collide with the player
+            player.transform.position = position;
+
+            var cc = player.AddComponent<CharacterController>();
+            cc.height = 1.8f;
+            cc.radius = 0.35f;
+            cc.center = new Vector3(0f, 0.9f, 0f);
+            cc.slopeLimit = 40f;
+            cc.stepOffset = 0.45f;
+            cc.skinWidth = 0.04f;
+
+            // Visual pivot sits at the feet so squash-and-stretch stays grounded.
+            var visual = new GameObject("Visual").transform;
+            visual.SetParent(player.transform, false);
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            Object.Destroy(body.GetComponent<Collider>());
+            body.transform.SetParent(visual, false);
+            body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+            body.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
+            Paint(body, RealmBrown);
+
+            var chest = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            chest.name = "Sealer Badge";
+            Object.Destroy(chest.GetComponent<Collider>());
+            chest.transform.SetParent(visual, false);
+            chest.transform.localPosition = new Vector3(0f, 1.25f, 0.33f);
+            chest.transform.localScale = new Vector3(0.3f, 0.3f, 0.08f);
+            Paint(chest, Iron);
+
+            var visor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            visor.name = "Visor (shows facing)";
+            Object.Destroy(visor.GetComponent<Collider>());
+            visor.transform.SetParent(visual, false);
+            visor.transform.localPosition = new Vector3(0f, 1.55f, 0.3f);
+            visor.transform.localScale = new Vector3(0.45f, 0.12f, 0.15f);
+            Paint(visor, Rune);
+
+            foreach (Transform t in visual.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
+
+            player.AddComponent<PlayerInputReader>();
+            var motor = player.AddComponent<PlayerMotor>();
+            motor.visual = visual;
+
+            var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
+            hud.motor = motor;
+            return player;
+        }
+
+        static void SetupCamera(GameObject player)
+        {
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                var go = new GameObject("Main Camera") { tag = "MainCamera" };
+                cam = go.AddComponent<Camera>();
+                go.AddComponent<AudioListener>();
+            }
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 1500f;
+
+            var rig = cam.GetComponent<ThirdPersonCamera>();
+            if (rig == null) rig = cam.gameObject.AddComponent<ThirdPersonCamera>();
+            rig.target = player.transform;
+            rig.input = player.GetComponent<PlayerInputReader>();
+            rig.motor = player.GetComponent<PlayerMotor>();
+            rig.motor.cameraTransform = cam.transform;
+        }
+
+        // ---------- Helpers ----------
+
+        static GameObject Box(Transform parent, string name, Vector3 pos, Vector3 size, Color color)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.position = pos;
+            go.transform.localScale = size;
+            Paint(go, color);
+            return go;
+        }
+
+        static GameObject BoxLocal(Transform parent, string name, Vector3 localPos, Vector3 size, Color color)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            go.transform.localScale = size;
+            Paint(go, color);
+            return go;
+        }
+
+        static void Paint(GameObject go, Color color)
+        {
+            var r = go.GetComponent<Renderer>();
+            if (r == null) return;
+            if (_baseMaterial == null) _baseMaterial = r.sharedMaterial;
+            if (!Materials.TryGetValue(color, out var mat))
+            {
+                mat = new Material(_baseMaterial) { color = color };
+                if (color == Rune && mat.HasProperty("_EmissionColor"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", color * 2f);
+                }
+                Materials[color] = mat;
+            }
+            r.sharedMaterial = mat;
+        }
+    }
+}
