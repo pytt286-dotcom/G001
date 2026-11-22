@@ -100,25 +100,44 @@ namespace Sealbound.Core
                 if (list == null || list.Length == 0 || list[0] == null) return false;
                 var aoType = typeof(ScriptableRendererFeature).Assembly.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion");
                 if (aoType == null) return false;
-                foreach (var f in list[0].rendererFeatures) if (f != null && aoType.IsInstanceOfType(f)) return true; // already there
-
+                // Work on a copy of the renderer and of its features, so the project's assets stay as they are.
                 var data = Instantiate(list[0]);
                 data.name = list[0].name + " (in game)";
-                var ao = (ScriptableRendererFeature)ScriptableObject.CreateInstance(aoType);
-                ao.name = "Ambient Occlusion";
+                ScriptableRendererFeature ao = null;
+                for (int i = 0; i < data.rendererFeatures.Count; i++)
+                {
+                    var f = data.rendererFeatures[i];
+                    if (f == null) continue;
+                    var copyFeature = Instantiate(f);
+                    copyFeature.name = f.name;
+                    data.rendererFeatures[i] = copyFeature;
+                    if (aoType.IsInstanceOfType(copyFeature)) ao = copyFeature;
+                }
+                bool added = ao == null;
+                if (added)
+                {
+                    ao = (ScriptableRendererFeature)ScriptableObject.CreateInstance(aoType);
+                    ao.name = "Ambient Occlusion";
+                }
+                ao.SetActive(true);
                 var settingsField = aoType.GetField("m_Settings", F);
                 var settings = settingsField != null ? settingsField.GetValue(ao) : null;
                 if (settings != null)
                 {
-                    Set(settings, "Intensity", 1.4f);
-                    Set(settings, "Radius", 0.4f);
-                    Set(settings, "DirectLightingStrength", 0.3f);
+                    // Stronger and wider than the template's faint default, so contact shadows actually read outdoors.
+                    Set(settings, "Intensity", 2.2f);
+                    Set(settings, "Radius", 0.6f);
+                    Set(settings, "DirectLightingStrength", 0.45f);
+                    Set(settings, "Falloff", 60f);
                     Set(settings, "Downsample", true);
                     settingsField.SetValue(ao, settings);
                 }
-                data.rendererFeatures.Add(ao);
-                var map = typeof(ScriptableRendererData).GetField("m_RendererFeatureMap", F);
-                if (map != null && map.GetValue(data) is System.Collections.Generic.List<long> ids) ids.Add(ao.GetInstanceID());
+                if (added)
+                {
+                    data.rendererFeatures.Add(ao);
+                    var map = typeof(ScriptableRendererData).GetField("m_RendererFeatureMap", F);
+                    if (map != null && map.GetValue(data) is System.Collections.Generic.List<long> ids) ids.Add(ao.GetInstanceID());
+                }
                 data.SetDirty();
                 var copy = (ScriptableRendererData[])list.Clone();
                 copy[0] = data;

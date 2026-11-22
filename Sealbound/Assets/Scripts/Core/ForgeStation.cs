@@ -21,6 +21,7 @@ namespace Sealbound.Core
         public bool InReach { get; private set; }
         Light _fire;
         Glow _coals;
+        Glow[] _flames;
         Transform _player;
         float _seed;
 
@@ -43,10 +44,14 @@ namespace Sealbound.Core
             // The hearth: a stone block with a fire mouth, and a chimney behind.
             Piece(t, PrimitiveType.Cube, "Hearth", new Vector3(0f, 0.55f, 0f), new Vector3(1.9f, 1.1f, 1.3f), stone, true);
             Piece(t, PrimitiveType.Cube, "Hearth Top", new Vector3(0f, 1.14f, 0f), new Vector3(2.05f, 0.12f, 1.45f), dark, false);
-            Piece(t, PrimitiveType.Cube, "Fire Mouth", new Vector3(0f, 0.62f, 0.62f), new Vector3(0.9f, 0.5f, 0.1f), Shapes.Material(new Color(0.05f, 0.03f, 0.02f), false), false);
+            Piece(t, PrimitiveType.Cube, "Fire Mouth", new Vector3(0f, 0.62f, 0.62f), new Vector3(0.9f, 0.5f, 0.1f), Shapes.Material(new Color(0.03f, 0.02f, 0.015f), false), false); // the dark mouth the fire burns in
             Piece(t, PrimitiveType.Cube, "Chimney", new Vector3(0f, 2.3f, -0.35f), new Vector3(0.85f, 2.4f, 0.7f), stone, true);
             Piece(t, PrimitiveType.Cube, "Chimney Cap", new Vector3(0f, 3.55f, -0.35f), new Vector3(1.0f, 0.12f, 0.85f), dark, false);
-            f._coals = Glow.Make(t, new Vector3(0f, 0.6f, 0.7f), 1.1f, new Color(2.6f, 1.1f, 0.3f, 0.9f));
+            f._coals = Glow.Make(t, new Vector3(0f, 0.45f, 0.7f), 0.9f, new Color(2.6f, 1.0f, 0.25f, 0.9f));
+            // Flames: soft tongues of light that rise and flicker in the fire mouth.
+            f._flames = new Glow[4];
+            for (int i = 0; i < f._flames.Length; i++)
+                f._flames[i] = Glow.Make(t, new Vector3(-0.27f + i * 0.18f, 0.55f, 0.72f), 0.45f, new Color(2.8f, 1.3f, 0.35f, 0.85f));
             Glow.Make(t, new Vector3(0f, 1.25f, 0.1f), 0.9f, new Color(2.2f, 0.9f, 0.25f, 0.5f)); // embers on the bed
             var fireGo = new GameObject("Forge Fire");
             fireGo.transform.SetParent(t, false);
@@ -103,6 +108,15 @@ namespace Sealbound.Core
             float flicker = Mathf.PerlinNoise(Time.time * 3.1f, _seed) * 0.6f + Mathf.PerlinNoise(Time.time * 9f, _seed + 3f) * 0.25f;
             if (_fire != null) _fire.intensity = 1.9f + 1.6f * flicker;
             if (_coals != null) _coals.SetStrength(0.65f + 0.45f * flicker);
+            if (_flames != null)
+                for (int i = 0; i < _flames.Length; i++)
+                {
+                    float n = Mathf.PerlinNoise(Time.time * (4f + i), _seed + i * 7.3f);
+                    var ft = _flames[i].transform;
+                    ft.localPosition = new Vector3(ft.localPosition.x, 0.5f + n * 0.14f, ft.localPosition.z);
+                    ft.localScale = new Vector3(0.32f + 0.1f * n, 0.45f + 0.35f * n, 1f);
+                    _flames[i].SetStrength(0.5f + 0.5f * n);
+                }
 
             if (_player == null)
             {

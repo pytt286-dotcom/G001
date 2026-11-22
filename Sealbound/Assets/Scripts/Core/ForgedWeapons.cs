@@ -71,11 +71,11 @@ namespace Sealbound.Core
             blade.AddComponent<MeshFilter>().sharedMesh = BladeMesh();
             blade.AddComponent<MeshRenderer>().sharedMaterial = new Material(Stone()) { name = "Blade stone" };
             // The rune channel runs through the blade and shows on both faces; it is what flashes on the beat.
-            Part(root.transform, PrimitiveType.Cube, "Rune Channel", new Vector3(0f, 0.5f, 0f), new Vector3(0.01f, 0.72f, 0.0215f), RuneGlow());
+            Part(root.transform, PrimitiveType.Cube, "Rune Channel", new Vector3(0f, 0.5f, 0f), new Vector3(0.014f, 0.72f, 0.028f), RuneGlow());
             for (int side = -1; side <= 1; side += 2)
             {
                 for (int k = 0; k < 4; k++)
-                    Part(root.transform, PrimitiveType.Cube, "Rune Cut", new Vector3(0f, 0.25f + k * 0.16f, side * 0.0102f), new Vector3(0.03f, 0.006f, 0.002f), RuneGlow());
+                    Part(root.transform, PrimitiveType.Cube, "Rune Cut", new Vector3(0f, 0.25f + k * 0.16f, side * 0.0125f), new Vector3(0.034f, 0.008f, 0.004f), RuneGlow());
             }
             Part(root.transform, PrimitiveType.Cube, "Crossguard", new Vector3(0f, 0.08f, 0f), new Vector3(0.26f, 0.05f, 0.065f), Stone());
             for (int side = -1; side <= 1; side += 2)
@@ -102,16 +102,25 @@ namespace Sealbound.Core
             foreach (float y in new[] { 0.45f, 0.75f, 1.08f })
                 Part(root.transform, PrimitiveType.Cylinder, "Stone Band", Vector3.Lerp(b, d, Mathf.InverseLerp(0.3f, 1.15f, y)) + Vector3.up * 0f, new Vector3(0.085f, 0.025f, 0.085f), Stone());
             Part(root.transform, PrimitiveType.Sphere, "Collar", d + new Vector3(0f, 0.02f, 0f), new Vector3(0.11f, 0.07f, 0.11f), Stone());
-            Vector3 coreAt = d + new Vector3(0f, 0.15f, 0f);
+            Vector3 coreAt = d + new Vector3(0f, 0.2f, 0f);
             for (int i = 0; i < 3; i++)
             {
                 float ang = i * 120f;
                 var talon = Part(root.transform, PrimitiveType.Capsule, "Talon", d + Quaternion.Euler(0f, ang, 0f) * new Vector3(0.07f, 0.13f, 0f),
-                    new Vector3(0.035f, 0.11f, 0.035f), Stone());
-                talon.transform.localRotation = Quaternion.Euler(0f, ang, 14f);
+                    new Vector3(0.03f, 0.11f, 0.03f), Stone());
+                talon.transform.localRotation = Quaternion.Euler(0f, ang, 24f); // splayed open so the core shows
             }
-            var core = Crystal(root.transform, "Golem Core", coreAt, new Vector3(0.12f, 0.15f, 0.12f), CoreGlow());
+            var core = Crystal(root.transform, "Golem Core", coreAt, new Vector3(0.15f, 0.19f, 0.15f), CoreGlow());
             core.transform.localRotation = Quaternion.Euler(0f, 30f, 0f);
+            // Its fire lights the hand and face, and glows softly round it.
+            Sealbound.Combat.Glow.Make(core.transform, Vector3.zero, 3.2f, new Color(2.6f, 1.1f, 0.3f, 0.7f));
+            var fire = new GameObject("Core Light").AddComponent<Light>();
+            fire.transform.SetParent(core.transform, false);
+            fire.type = LightType.Point;
+            fire.color = CoreFire;
+            fire.range = 2.5f;
+            fire.intensity = 1.6f;
+            fire.shadows = LightShadows.None;
             var socket = new GameObject("Core Socket").transform; // the hero's ember cue sits inside the core
             socket.SetParent(root.transform, false);
             socket.localPosition = coreAt;
@@ -134,13 +143,13 @@ namespace Sealbound.Core
         static Material Stone()
         {
             if (_stone != null) return _stone;
-            _stone = RealArt.Has ? RealArt.Surface(RealArt.GolemStone, 0.35f, 0f) : null;
+            _stone = RealArt.Has ? RealArt.Surface(RealArt.GolemStone, 0.35f, 0f, new Color(0.55f, 0.57f, 0.62f)) : null; // cool grey runestone
             if (_stone == null) _stone = Lit("Runestone", new Color(0.36f, 0.35f, 0.33f), 0f, 0.25f);
             return _stone;
         }
 
-        static Material RuneGlow() => _runeGlow != null ? _runeGlow : (_runeGlow = Glowing("Rune glow", RuneBlue, 2.2f));
-        static Material CoreGlow() => _coreGlow != null ? _coreGlow : (_coreGlow = Glowing("Core fire", CoreFire, 2.6f));
+        static Material RuneGlow() => _runeGlow != null ? _runeGlow : (_runeGlow = Glowing("Rune glow", RuneBlue, 3.6f));
+        static Material CoreGlow() => _coreGlow != null ? _coreGlow : (_coreGlow = Glowing("Core fire", CoreFire, 4f));
 
         static Material Glowing(string name, Color c, float strength)
         {
