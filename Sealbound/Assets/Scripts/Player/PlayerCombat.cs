@@ -137,7 +137,6 @@ namespace Sealbound.Player
 
         PlayerMotor _motor;
         PlayerInputReader _input;
-        Health _ownHealth;
         CombatAudio _audio;
         TrailRenderer _trail;
         Material _cueMaterial;
@@ -161,7 +160,6 @@ namespace Sealbound.Player
         {
             _motor = GetComponent<PlayerMotor>();
             _input = GetComponent<PlayerInputReader>();
-            _ownHealth = GetComponent<Health>();
             _audio = GetComponent<CombatAudio>();
             _cooldowns = new float[skills.Length];
             _motor.DodgeStarted += OnDodgeStarted;
