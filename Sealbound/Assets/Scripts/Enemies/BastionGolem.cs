@@ -61,8 +61,8 @@ namespace Sealbound.Enemies
 
         static readonly Color Stone = new Color(0.52f, 0.5f, 0.47f);
         static readonly Color DarkStone = new Color(0.36f, 0.35f, 0.34f);
-        static readonly Color RuneBlue = new Color(0.35f, 0.8f, 1f);
-        static readonly Color RuneFire = new Color(1f, 0.45f, 0.12f);
+        static readonly Color RuneBlue = new Color(0.12f, 0.5f, 1f);
+        static readonly Color RuneFire = new Color(1f, 0.36f, 0.04f);
 
         // ---- skeleton ----
         Transform _hips, _torso, _head, _shoulderL, _shoulderR, _elbowL, _elbowR, _fistL, _fistR;
@@ -213,7 +213,7 @@ namespace Sealbound.Enemies
         {
             string s = side < 0 ? "L" : "R";
             shoulder = Joint(_torso, "Shoulder " + s, new Vector3(4.9f * side, 5.4f, 0f));
-            list.Add(Block(shoulder, "Upper Arm " + s, new Vector3(0f, -2.1f, 0f), new Vector3(2.1f, 4.4f, 2.1f), Stone, "pillar_decorated"));
+            list.Add(Block(shoulder, "Upper Arm " + s, new Vector3(0f, -2.1f, 0f), new Vector3(2.1f, 4.4f, 2.1f), Stone, "floor_foundation_allsides"));
             elbow = Joint(shoulder, "Elbow " + s, new Vector3(0f, -4.3f, 0f));
             list.Add(Block(elbow, "Forearm " + s, new Vector3(0f, -2f, 0f), new Vector3(2.3f, 4f, 2.3f), Stone, "pillar"));
             fist = Joint(elbow, "Fist " + s, new Vector3(0f, -4.6f, 0f));
@@ -224,7 +224,7 @@ namespace Sealbound.Enemies
         {
             string s = side < 0 ? "L" : "R";
             thigh = Joint(_hips, "Thigh " + s, new Vector3(2.2f * side, 0f, 0f));
-            list.Add(Block(thigh, "Thigh Block " + s, new Vector3(0f, -1.5f, 0f), new Vector3(2.4f, 3.2f, 2.6f), Stone, "pillar_decorated"));
+            list.Add(Block(thigh, "Thigh Block " + s, new Vector3(0f, -1.5f, 0f), new Vector3(2.4f, 3.2f, 2.6f), Stone, "floor_foundation_allsides"));
             knee = Joint(thigh, "Knee " + s, new Vector3(0f, -3f, 0f));
             list.Add(Block(knee, "Shin " + s, new Vector3(0f, -1.35f, 0f), new Vector3(2.2f, 2.7f, 2.4f), Stone, "pillar"));
             foot = Joint(knee, "Foot " + s, new Vector3(0f, -2.75f, 0f));
@@ -1098,7 +1098,7 @@ namespace Sealbound.Enemies
             foreach (var m in _eyeMats)
             {
                 m.color = Color.Lerp(DarkStone, c, _eyeGlow);
-                m.SetColor("_EmissionColor", c * (4f * _eyeGlow * pulse));
+                m.SetColor("_EmissionColor", c * (1.8f * _eyeGlow * pulse));
             }
         }
 

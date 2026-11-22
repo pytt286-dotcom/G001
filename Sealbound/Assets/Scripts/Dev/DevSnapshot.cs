@@ -145,7 +145,7 @@ namespace Sealbound.Dev
             motor.Teleport(new Vector3(0f, 0.2f, 52f));
             yield return new WaitForSeconds(1.2f);
             Line("Golem state after stepping in: " + golem.CurrentState);
-            Shot("12_golem_waking", new Vector3(16f, 5f, 40f), golem.transform.position + Vector3.up * 7f, 55f);
+            GolemShot("12_golem_waking", golem, 30f, 19f, 7f, 7f, 60f);
 
             float wait = 0f;
             while (wait < 12f && !(IsAttack(golem.CurrentState) && golem.StateTime > 0.45f))
@@ -154,7 +154,7 @@ namespace Sealbound.Dev
                 yield return null;
             }
             Line($"Golem attack seen: {golem.CurrentState} after {wait:0.0}s");
-            Shot("13_golem_attack", new Vector3(20f, 7f, 38f), golem.transform.position + Vector3.up * 5f, 60f);
+            GolemShot("13_golem_attack", golem, 55f, 20f, 9f, 5f, 62f);
 
             wait = 0f;
             while (wait < 8f && !golem.CanBeHurt) { wait += Time.deltaTime; yield return null; }
@@ -162,14 +162,14 @@ namespace Sealbound.Dev
             yield return new WaitForSeconds(1.4f);
             var g = golem.transform;
             Line($"After breaking a rune: state {golem.CurrentState}, core exposed {golem.CoreExposed}, health {golem.HealthFraction:P0}");
-            Shot("14_golem_kneel", g.position + g.forward * 13f + g.right * 4f + Vector3.up * 5f, g.position + Vector3.up * 4.5f, 55f);
+            GolemShot("14_golem_kneel", golem, 15f, 15f, 5f, 4.5f, 58f);
 
             // Push it past half health for the second phase.
             float toHalf = golem.Health.Current - golem.Health.maxHealth * 0.45f;
             golem.Health.TryDamage(new Combat.DamageInfo { Amount = toHalf / Mathf.Max(0.01f, golem.Health.damageMultiplier), Point = g.position + Vector3.up * 6f }, out _);
             yield return new WaitForSeconds(1.2f);
             Line($"Phase {golem.Phase}, state {golem.CurrentState}, health {golem.HealthFraction:P0}");
-            Shot("15_golem_phase2", g.position + g.forward * 15f + g.right * 6f + Vector3.up * 6f, g.position + Vector3.up * 6f, 58f);
+            GolemShot("15_golem_phase2", golem, 25f, 19f, 7f, 6.5f, 60f);
 
             int fpsFrames = 0; float t0 = Time.realtimeSinceStartup;
             while (Time.realtimeSinceStartup - t0 < 3f || !golem.CanBeHurt)
@@ -184,7 +184,23 @@ namespace Sealbound.Dev
             golem.Health.TryDamage(new Combat.DamageInfo { Amount = 1e6f, Point = centre + Vector3.up * 6f }, out _);
             yield return new WaitForSeconds(1.6f);
             Line("After the killing blow: golem dead " + golem.Health.IsDead + ", respawner waiting " + (GameObject.Find("Golem Respawner") != null));
-            Shot("16_golem_collapse", centre + new Vector3(14f, 6f, -14f), centre + Vector3.up * 2f, 60f);
+            Vector3 collapseCam = centre + Vector3.ProjectOnPlane(motor.transform.position - centre, Vector3.up).normalized * 18f + Vector3.up * 10f;
+            Shot("16_golem_collapse", collapseCam, centre + Vector3.up * 1.5f, 60f);
+        }
+
+        /// <summary>
+        /// A picture of the golem from <paramref name="angle"/> degrees off its facing, <paramref name="distance"/> metres away,
+        /// kept inside the ring of ruins so walls don't block the view.
+        /// </summary>
+        void GolemShot(string name, BastionGolem golem, float angle, float distance, float height, float lookHeight, float fov)
+        {
+            var g = golem.transform;
+            Vector3 dir = Quaternion.Euler(0f, angle, 0f) * Vector3.ProjectOnPlane(g.forward, Vector3.up).normalized;
+            Vector3 from = g.position + dir * distance;
+            Vector3 off = from - golem.arenaCentre; off.y = 0f;
+            if (off.magnitude > 20f) from = golem.arenaCentre + off.normalized * 20f;
+            from.y = height;
+            Shot(name, from, g.position + Vector3.up * lookHeight, fov);
         }
 
         static bool IsAttack(BastionGolem.State s) =>

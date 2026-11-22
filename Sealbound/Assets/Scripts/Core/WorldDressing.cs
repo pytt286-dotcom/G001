@@ -16,7 +16,7 @@ namespace Sealbound.Core
         // Places that must stay clear for play (centre x, centre z, radius).
         static readonly Vector3[] ClearCircles =
         {
-            new Vector3(0f, 70f, 15f),     // golem arena
+            new Vector3(0f, 70f, 24f),     // golem arena and its ring of ruins
             new Vector3(-45f, -15f, 18f),  // goblin warren
             new Vector3(-90f, 160f, 13f),  // Legend tower marker
             new Vector3(0f, -6f, 7f),      // start point
@@ -276,13 +276,14 @@ namespace Sealbound.Core
                     if (tile != null) SetTop(tile, 0.03f);
                 }
 
-            // A broken ring of walls and pillars, with gaps to run through.
+            // A broken ring of walls and pillars, with gaps to run through. It stands outside the
+            // golem's arena, so the fight stays open and the golem can be seen whole.
             int count = 16;
             for (int i = 0; i < count; i++)
             {
                 if (i % 4 == 1) continue; // gaps
                 float a = i * 360f / count + Range(-4f, 4f);
-                float r = Range(17f, 20f);
+                float r = Range(22f, 25f);
                 Vector3 p = centre + Quaternion.Euler(0f, a, 0f) * Vector3.forward * r;
                 if (Mathf.Abs(p.x) < 5f && p.z < centre.z) continue; // keep the path's entrance open
                 bool pillar = i % 2 == 0;
@@ -293,23 +294,17 @@ namespace Sealbound.Core
                 AddBox(go);
                 if (Range(0f, 1f) < 0.6f)
                     Place(ruins, ArtLibrary.Dungeon + Pick("rubble_large", "rubble_half"),
-                        p + Quaternion.Euler(0f, a, 0f) * new Vector3(Range(-2f, 2f), 0f, Range(-3f, -1.5f)), Range(0f, 360f), Range(1.2f, 2f));
+                        p + Quaternion.Euler(0f, a, 0f) * new Vector3(Range(-2f, 2f), 0f, Range(1.5f, 3f)), Range(0f, 360f), Range(1.2f, 2f));
             }
 
-            // A few toppled pillars and stones inside the arena.
-            for (int i = 0; i < 6; i++)
+            // Two toppled pillars at the arena's edge (low, so they don't hide the golem's legs).
+            for (int i = 0; i < 2; i++)
             {
-                Vector3 p = centre + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * Range(6f, 12f);
-                if (Mathf.Abs(p.x) < 4f) continue;
-                Place(ruins, ArtLibrary.Dungeon + Pick("rubble_large", "rubble_half"), p, Range(0f, 360f), Range(1.3f, 2.2f));
-            }
-            for (int i = 0; i < 3; i++)
-            {
-                Vector3 p = centre + Quaternion.Euler(0f, 60f + i * 110f, 0f) * Vector3.forward * Range(9f, 12f);
-                var fallen = Place(ruins, ArtLibrary.Dungeon + "pillar", p, Range(0f, 360f), 1.8f, 0f);
+                Vector3 p = centre + Quaternion.Euler(0f, 70f + i * 200f, 0f) * Vector3.forward * Range(17f, 19f);
+                var fallen = Place(ruins, ArtLibrary.Dungeon + "pillar", p, Range(0f, 360f), 1.6f, 0f);
                 if (fallen == null) continue;
                 fallen.transform.rotation = Quaternion.Euler(0f, Range(0f, 360f), 90f);
-                ArtLibrary.SetBottom(fallen, -0.4f);
+                ArtLibrary.SetBottom(fallen, -0.6f);
                 AddBox(fallen, 1f);
             }
         }

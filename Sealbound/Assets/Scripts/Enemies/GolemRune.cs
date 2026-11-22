@@ -23,7 +23,7 @@ namespace Sealbound.Enemies
         Renderer _gem;
         Material _mat;
         Collider _collider;
-        Color _color = new Color(0.35f, 0.8f, 1f);
+        Color _color = new Color(0.12f, 0.5f, 1f);
         float _flash, _size;
 
         public static GolemRune Create(BastionGolem golem, Transform parent, string name, Vector3 localPos, float size, float hp, bool core)
@@ -33,7 +33,7 @@ namespace Sealbound.Enemies
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
 
-            var gem = Shapes.Make(PrimitiveType.Cube, go.transform, "Rune Gem", Vector3.zero, Vector3.one * size, new Color(0.35f, 0.8f, 1f), true, true);
+            var gem = Shapes.Make(PrimitiveType.Cube, go.transform, "Rune Gem", Vector3.zero, Vector3.one * size, new Color(0.12f, 0.5f, 1f), true, true);
             gem.layer = 2;
             gem.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
             gem.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -103,9 +103,10 @@ namespace Sealbound.Enemies
             if (_mat == null) return;
             _flash = Mathf.MoveTowards(_flash, 0f, Time.deltaTime * 4f);
             float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * (isCore ? 7f : 3f) + transform.position.x);
-            Color c = Color.Lerp(_color * pulse, Color.white, _flash);
+            // Keep the glow modest: strong emission blooms to white and the rune colour is lost.
+            Color c = Color.Lerp(_color * pulse, Color.white, _flash * 0.6f);
             _mat.color = c;
-            _mat.SetColor("_EmissionColor", c * (isCore ? 4f : 2.5f));
+            _mat.SetColor("_EmissionColor", c * (isCore ? 1.6f : 1.2f));
             if (_gem != null)
                 _gem.transform.localScale = Vector3.one * _size * (1f + 0.15f * _flash + (isCore ? 0.08f * Mathf.Sin(Time.time * 7f) : 0f));
         }
