@@ -191,7 +191,7 @@ namespace Sealbound.Core
     /// </summary>
     public class GrassField : MonoBehaviour
     {
-        public float drawDistance = 75f;
+        public float drawDistance = 55f;
         const float Patch = 16f;
 
         class Kind
@@ -232,7 +232,7 @@ namespace Sealbound.Core
                 {
                     var patch = new PatchData { centre = new Vector3(px + Patch * 0.5f, 0f, pz + Patch * 0.5f), perKind = new List<Matrix4x4>[field._kinds.Count] };
                     for (int k = 0; k < field._kinds.Count; k++) patch.perKind[k] = new List<Matrix4x4>();
-                    int count = 150;
+                    int count = 125;
                     for (int i = 0; i < count; i++)
                     {
                         var p = new Vector3(px + (float)rng.NextDouble() * Patch, 0f, pz + (float)rng.NextDouble() * Patch);

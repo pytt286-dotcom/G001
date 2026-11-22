@@ -14,6 +14,7 @@ namespace Sealbound.UI
         public GoblinWarren warren;
         public BastionGolem boss;
         public bool showControls = true;
+        public bool showFps = true;
 
         struct Popup { public string Text; public Color Color; public float Born; }
         readonly List<Popup> _popups = new List<Popup>();
@@ -57,6 +58,7 @@ namespace Sealbound.UI
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && kb.hKey.wasPressedThisFrame) showControls = !showControls;
+            if (kb != null && kb.f3Key.wasPressedThisFrame) showFps = !showFps;
         }
 
         void OnAnnounce(string text, Color color)
@@ -88,6 +90,15 @@ namespace Sealbound.UI
                 DrawRect(new Rect(0, Screen.height - t, Screen.width, t), c);
                 DrawRect(new Rect(0, 0, t, Screen.height), c);
                 DrawRect(new Rect(Screen.width - t, 0, t, Screen.height), c);
+            }
+
+            var perf = Sealbound.Core.Performance.Instance;
+            if (showFps && perf != null)
+            {
+                var fs = new GUIStyle(_label) { alignment = TextAnchor.UpperRight, fontSize = 13 };
+                Color fc = perf.Fps >= 50f ? new Color(0.6f, 1f, 0.6f) : perf.Fps >= 30f ? new Color(1f, 0.85f, 0.4f) : new Color(1f, 0.45f, 0.4f);
+                fs.normal.textColor = fc;
+                GUI.Label(new Rect(Screen.width - 230f, 6f, 220f, 20f), $"{perf.Fps:0} fps · resolution {perf.RenderScale * 100f:0}%  (F3)", fs);
             }
 
             if (BossEngaged) DrawBossBar();

@@ -146,7 +146,21 @@ namespace Sealbound.Core
         static GameObject PlaceNature(Transform parent, string name, Vector3 pos, float height, float sink = 0.1f)
         {
             var go = Settle(RealArt.Nature(name, parent), pos, Range(0f, 360f), 1f, 0f);
-            return FitHeight(go, pos, height, sink);
+            go = FitHeight(go, pos, height, sink);
+            // Small plants vanish while they are still only a few pixels tall; trees stay as far as the eye sees.
+            CullWhenSmall(go, height > 5f ? 0.006f : height > 1.5f ? 0.02f : 0.035f);
+            return go;
+        }
+
+        /// <summary>Stops drawing <paramref name="go"/> once it is shorter than <paramref name="screenFraction"/> of the screen.</summary>
+        static void CullWhenSmall(GameObject go, float screenFraction)
+        {
+            if (go == null || go.GetComponent<LODGroup>() != null) return;
+            var renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            var lod = go.AddComponent<LODGroup>();
+            lod.SetLODs(new[] { new LOD(screenFraction, renderers) });
+            lod.RecalculateBounds();
         }
 
         /// <summary>A scanned rock or stump, its largest side <paramref name="size"/> metres.</summary>
@@ -159,6 +173,7 @@ namespace Sealbound.Core
             go.transform.rotation = Quaternion.Euler(Range(-8f, 8f), Range(0f, 360f), Range(-8f, 8f));
             ArtLibrary.SetBottom(go, p.y - sink);
             go.isStatic = true;
+            CullWhenSmall(go, size > 4f ? 0.006f : size > 1.2f ? 0.015f : 0.03f);
             return go;
         }
 
