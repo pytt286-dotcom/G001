@@ -54,8 +54,11 @@ namespace Sealbound.Player
         {
             if (!ArtLibrary.HasCharacters) return null;
             var av = player.AddComponent<PlayerAvatar>();
-            av._forgedSword = Sealbound.Loot.Inventory.EquippedWeapon(true);
-            av._forgedStaff = Sealbound.Loot.Inventory.EquippedWeapon(false);
+            // Forged weapons are yours: bot Sealers carry the plain steel sword and carved staff.
+            var botMotor = player.GetComponent<PlayerMotor>();
+            bool isBot = botMotor != null && botMotor.isBot;
+            av._forgedSword = isBot ? "" : Sealbound.Loot.Inventory.EquippedWeapon(true);
+            av._forgedStaff = isBot ? "" : Sealbound.Loot.Inventory.EquippedWeapon(false);
             av._swordBody = av.BuildBody("Knight", visual, swordPivot, "sword_1handed");
             av._mageBody = av.BuildBody("Mage", visual, staffPivot, "staff");
             if (av._swordBody == null || av._mageBody == null)
@@ -169,7 +172,11 @@ namespace Sealbound.Player
             }
         }
 
-        void OnWeaponChanged(bool sword, string id) => SetForgedWeapon(sword, id);
+        void OnWeaponChanged(bool sword, string id)
+        {
+            if (_motor != null && _motor.isBot) return; // the forge changes your weapon, not the bots'
+            SetForgedWeapon(sword, id);
+        }
 
         Transform BuildWeapon(Transform pivot, string prop, float scale, bool isSword, float length, bool realistic, string forged, out Quaternion align)
         {

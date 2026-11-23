@@ -70,6 +70,8 @@ namespace Sealbound.Dev
             Shot("01b_hero_back", p.position - p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
             Shot("01c_sword_closeup", p.position + p.forward * 1.6f + p.right * 0.9f + Vector3.up * 1.2f, p.position + p.right * 0.35f + Vector3.up * 0.8f, 40f);
             DescribeMaterials(p.gameObject, "Weapon Model");
+            Line("Sword equipped from the save: \"" + Sealbound.Loot.Inventory.EquippedWeapon(true) + "\", staff: \"" + Sealbound.Loot.Inventory.EquippedWeapon(false) + "\"");
+            foreach (var part in new[] { "Blade", "Rune Channel", "Rune Cut", "Crossguard" }) DescribeMaterials(p.gameObject, part);
             ShotMain("02_gameplay_view");
 
             // Mid-swing of the first sword attack.
@@ -323,6 +325,8 @@ namespace Sealbound.Dev
             Line($"Merge with a full gauge: {merge.TryMerge()}; max health {baseMax:0} -> {health.maxHealth:0}, health {health.Current:0}, damage taken x{health.damageMultiplier:0.00}, speed x{motor.SpeedScale:0.00}");
             yield return new WaitForSeconds(0.9f);
             Shot("24_golem_merge_front", p.position + p.forward * 3.4f + Vector3.up * 1.6f, p.position + Vector3.up * 1.05f, 42f);
+            Line("Sword parts during the merge:");
+            foreach (var part in new[] { "Blade", "Rune Channel" }) DescribeMaterials(p.gameObject, part);
             Shot("24b_golem_merge_back", p.position - p.forward * 3.4f + p.right * 1.2f + Vector3.up * 1.7f, p.position + Vector3.up * 1.05f, 42f);
 
             // Fortress Stance: a heavy hit hurts but does not knock you back.
@@ -483,7 +487,19 @@ namespace Sealbound.Dev
             {
                 frames++;
                 if (Sealbound.Combat.GroundWarning.ActiveCount > 0) warningFrames++;
-                if (!shotFight && watch > 8f) { GolemShot("29_squad_vs_golem", golem, 40f, 19f, 8f, 3f, 62f); shotFight = true; }
+                if (!shotFight && watch > 8f)
+                {
+                    // From behind the squad, looking past them at the golem.
+                    Vector3 c = Vector3.zero; int n = 0;
+                    foreach (var b in SquadBot.All) if (b != null) { c += b.transform.position; n++; }
+                    c = n > 0 ? c / n : p.position;
+                    Vector3 away = c - golem.transform.position; away.y = 0f;
+                    away = away.sqrMagnitude > 0.01f ? away.normalized : -golem.transform.forward;
+                    Vector3 from = c + away * 9f + Quaternion.Euler(0f, 90f, 0f) * away * 3f;
+                    from.y = c.y + 5f;
+                    Shot("29_squad_vs_golem", from, Vector3.Lerp(c, golem.transform.position, 0.35f) + Vector3.up * 1.5f, 60f);
+                    shotFight = true;
+                }
                 if (!shotWarning && watch > 3f && Sealbound.Combat.GroundWarning.ActiveCount > 0 && warningFrames > 10)
                 {
                     GolemShot("30_squad_dodging", golem, -35f, 19f, 10f, 1f, 64f);
@@ -615,7 +631,8 @@ namespace Sealbound.Dev
                 if (m == null) continue;
                 string col = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor").ToString("F2") : "-";
                 string em = m.HasProperty("_EmissionColor") ? m.GetColor("_EmissionColor").ToString("F2") : "-";
-                Line($"  {rendererName} on {r.transform.parent?.name}: shader {m.shader.name}, enabled {r.enabled}, colour {col}, emission {em}");
+                Line($"  {rendererName} on {r.transform.parent?.name}: material {m.name}, shader {m.shader.name} (supported {m.shader.isSupported}), enabled {r.enabled}, colour {col}, emission {em}, " +
+                     $"texture {(m.mainTexture != null ? m.mainTexture.name : "none")}, keywords [{string.Join(" ", m.shaderKeywords)}], queue {m.renderQueue}");
             }
         }
 
