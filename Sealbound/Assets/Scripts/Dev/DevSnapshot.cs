@@ -566,6 +566,7 @@ namespace Sealbound.Dev
             Shot("31c_town_toward_gate", c + new Vector3(3f, 2.4f, 8f), c + new Vector3(-2f, 2.2f, -20f), 60f);
             Shot("31d_town_from_above", c + new Vector3(34f, 30f, -40f), c + Vector3.up * 2f, 50f);
             Shot("31e_town_forge_shrine", c + new Vector3(0f, 3f, -9f), c + new Vector3(0f, 1.5f, 3f), 75f);
+            DescribeSkyline(c + new Vector3(0f, 3f, -9f), c + new Vector3(0f, 1.5f, 3f), 75f, 0.26f, 0.45f, 0.8f, 1f);
             yield return null;
             ShotMain("31f_town_gameplay_view");
 
@@ -766,8 +767,11 @@ namespace Sealbound.Dev
             if (m != null) m.Invoke(target, args);
         }
 
-        /// <summary>Lists what stands high in a picture's sky (outside the town), to track down odd dark shapes there.</summary>
-        void DescribeSkyline(Vector3 from, Vector3 lookAt, float fov)
+        /// <summary>
+        /// Lists everything whose on-screen box overlaps a patch of a picture (x0..x1, y0..y1 in 0-1, y up),
+        /// to track down odd dark shapes in the sky.
+        /// </summary>
+        void DescribeSkyline(Vector3 from, Vector3 lookAt, float fov, float x0 = 0.18f, float x1 = 0.36f, float y0 = 0.86f, float y1 = 1f)
         {
             var go = new GameObject("Skyline Probe");
             var cam = go.AddComponent<Camera>();
@@ -776,24 +780,42 @@ namespace Sealbound.Dev
             cam.transform.rotation = Quaternion.LookRotation(lookAt - from);
             cam.fieldOfView = fov;
             cam.aspect = 16f / 9f;
+            cam.farClipPlane = Camera.main != null ? Camera.main.farClipPlane : 1000f;
             var planes = GeometryUtility.CalculateFrustumPlanes(cam);
             var hits = new List<KeyValuePair<float, string>>();
+            int total = 0;
             foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
                 var b = r.bounds;
-                if (b.max.y < 11f || !GeometryUtility.TestPlanesAABB(planes, b)) continue;
-                if (IsUnder(r.transform, "Town Square")) continue;
-                if (r is ParticleSystemRenderer || r is TrailRenderer) { hits.Add(new KeyValuePair<float, string>(0f, $"{r.GetType().Name} {r.name}")); continue; }
+                if (!GeometryUtility.TestPlanesAABB(planes, b)) continue;
+                // The box's corners on screen.
+                float minX = 9f, maxX = -9f, minY = 9f, maxY = -9f;
+                bool behind = false;
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 corner = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    Vector3 v = cam.WorldToViewportPoint(corner);
+                    if (v.z <= 0f) { behind = true; continue; }
+                    minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x); minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
+                }
+                if (behind) { minX = -9f; maxX = 9f; minY = -9f; maxY = 9f; }
+                if (maxX < x0 || minX > x1 || maxY < y0 || minY > y1) continue;
+                total++;
                 float dist = Vector3.Distance(from, b.center);
-                Vector3 sp = cam.WorldToViewportPoint(b.center);
                 var m = r.sharedMaterial;
-                hits.Add(new KeyValuePair<float, string>(dist, $"{r.name} (parent {r.transform.parent?.name}, {dist:0} m, top {b.max.y:0} m, at screen {sp.x:0.00},{sp.y:0.00}, material {(m != null ? m.name + "/" + m.shader.name : "none")})"));
+                string path = r.transform.parent != null ? r.transform.parent.name + "/" + r.name : r.name;
+                hits.Add(new KeyValuePair<float, string>(-b.size.magnitude / Mathf.Max(1f, dist),
+                    $"{r.GetType().Name} {path} ({dist:0} m, size {b.size.x:0.0}x{b.size.y:0.0}x{b.size.z:0.0}, y {b.min.y:0}..{b.max.y:0}, screen y {minY:0.00}..{maxY:0.00}, material {(m != null ? m.name + "/" + m.shader.name : "none")}, layer {r.gameObject.layer})"));
             }
             hits.Sort((a, b2) => a.Key.CompareTo(b2.Key));
             var sb = new StringBuilder();
-            for (int i = 0; i < hits.Count && i < 25; i++) sb.Append(hits[i].Value).Append(" | ");
-            Line($"Tall things in the town picture's view ({hits.Count}): {sb}");
+            for (int i = 0; i < hits.Count && i < 30; i++) sb.Append(hits[i].Value).Append(" | ");
+            Line($"Things on screen in the patch x {x0:0.00}-{x1:0.00}, y {y0:0.00}-{y1:0.00} of the town picture ({total}, biggest on screen first): {sb}");
+            // Also anything not drawn by a Renderer that could leave marks: particle systems and lines.
+            var ps = FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None);
+            var lines = FindObjectsByType<LineRenderer>(FindObjectsSortMode.None);
+            Line($"Particle systems in the scene: {ps.Length}, line renderers: {lines.Length}; sky material {(RenderSettings.skybox != null ? RenderSettings.skybox.name + "/" + RenderSettings.skybox.shader.name : "none")}, fog {RenderSettings.fog} {RenderSettings.fogMode} {RenderSettings.fogColor}");
             Destroy(go);
         }
 
