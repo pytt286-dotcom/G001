@@ -148,7 +148,7 @@ namespace Sealbound.Enemies
             _health.ResetHealth();
             if (_target == null)
             {
-                var p = FindAnyObjectByType<PlayerMotor>();
+                var p = PlayerMotor.Main;
                 if (p != null) _target = p.transform;
             }
             if (_target != null)
@@ -183,6 +183,7 @@ namespace Sealbound.Enemies
             _stateTime += dt;
 
             if (_state == State.Dead) { UpdateDead(dt); return; }
+            if ((_state == State.Circling || _state == State.Emerging) && Time.time >= _retargetAt) ChooseTarget();
 
             Vector3 move = Vector3.zero;
             bool targetAlive = _target != null && (_targetHealth == null || !_targetHealth.IsDead);
@@ -328,6 +329,41 @@ namespace Sealbound.Enemies
             _stateTime = 0f;
         }
 
+        // ---------- Choosing who to fight: you, or one of your bot squad ----------
+
+        float _retargetAt;
+
+        void ChooseTarget()
+        {
+            _retargetAt = Time.time + UnityEngine.Random.Range(1f, 2f);
+            Transform best = null;
+            float bestScore = float.MaxValue;
+            var main = PlayerMotor.Main;
+            if (main != null) Consider(main.transform, 2.5f, ref best, ref bestScore); // you are the favourite target
+            foreach (var b in SquadBot.All)
+                if (b != null && !b.IsDown) Consider(b.transform, 0f, ref best, ref bestScore);
+            if (best != null && best != _target) SetTarget(best);
+        }
+
+        void Consider(Transform t, float bias, ref Transform best, ref float bestScore)
+        {
+            var h = t.GetComponent<Health>();
+            if (h == null || h.IsDead) return;
+            var v = t.GetComponent<PlayerVitals>();
+            if (v != null && v.IsDown) return;
+            float score = Flat(t.position - transform.position).magnitude - bias;
+            if (score < bestScore) { bestScore = score; best = t; }
+        }
+
+        void SetTarget(Transform t)
+        {
+            _target = t;
+            _targetHealth = t.GetComponent<Health>();
+            _targetCombat = t.GetComponent<PlayerCombat>();
+            Vector3 from = transform.position - t.position;
+            _slotAngle = Mathf.Atan2(from.x, from.z) * Mathf.Rad2Deg;
+        }
+
         // ---------- Getting hit ----------
 
         void OnDamaged(DamageInfo info, float dealt)
@@ -337,6 +373,9 @@ namespace Sealbound.Enemies
             if (_health.IsDead) return;
 
             GoblinDirector.ReleaseToken(this);
+            // Turn on a bot that hits you, sometimes.
+            if (info.Source != null && info.Source.transform != _target && info.Source.GetComponent<SquadBot>() != null && UnityEngine.Random.value < 0.35f)
+                SetTarget(info.Source.transform);
             _knock = Flat(info.Direction).normalized * (3f + info.Impact * 9f);
 
             bool airborne = _state == State.Airborne;

@@ -50,11 +50,14 @@ namespace Sealbound.Dev
             Directory.CreateDirectory(OutputFolder);
             yield return new WaitForSeconds(1.5f);
 
-            var motor = FindAnyObjectByType<PlayerMotor>();
+            var motor = PlayerMotor.Main;
             var combat = motor != null ? motor.GetComponent<PlayerCombat>() : null;
             Line("Player found: " + (motor != null) + ", ambient occlusion on: " + Sealbound.Core.Performance.AmbientOcclusion);
             if (motor == null) { Finish(); yield break; }
             var p = motor.transform;
+            // The older checks run alone, so their numbers stay comparable; the squad gets its own tour at the end.
+            Line("Bots at start: " + SquadBot.All.Count + " (sending them away for the solo checks)");
+            SquadBot.SetSquadSize(0);
 
             Describe(p.gameObject);
             Line("Animated parts on player: " + p.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length);
@@ -135,6 +138,7 @@ namespace Sealbound.Dev
             yield return GolemTour(motor);
             yield return ForgeTour(motor);
             yield return SoulMergeTour(motor);
+            yield return SquadTour(motor);
             DescribeAmbientOcclusion();
             Finish();
         }
@@ -350,6 +354,165 @@ namespace Sealbound.Dev
             yield return new WaitForSeconds(0.5f);
             Line($"After the merge: merged {merge.Merged}, max health {health.maxHealth:0} (was {baseMax:0}), damage taken x{health.damageMultiplier:0.00}, speed x{motor.SpeedScale:0.00}, run speed {motor.runSpeed:0.0} (was {baseSpeed:0.0}), gauge {merge.Gauge:0}");
             Shot("26_merge_ended", p.position + p.forward * 3.4f + Vector3.up * 1.6f, p.position + Vector3.up * 1.05f, 42f);
+        }
+
+
+        string SquadState()
+        {
+            var sb = new StringBuilder();
+            foreach (var b in SquadBot.All)
+            {
+                if (b == null) continue;
+                float hp = b.Health != null ? b.Health.Current : -1f;
+                sb.Append($"[{b.Label}: {b.Doing}, health {hp:0}, {Vector3.Distance(b.transform.position, PlayerMotor.Main.transform.position):0.0} m from you] ");
+            }
+            return sb.ToString();
+        }
+
+        string SquadStats(Dictionary<SquadBot, float> damageBefore)
+        {
+            var sb = new StringBuilder();
+            foreach (var b in SquadBot.All)
+            {
+                if (b == null) continue;
+                float before = 0f;
+                if (damageBefore != null) damageBefore.TryGetValue(b, out before);
+                sb.Append($"[{b.Label}: damage {b.DamageDealt - before:0}, dodges {b.Dodges}, sidesteps {b.Sidesteps}, wave jumps {b.Jumps}, hits taken {b.HitsTaken}, times down {b.TimesDowned}] ");
+            }
+            return sb.ToString();
+        }
+
+        static Dictionary<SquadBot, float> DamageNow()
+        {
+            var d = new Dictionary<SquadBot, float>();
+            foreach (var b in SquadBot.All) if (b != null) d[b] = b.DamageDealt;
+            return d;
+        }
+
+        /// <summary>Calls the three bots, checks they follow, fight goblins and the golem, dodge its attacks and can't be hurt by you.</summary>
+        IEnumerator SquadTour(PlayerMotor motor)
+        {
+            var p = motor.transform;
+            var combat = motor.GetComponent<PlayerCombat>();
+            var health = motor.GetComponent<Sealbound.Combat.Health>();
+            if (health != null) health.InvulnerableCheck = () => true;
+
+            // Frame rate on the same spot with no bots, then with three.
+            motor.Teleport(new Vector3(0f, 0.2f, -6f));
+            yield return new WaitForSeconds(1f);
+            int frames = 0; float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 2f) { frames++; yield return null; }
+            float fpsSolo = frames / 2f;
+
+            SquadBot.SetSquadSize(SquadBot.MaxSquad);
+            yield return new WaitForSeconds(2f);
+            Line($"Squad called: {SquadBot.All.Count} bots; you are still the main player: {PlayerMotor.Main == motor}; {SquadState()}");
+            frames = 0; t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 2f) { frames++; yield return null; }
+            Line($"Frame rate at the start: {fpsSolo:0} fps alone, {frames / 2f:0} fps with 3 bots");
+            if (SquadBot.All.Count > 0 && SquadBot.All[0] != null) Describe(SquadBot.All[0].gameObject);
+            Shot("27_squad_formation", p.position - p.forward * 6f + p.right * 2.5f + Vector3.up * 2.8f, p.position + Vector3.up * 0.9f, 50f);
+            Shot("27b_squad_front", p.position + p.forward * 6f + p.right * 1.5f + Vector3.up * 2f, p.position - p.forward * 1.5f + Vector3.up * 0.9f, 50f);
+
+            // Follow: you move 12 m, they should catch up.
+            motor.Teleport(p.position + p.forward * 12f + Vector3.up * 0.2f);
+            yield return new WaitForSeconds(0.6f);
+            Line($"0.6 s after you moved 12 m: {SquadState()}");
+            yield return new WaitForSeconds(3.4f);
+            Line($"4 s after you moved 12 m: {SquadState()}");
+
+            // Friendly fire: a full swing at a bot standing in front of you.
+            var victim = SquadBot.All.Count > 0 ? SquadBot.All[0] : null;
+            if (victim != null && combat != null)
+            {
+                victim.hold = true;
+                victim.GetComponent<PlayerMotor>().Teleport(p.position + p.forward * 1.1f);
+                yield return new WaitForSeconds(0.2f);
+                float hpBefore = victim.Health.Current;
+                var slash = combat.Kit.basicCombo[0];
+                Attack(combat, slash);
+                yield return new WaitForSeconds(slash.windup + slash.active + 0.3f);
+                Line($"Friendly fire: you swung at {victim.Label} from {Vector3.Distance(p.position, victim.transform.position):0.0} m, its health {hpBefore:0} -> {victim.Health.Current:0} (should be unchanged)");
+                victim.hold = false;
+            }
+
+            // Goblins: go back to the warren and let the bots fight (you stand still).
+            int beaten = 0;
+            var seen = new HashSet<Goblin>();
+            var before = DamageNow();
+            motor.Teleport(new Vector3(-45f, 0.2f, -15f));
+            yield return new WaitForSeconds(0.5f);
+            Line($"At the warren: {SquadState()}");
+            float watch = 0f;
+            bool shot = false;
+            while (watch < 16f)
+            {
+                foreach (var g in GoblinDirector.Goblins)
+                    if (g != null && seen.Add(g)) g.Sealed += _ => beaten++;
+                if (!shot && watch > 6f)
+                {
+                    Shot("28_squad_vs_goblins", p.position + new Vector3(0f, 9f, -14f), p.position + Vector3.up * 0.5f, 60f);
+                    Line($"Mid-fight at the warren: {SquadState()}");
+                    shot = true;
+                }
+                watch += Time.deltaTime;
+                yield return null;
+            }
+            Line($"Warren with the squad (you did nothing for 16 s): {seen.Count} goblins seen, {beaten} beaten; {SquadStats(before)}");
+
+            // The golem: wake it and watch the bots fight and dodge.
+            var golem = FindAnyObjectByType<BastionGolem>();
+            if (golem == null)
+            {
+                var waiting = GameObject.Find("Golem Respawner");
+                if (waiting != null) Destroy(waiting);
+                golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
+            }
+            yield return new WaitForSeconds(0.5f);
+            before = DamageNow();
+            float golemHp = golem.Health.Current;
+            motor.Teleport(new Vector3(0f, 0.2f, 52f));
+            yield return new WaitForSeconds(1f);
+            Line($"Golem: state {golem.CurrentState}; {SquadState()}");
+            frames = 0; t0 = Time.realtimeSinceStartup;
+            watch = 0f;
+            bool shotFight = false, shotWarning = false;
+            int warningFrames = 0;
+            float nextLog = 6f;
+            while (watch < 26f && golem != null)
+            {
+                frames++;
+                if (Sealbound.Combat.GroundWarning.ActiveCount > 0) warningFrames++;
+                if (!shotFight && watch > 8f) { GolemShot("29_squad_vs_golem", golem, 40f, 19f, 8f, 3f, 62f); shotFight = true; }
+                if (!shotWarning && watch > 3f && Sealbound.Combat.GroundWarning.ActiveCount > 0 && warningFrames > 10)
+                {
+                    GolemShot("30_squad_dodging", golem, -35f, 19f, 10f, 1f, 64f);
+                    Line($"During a red warning: {SquadState()}");
+                    shotWarning = true;
+                }
+                if (watch > nextLog) { Line($"Golem fight {watch:0}s: golem {golem.CurrentState}, health {golem.HealthFraction:P0}; {SquadState()}"); nextLog += 6f; }
+                watch += Time.deltaTime;
+                yield return null;
+            }
+            float secs = Mathf.Max(0.1f, Time.realtimeSinceStartup - t0);
+            Line($"Frame rate in the golem fight with 3 bots: {frames / secs:0} fps");
+            if (golem != null)
+                Line($"Golem fight with the squad (you did nothing for 26 s): golem health {golemHp:0} -> {golem.Health.Current:0}, runes broken {golem.RunesBrokenTotal}; {SquadStats(before)}");
+
+            // B key cycle: 3 -> 0 -> 1 -> 2 -> 3.
+            motor.Teleport(new Vector3(0f, 0.2f, -6f));
+            yield return new WaitForSeconds(0.5f);
+            var counts = new StringBuilder();
+            foreach (int n in new[] { 0, 1, 2, 3 })
+            {
+                SquadBot.SetSquadSize(n);
+                yield return null;
+                int live = FindObjectsByType<SquadBot>(FindObjectsSortMode.None).Length;
+                var names = new StringBuilder();
+                foreach (var b in SquadBot.All) if (b != null) names.Append(b.Label).Append(", ");
+                counts.Append($"{n}: {SquadBot.All.Count} listed, {live} in the world ({names}) | ");
+            }
+            Line("Squad sizes: " + counts);
         }
 
         /// <summary>Reports whether the ambient occlusion pass is really on the renderer the game uses.</summary>

@@ -86,7 +86,7 @@ namespace Sealbound.Combat
                 var h = hit.collider.GetComponentInParent<Health>();
                 if (h != null)
                 {
-                    if (_hit.Contains(h)) continue;
+                    if (_hit.Contains(h) || SpellHit.IsSealer(h)) continue; // bolts fly past squad mates
                     _hit.Add(h);
                     bool landed = SpellHit.Apply(h, caster, damage, hit.point, _dir, impact, 0f, 0f, 0f);
                     OnHit?.Invoke(landed, impact);

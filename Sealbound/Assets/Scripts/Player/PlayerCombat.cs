@@ -77,6 +77,10 @@ namespace Sealbound.Player
         public event Action Dodged;
         /// <summary>Extra damage from a soul merge (1 = none).</summary>
         public float DamageBoost { get; set; } = 1f;
+        /// <summary>Hit-stop and camera shake on hits. Off for bots, so their fights do not shake your screen.</summary>
+        public bool feelEffects = true;
+        /// <summary>Damage dealt so far (read by the play check and the squad).</summary>
+        public float DamageDealt { get; private set; }
 
         /// <summary>Shows a popup on the HUD (used by the soul merge).</summary>
         public void Announce(string text, Color colour) => Feedback?.Invoke(text, colour);
@@ -408,8 +412,8 @@ namespace Sealbound.Player
             ComboHits++;
             _sinceCombat = 0f;
             HitLanded?.Invoke(a.damage * _bonus);
-            HitStop.Trigger(a.hitStop);
-            ThirdPersonCamera.Shake(a.shake);
+            DamageDealt += a.damage * _bonus;
+            if (feelEffects) { HitStop.Trigger(a.hitStop); ThirdPersonCamera.Shake(a.shake); }
             if (_audio) _audio.PlayHit(a.impact > 0.6f);
         }
 
@@ -495,7 +499,7 @@ namespace Sealbound.Player
             for (int i = 0; i < count; i++)
             {
                 var h = _overlap[i].GetComponentInParent<Health>();
-                if (h == null || h.gameObject == gameObject || _hitThisSwing.Contains(h)) continue;
+                if (h == null || h.gameObject == gameObject || _hitThisSwing.Contains(h) || SpellHit.IsSealer(h)) continue; // no friendly fire
 
                 Vector3 closest = _overlap[i].ClosestPoint(center);
                 Vector3 to = closest - transform.position; to.y = 0f;
@@ -512,7 +516,7 @@ namespace Sealbound.Player
                     Impact = Mathf.Clamp01(a.impact * (_bonus > 1.5f ? 1.3f : 1f)),
                     Launch = a.launchSpeed > 0f ? 10f : (a == _kit.airAttack ? 4.5f : 0f)
                 };
-                if (h.TryDamage(info, out float dealt)) { landed = true; HitLanded?.Invoke(dealt); }
+                if (h.TryDamage(info, out float dealt)) { landed = true; DamageDealt += dealt; HitLanded?.Invoke(dealt); }
             }
 
             if (landed)
@@ -520,8 +524,11 @@ namespace Sealbound.Player
                 _landedCurrent = true;
                 ComboHits++;
                 _sinceCombat = 0f;
-                HitStop.Trigger(a.hitStop * (_bonus > 1f ? 1.3f : 1f));
-                ThirdPersonCamera.Shake(a.shake * (_bonus > 1f ? 1.3f : 1f));
+                if (feelEffects)
+                {
+                    HitStop.Trigger(a.hitStop * (_bonus > 1f ? 1.3f : 1f));
+                    ThirdPersonCamera.Shake(a.shake * (_bonus > 1f ? 1.3f : 1f));
+                }
                 if (_audio) _audio.PlayHit(a.impact > 0.6f);
             }
         }
@@ -547,7 +554,7 @@ namespace Sealbound.Player
             for (int i = 0; i < count; i++)
             {
                 var h = _overlap[i].GetComponentInParent<Health>();
-                if (h == null || h.gameObject == gameObject || h.IsDead) continue;
+                if (h == null || h.gameObject == gameObject || h.IsDead || SpellHit.IsSealer(h)) continue;
                 Vector3 to = h.transform.position - transform.position; to.y = 0f;
                 float angle = Vector3.Angle(baseDir, to);
                 if (angle > maxAngle) continue;

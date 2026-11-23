@@ -6,11 +6,14 @@ namespace Sealbound.Combat
     /// <summary>Shared rules for spells: what they can hit and how damage is applied.</summary>
     public static class SpellHit
     {
+        /// <summary>True for the player and the bot squad: Sealers never hurt each other.</summary>
+        public static bool IsSealer(Health h) => h != null && h.GetComponent<Sealbound.Player.PlayerMotor>() != null;
+
         /// <summary>Damages a target hit by a player spell. Returns true if damage landed.</summary>
         public static bool Apply(Health h, GameObject caster, float damage, Vector3 point, Vector3 direction,
             float impact, float launch, float slow, float slowSeconds)
         {
-            if (h == null || h.IsDead || (caster != null && h.gameObject == caster)) return false;
+            if (h == null || h.IsDead || (caster != null && h.gameObject == caster) || IsSealer(h)) return false; // no friendly fire
             var info = new DamageInfo
             {
                 Amount = damage, Point = point, Direction = direction, Source = caster,

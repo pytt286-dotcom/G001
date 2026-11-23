@@ -154,7 +154,7 @@ namespace Sealbound.Loot
             _age += dt;
             if (_player == null)
             {
-                var m = FindAnyObjectByType<PlayerMotor>();
+                var m = PlayerMotor.Main;
                 if (m != null) _player = m.transform;
             }
 

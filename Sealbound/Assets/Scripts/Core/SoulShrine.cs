@@ -162,7 +162,7 @@ namespace Sealbound.Core
 
             if (_player == null)
             {
-                var m = FindAnyObjectByType<PlayerMotor>();
+                var m = PlayerMotor.Main;
                 if (m != null) _player = m.transform;
             }
             Vector3 d = _player != null ? _player.position - transform.position : Vector3.one * 999f;

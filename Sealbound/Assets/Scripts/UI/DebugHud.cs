@@ -101,6 +101,7 @@ namespace Sealbound.UI
                 GUI.Label(new Rect(Screen.width - 330f, 6f, 320f, 20f), $"{perf.Fps:0} fps · GPU {perf.GpuMs:0} ms · resolution {perf.RenderScale * 100f:0}%  (F3)", fs);
             }
 
+            DrawSquad();
             if (BossEngaged) DrawBossBar();
             else if (boss != null) DrawBossHint();
             DrawBanner();
@@ -169,9 +170,49 @@ namespace Sealbound.UI
                 "Forge (by the start): G to open, craft golem weapons\n" +
                 "Soul shrine (west of the start): G to bind a spirit.\n" +
                 "Full Soul Gauge: V / R3 = SOUL MERGE, then V = Rune Quake\n" +
+                "Squad of bot Sealers: B (d-pad left) = 3 / 0 / 1 / 2\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 412f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 408f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 434f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 430f), text, _label);
+        }
+
+        /// <summary>A name tag and health bar over each bot, and a small squad list above your own bars.</summary>
+        void DrawSquad()
+        {
+            var cam = Camera.main;
+            var bots = SquadBot.All;
+            if (bots.Count == 0) return;
+            var tag = new GUIStyle(_center) { fontSize = 13 };
+            for (int i = 0; i < bots.Count; i++)
+            {
+                var b = bots[i];
+                if (b == null || cam == null) continue;
+                Vector3 head = b.transform.position + Vector3.up * 2.25f;
+                Vector3 sp = cam.WorldToScreenPoint(head);
+                if (sp.z <= 0.5f || sp.z > 40f) continue;
+                float sx = sp.x, sy = Screen.height - sp.y;
+                float bw = 70f, bh = 6f;
+                float hp = b.Health != null ? b.Health.Current / Mathf.Max(1f, b.Health.maxHealth) : 0f;
+                Color nameColor = b.mage ? new Color(0.7f, 0.8f, 1f) : new Color(1f, 0.9f, 0.7f);
+                tag.normal.textColor = b.IsDown ? new Color(0.7f, 0.7f, 0.7f) : nameColor;
+                GUI.Label(new Rect(sx - 80f, sy - 24f, 160f, 20f), b.IsDown ? $"<b>{b.Label}</b> (down)" : $"<b>{b.Label}</b>", tag);
+                DrawRect(new Rect(sx - bw / 2f - 1f, sy - 1f, bw + 2f, bh + 2f), new Color(0f, 0f, 0f, 0.6f));
+                DrawRect(new Rect(sx - bw / 2f, sy, bw * Mathf.Clamp01(hp), bh), new Color(0.35f, 0.85f, 0.45f));
+            }
+
+            float x = 24f, y = Screen.height - 44f - 138f - 40f - bots.Count * 20f;
+            var line = new GUIStyle(_label) { fontSize = 13 };
+            GUI.Label(new Rect(x, y - 20f, 400f, 20f), $"<b>Squad ({bots.Count}/{SquadBot.MaxSquad})</b>  <size=11>B to change</size>", line);
+            for (int i = 0; i < bots.Count; i++)
+            {
+                var b = bots[i];
+                if (b == null) continue;
+                float hp = b.Health != null ? b.Health.Current / Mathf.Max(1f, b.Health.maxHealth) : 0f;
+                float ly = y + i * 20f;
+                DrawRect(new Rect(x, ly + 6f, 60f, 6f), new Color(0f, 0f, 0f, 0.55f));
+                DrawRect(new Rect(x, ly + 6f, 60f * Mathf.Clamp01(hp), 6f), b.IsDown ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.35f, 0.85f, 0.45f));
+                GUI.Label(new Rect(x + 68f, ly - 2f, 330f, 20f), $"{b.Label}: {(b.IsDown ? "down" : b.Doing)}", line);
+            }
         }
 
         void DrawBossBar()

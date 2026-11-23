@@ -33,9 +33,29 @@ namespace Sealbound.Player
         public bool InventoryPressed { get; private set; }
         /// <summary>True for one frame when Soul Merge was pressed (and, while merged, the creature's signature skill).</summary>
         public bool MergePressed { get; private set; }
+        /// <summary>True for one frame when the squad button (B / d-pad left) was pressed.</summary>
+        public bool SquadPressed { get; private set; }
+
+        /// <summary>Driven by a bot's brain instead of keyboard, mouse or gamepad.</summary>
+        public bool Scripted { get; private set; }
+        Vector2 _sMove;
+        bool _sSprint, _sJump, _sDodge, _sAttack, _sHeavy, _sSwitch;
+        int _sSkill = -1;
+
+        /// <summary>Hands this reader to a bot: hardware is ignored from now on.</summary>
+        public void MakeScripted() { Scripted = true; if (_map != null) _map.Disable(); }
+
+        /// <summary>A bot's controller for this frame: a world-space stick and button presses (each press counts once).</summary>
+        public void Drive(Vector2 move, bool sprint, bool jump = false, bool dodge = false, bool attack = false, int skill = -1, bool heavy = false, bool switchClass = false)
+        {
+            _sMove = Vector2.ClampMagnitude(move, 1f);
+            _sSprint = sprint;
+            _sJump |= jump; _sDodge |= dodge; _sAttack |= attack; _sHeavy |= heavy; _sSwitch |= switchClass;
+            if (skill >= 0) _sSkill = skill;
+        }
 
         InputActionMap _map;
-        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass, _interact, _inventory, _merge;
+        InputAction _move, _lookMouse, _lookStick, _sprint, _jump, _dodge, _attack, _heavy, _switchClass, _interact, _inventory, _merge, _squad;
         readonly InputAction[] _skills = new InputAction[3];
 
         void Awake()
@@ -87,6 +107,9 @@ namespace Sealbound.Player
             _merge = _map.AddAction("SoulMerge", InputActionType.Button, "<Keyboard>/v");
             _merge.AddBinding("<Gamepad>/rightStickPress");
 
+            _squad = _map.AddAction("Squad", InputActionType.Button, "<Keyboard>/b");
+            _squad.AddBinding("<Gamepad>/dpad/left");
+
             string[] keys = { "<Keyboard>/q", "<Keyboard>/r", "<Keyboard>/f" };
             string[] pads = { "<Gamepad>/leftShoulder", "<Gamepad>/rightShoulder", "<Gamepad>/rightTrigger" };
             for (int i = 0; i < 3; i++)
@@ -96,12 +119,22 @@ namespace Sealbound.Player
             }
         }
 
-        void OnEnable() => _map.Enable();
+        void OnEnable() { if (!Scripted) _map.Enable(); }
         void OnDisable() => _map.Disable();
         void OnDestroy() => _map.Dispose();
 
         void Update()
         {
+            if (Scripted)
+            {
+                Move = _sMove; SprintHeld = _sSprint; JumpHeld = _sJump;
+                JumpPressed = _sJump; DodgePressed = _sDodge; AttackPressed = _sAttack; HeavyPressed = _sHeavy;
+                SwitchClassPressed = _sSwitch; SkillPressed = _sSkill;
+                LookMouse = Vector2.zero; LookStick = Vector2.zero;
+                InteractHeld = InteractPressed = InventoryPressed = MergePressed = SquadPressed = false;
+                _sJump = _sDodge = _sAttack = _sHeavy = _sSwitch = false; _sSkill = -1;
+                return;
+            }
             Move = Vector2.ClampMagnitude(_move.ReadValue<Vector2>(), 1f);
             bool cursorFree = Cursor.lockState != CursorLockMode.Locked;
             LookMouse = cursorFree ? Vector2.zero : _lookMouse.ReadValue<Vector2>();
@@ -118,6 +151,7 @@ namespace Sealbound.Player
             InteractPressed = _interact.WasPressedThisFrame();
             InventoryPressed = _inventory.WasPressedThisFrame();
             MergePressed = _merge.WasPressedThisFrame();
+            SquadPressed = _squad.WasPressedThisFrame();
             SkillPressed = -1;
             for (int i = 0; i < 3; i++)
                 if (_skills[i].WasPressedThisFrame()) { SkillPressed = i; break; }

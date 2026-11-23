@@ -69,7 +69,7 @@ namespace Sealbound.Enemies
             if (_golem == null || !_golem.Subdued) { Destroy(gameObject); return; }
             if (_player == null)
             {
-                var m = FindAnyObjectByType<PlayerMotor>();
+                var m = PlayerMotor.Main;
                 if (m != null)
                 {
                     _player = m.transform;

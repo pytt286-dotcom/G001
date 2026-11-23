@@ -55,6 +55,26 @@ namespace Sealbound.Player
 
         /// <summary>Set by combat: scales how fast the player can steer while attacking (1 = free).</summary>
         public float MoveSpeedMultiplier { get; set; } = 1f;
+
+        /// <summary>A computer-controlled squad mate rather than the person playing.</summary>
+        public bool isBot;
+
+        static PlayerMotor _main;
+        /// <summary>The Sealer the person controls (never a bot).</summary>
+        public static PlayerMotor Main
+        {
+            get
+            {
+                if (_main != null && !_main.isBot) return _main;
+                _main = null;
+                foreach (var m in FindObjectsByType<PlayerMotor>(FindObjectsSortMode.None))
+                    if (!m.isBot) { _main = m; break; }
+                return _main;
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { _main = null; }
         /// <summary>A lasting change to running speed, e.g. the heavy stone body of a Golem soul merge.</summary>
         public float SpeedScale { get; set; } = 1f;
         /// <summary>Set by combat: stops the motor turning the character toward the stick.</summary>
@@ -163,7 +183,7 @@ namespace Sealbound.Player
 
         void Start()
         {
-            if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
+            if (cameraTransform == null && Camera.main != null && !isBot) cameraTransform = Camera.main.transform; // bots steer in world directions
             if (visual != null) _visualBaseScale = visual.localScale;
         }
 

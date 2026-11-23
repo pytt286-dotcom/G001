@@ -32,7 +32,7 @@ namespace Sealbound.Dev
             Done = false;
             Inventory();
             yield return new WaitForSeconds(3f);
-            var motor = FindAnyObjectByType<PlayerMotor>();
+            var motor = PlayerMotor.Main;
             if (motor == null) { Line("No player found."); Finish(); yield break; }
             var health = motor.GetComponent<Combat.Health>();
             if (health != null) health.InvulnerableCheck = () => true;

@@ -26,6 +26,28 @@ namespace Sealbound.Combat
         PlayerMotor _motor;
         PlayerCombat _combat;
 
+        static readonly List<Shockwave> _active = new List<Shockwave>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => _active.Clear();
+        void OnEnable() { if (!_active.Contains(this)) _active.Add(this); }
+        void OnDisable() => _active.Remove(this);
+
+        /// <summary>Seconds until the nearest ground wave reaches <paramref name="p"/> (for bots to jump it).</summary>
+        public static bool Incoming(Vector3 p, out float timeToHit)
+        {
+            timeToHit = float.MaxValue;
+            foreach (var w in _active)
+            {
+                if (w == null) continue;
+                float d = new Vector2(p.x - w.transform.position.x, p.z - w.transform.position.z).magnitude;
+                if (d < w._radius - 0.3f || d > w.maxRadius) continue;
+                timeToHit = Mathf.Min(timeToHit, Mathf.Max(0f, d - w._radius) / Mathf.Max(0.1f, w.speed));
+            }
+            return timeToHit < float.MaxValue;
+        }
+
+        readonly HashSet<SquadBot> _botsHit = new HashSet<SquadBot>();
+
         public static Shockwave Spawn(Vector3 centre, float speed, float maxRadius, float damage, GameObject source)
         {
             var go = new GameObject("Shockwave");
@@ -43,7 +65,7 @@ namespace Sealbound.Combat
         {
             _mesh = new Mesh { name = "Shockwave Ring" };
             GetComponent<MeshFilter>().sharedMesh = _mesh;
-            _motor = FindAnyObjectByType<PlayerMotor>();
+            _motor = PlayerMotor.Main;
             if (_motor != null)
             {
                 _player = _motor.GetComponent<Health>();
@@ -76,6 +98,19 @@ namespace Sealbound.Combat
                     };
                     if (_player.TryDamage(info, out _)) _motor.Launch(launch);
                     else if (_combat != null) _combat.NotifyDodged();
+                }
+            }
+            // Bot squad mates are caught by the wave the same way.
+            foreach (var bot in SquadBot.All)
+            {
+                if (bot == null || _botsHit.Contains(bot) || bot.IsDown) continue;
+                Vector3 q = bot.transform.position;
+                float d = new Vector2(q.x - transform.position.x, q.z - transform.position.z).magnitude;
+                if (d >= before - 0.6f && d <= _radius + 0.3f && q.y - transform.position.y < height * 0.9f)
+                {
+                    _botsHit.Add(bot);
+                    Vector3 dir = q - transform.position; dir.y = 0f;
+                    bot.TakeHit(damage, dir.sqrMagnitude > 0.01f ? dir.normalized : Vector3.forward, 0.7f, launch, source);
                 }
             }
             if (_radius >= maxRadius) Destroy(gameObject);

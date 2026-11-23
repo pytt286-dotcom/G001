@@ -331,7 +331,7 @@ namespace Sealbound.Enemies
 
         void Start()
         {
-            var m = FindAnyObjectByType<PlayerMotor>();
+            var m = PlayerMotor.Main;
             if (m != null)
             {
                 _player = m.transform;
@@ -699,6 +699,14 @@ namespace Sealbound.Enemies
                 p.armL = Quaternion.Euler(40f, 0f, -18f);
                 p.armR = Quaternion.Euler(40f, 0f, 18f);
                 rate = 20f;
+                foreach (var bot in SquadBot.All)
+                {
+                    if (bot == null || bot.IsDown) continue;
+                    Vector3 br = Flat(bot.transform.position - transform.position);
+                    float bAlong = Vector3.Dot(br, _chargeDir), bSide = Vector3.Cross(_chargeDir, br).y;
+                    if (bAlong > -1f && bAlong < 4.5f && Mathf.Abs(bSide) < 3.2f && bot.transform.position.y < 5f)
+                        bot.TakeHit(chargeDamage, (_chargeDir + Vector3.Cross(Vector3.up, _chargeDir) * Mathf.Sign(bSide == 0f ? 1f : bSide) * 0.8f).normalized, 1f, 7f, gameObject);
+                }
                 if (!_hitDone && PlayerAlive)
                 {
                     Vector3 rel = Flat(_player.position - transform.position);
@@ -947,6 +955,7 @@ namespace Sealbound.Enemies
             Shake(shake * DistanceFalloff(at));
             Play(_boom, 1f);
             DustPuff.Spawn(at, radius, 14);
+            SquadBot.HitCircle(at, radius, at.y + 2.5f, damage, 0.9f, launch, gameObject);
             if (!PlayerAlive) return;
             Vector3 rel = Flat(_player.position - at);
             if (rel.magnitude <= radius + 0.35f && _player.position.y < at.y + 2.5f)

@@ -26,6 +26,10 @@ namespace Sealbound.Player
         public event Action Respawned;
         /// <summary>When true, hits still hurt but no longer knock you back or break your attack (Fortress Stance).</summary>
         public Func<bool> Unstoppable;
+        /// <summary>Hit-stop and camera shake when hurt. Off for bots.</summary>
+        public bool feelEffects = true;
+        /// <summary>Where to get back up. Bots get up beside you; you get up at camp.</summary>
+        public Func<Vector3> RespawnPoint;
 
         PlayerMotor _motor;
         PlayerCombat _combat;
@@ -51,11 +55,12 @@ namespace Sealbound.Player
             if (Health.IsDead) return;
             if (Unstoppable != null && Unstoppable())
             {
-                ThirdPersonCamera.Shake(0.15f + info.Impact * 0.15f);
+                if (feelEffects) ThirdPersonCamera.Shake(0.15f + info.Impact * 0.15f);
                 return;
             }
             _motor.Stagger(info.Direction, knockback * (0.5f + info.Impact), hitStun + info.Impact * 0.2f);
             if (_combat != null) _combat.Interrupt();
+            if (!feelEffects) return;
             HitStop.Trigger(0.05f + info.Impact * 0.05f);
             ThirdPersonCamera.Shake(0.3f + info.Impact * 0.3f);
         }
@@ -92,7 +97,7 @@ namespace Sealbound.Player
         {
             IsDown = false;
             Health.ResetHealth();
-            _motor.Teleport(_spawnPoint);
+            _motor.Teleport(RespawnPoint != null ? RespawnPoint() : _spawnPoint);
             if (_motor.visual != null) _motor.visual.localRotation = Quaternion.identity;
             Respawned?.Invoke();
         }

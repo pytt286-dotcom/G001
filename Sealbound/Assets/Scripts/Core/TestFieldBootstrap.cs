@@ -56,6 +56,11 @@ namespace Sealbound.Core
             var golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
             var hud = Object.FindAnyObjectByType<DebugHud>();
             if (hud != null) { hud.warren = warren; hud.boss = golem; }
+
+            // The bot squad: computer-controlled Sealers built exactly like you. B (d-pad left) changes how many.
+            SquadBot.Factory = (at, mage) => BuildSealer("Bot Sealer", at, true);
+            player.AddComponent<SquadCaller>();
+            SquadBot.SetSquadSize(SquadBot.MaxSquad);
         }
 
         // ---------- World ----------
@@ -143,7 +148,21 @@ namespace Sealbound.Core
 
         static GameObject BuildPlayer(Vector3 position)
         {
-            var player = new GameObject("Sealer Recruit");
+            var player = BuildSealer("Sealer Recruit", position, false);
+            var motor = player.GetComponent<PlayerMotor>();
+            var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
+            hud.motor = motor;
+            hud.combat = player.GetComponent<PlayerCombat>();
+            hud.vitals = player.GetComponent<PlayerVitals>();
+            var loot = hud.gameObject.AddComponent<Sealbound.UI.LootHud>();
+            loot.input = player.GetComponent<PlayerInputReader>();
+            return player;
+        }
+
+        /// <summary>One Sealer: you, or a bot squad mate (same body, movement and combat; a brain presses its buttons).</summary>
+        static GameObject BuildSealer(string name, Vector3 position, bool bot)
+        {
+            var player = new GameObject(name);
             player.layer = 2; // Ignore Raycast, so the camera does not collide with the player
             player.transform.position = position;
 
@@ -160,16 +179,22 @@ namespace Sealbound.Core
             visual.SetParent(player.transform, false);
             visual.gameObject.layer = 2;
 
-            player.AddComponent<PlayerInputReader>();
+            var reader = player.AddComponent<PlayerInputReader>();
+            if (bot) reader.MakeScripted(); // never reads your keyboard, not even for one frame
             var motor = player.AddComponent<PlayerMotor>();
             motor.visual = visual;
-            player.AddComponent<AudioSource>();
-            player.AddComponent<CombatAudio>();
+            motor.isBot = bot;
+            if (!bot)
+            {
+                player.AddComponent<AudioSource>();
+                player.AddComponent<CombatAudio>(); // the beat ticks are yours alone
+            }
             var combat = player.AddComponent<PlayerCombat>();
             var health = player.AddComponent<Health>();
             health.maxHealth = 100f;
             var vitals = player.AddComponent<PlayerVitals>();
-            player.AddComponent<SoulMerge>();
+            if (bot) player.AddComponent<SquadBot>();
+            else player.AddComponent<SoulMerge>();
 
             // Real characters (KayKit Knight and Mage) when the free art is in the project,
             // otherwise the grey-box stand-in.
@@ -194,13 +219,11 @@ namespace Sealbound.Core
             staffPivot.gameObject.SetActive(false);
             combat.swordPivot = swordPivot;
             combat.staffPivot = staffPivot;
-
-            var hud = new GameObject("Debug HUD").AddComponent<DebugHud>();
-            hud.motor = motor;
-            hud.combat = combat;
-            hud.vitals = vitals;
-            var loot = hud.gameObject.AddComponent<Sealbound.UI.LootHud>();
-            loot.input = player.GetComponent<PlayerInputReader>();
+            if (bot)
+            {
+                var heroAvatar = player.GetComponent<PlayerAvatar>();
+                if (heroAvatar == null || !heroAvatar.IsRealistic) ToonOutline.Add(player.GetComponentsInChildren<Renderer>(true));
+            }
             return player;
         }
 

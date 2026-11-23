@@ -310,6 +310,8 @@ Repeatable missions chosen from a **mission board** in the hub.
 - Empty slots are filled by **bot companions**: Sealer squadmates controlled by the computer, each with a class and simple tactics. Players can recruit and upgrade favourite bot companions.
 - Solo players can always finish everything with bots. Nothing is locked behind having friends online.
 
+**In the test field now (Milestone 9):** three bot Sealers join you at the start: two swords and a mage. They keep a loose formation behind you, run to catch up, and join any fight within about 16 m of you, spreading out so they don't all chase one goblin. Goblins sometimes go after them instead of you. Against the golem they step or dodge out of its red warnings and jump its ground wave, though they can still get caught. Your attacks never hurt them. If one falls, it comes back to your side after 6 seconds. Press **B** (d-pad left on a controller) to change the squad: 3, none, 1, 2, then back to 3. Each bot has a name tag and health bar.
+
 ### 9.4 PVP arena
 
 Players fight each other to prove their builds and skill.

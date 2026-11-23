@@ -95,7 +95,7 @@ namespace Sealbound.Enemies
             DustPuff.Spawn(at, radius, 12);
             SealBurst.Spawn(at + Vector3.up * 0.3f, radius * 0.9f, new Color(0.55f, 0.48f, 0.4f));
 
-            var motor = FindAnyObjectByType<PlayerMotor>();
+            var motor = PlayerMotor.Main;
             if (motor != null)
             {
                 Vector3 p = motor.transform.position;
@@ -118,6 +118,7 @@ namespace Sealbound.Enemies
                     }
                 }
             }
+            SquadBot.HitCircle(at, radius, 2.5f, _damage, 0.85f, launch, _owner);
             Destroy(gameObject);
         }
     }
