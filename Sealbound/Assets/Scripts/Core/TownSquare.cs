@@ -57,10 +57,10 @@ namespace Sealbound.Core
         static void MakeMaterials()
         {
             bool real = RealArt.Has;
-            _stone = real ? RealArt.Surface(RealArt.CastleStone, 2.5f, 0.08f) : Shapes.Material(new Color(0.58f, 0.56f, 0.52f), false);
+            _stone = real ? RealArt.Surface(RealArt.CastleStone, 2.5f, 0f) : Shapes.Material(new Color(0.58f, 0.56f, 0.52f), false);
             // Grey flagstones underfoot (the warm block texture read as orange clay), and slate roofs.
-            _paving = real ? RealArt.Surface(RealArt.CastleStone, 1.3f, 0.04f, new Color(0.78f, 0.78f, 0.8f)) : Shapes.Material(new Color(0.5f, 0.49f, 0.48f), false);
-            _roof = real ? RealArt.Surface(RealArt.CastleStone, 0.9f, 0.12f, new Color(0.42f, 0.43f, 0.48f)) : Shapes.Material(new Color(0.3f, 0.3f, 0.33f), false);
+            _paving = real ? RealArt.Surface(RealArt.CastleStone, 1.3f, 0f, new Color(0.78f, 0.78f, 0.8f)) : Shapes.Material(new Color(0.5f, 0.49f, 0.48f), false);
+            _roof = real ? RealArt.Surface(RealArt.CastleStone, 0.9f, 0f, new Color(0.42f, 0.43f, 0.48f)) : Shapes.Material(new Color(0.3f, 0.3f, 0.33f), false);
             _plaster = Lit("Plaster", new Color(0.78f, 0.72f, 0.62f), 0.1f);
             _dark = Lit("Dark wood", new Color(0.16f, 0.11f, 0.08f), 0.15f);
             _glass = Lit("Window", new Color(0.13f, 0.15f, 0.17f), 0.88f);
@@ -285,11 +285,17 @@ namespace Sealbound.Core
         static void Fountain(Transform t, Vector3 at)
         {
             Cyl(t, "Fountain Basin", at + Vector3.up * 0.35f, 5.2f, 0.7f, _stone, true);
-            Cyl(t, "Fountain Rim", at + Vector3.up * 0.72f, 5.5f, 0.08f, _stone);
-            Cyl(t, "Fountain Water", at + Vector3.up * 0.74f, 4.6f, 0.04f, _water);
+            // The water sits just above the basin's top; a ring of coping stones runs round its edge.
+            Cyl(t, "Fountain Water", at + Vector3.up * 0.72f, 4.5f, 0.02f, _water);
+            for (int i = 0; i < 16; i++)
+            {
+                float a = i * 22.5f;
+                Vector3 q = Quaternion.Euler(0f, a, 0f) * Vector3.forward * 2.42f;
+                Box(t, "Fountain Coping", at + q + Vector3.up * 0.79f, new Vector3(1.0f, 0.18f, 0.42f), _stone, false, a);
+            }
             Cyl(t, "Fountain Column", at + Vector3.up * 1.3f, 0.6f, 1.6f, _stone);
             Cyl(t, "Fountain Bowl", at + Vector3.up * 2.1f, 1.9f, 0.22f, _stone);
-            Cyl(t, "Bowl Water", at + Vector3.up * 2.22f, 1.6f, 0.03f, _water);
+            Cyl(t, "Bowl Water", at + Vector3.up * 2.225f, 1.6f, 0.02f, _water);
             Cyl(t, "Fountain Spire", at + Vector3.up * 2.75f, 0.3f, 1.1f, _stone);
             var top = Shapes.Make(PrimitiveType.Sphere, t, "Fountain Finial", at + Vector3.up * 3.4f, Vector3.one * 0.42f, Color.white);
             top.GetComponent<Renderer>().sharedMaterial = _stone;

@@ -400,7 +400,13 @@ namespace Sealbound.Core
                 Vector3 p = town + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
                 if (p.z < town.z - TownSquare.WallHalf && Mathf.Abs(p.x - town.x) < 9f) continue; // the road
                 if (!InWorld(p, 4f) || !IsClear(p, 2f, worldEdge: false)) continue;
-                PlaceTree(forest, p, r < 70f);
+                // Mostly broadleaf trees of modest height: tall pines close by showed only their dark
+                // crowns above the roofs, like scribbles in the sky.
+                float roll = Range(0f, 1f);
+                bool pine = roll < 0.3f && r > 85f;
+                var tree = PlaceNature(forest, pine ? Pick(NaturePines) : roll < 0.95f ? Pick(NatureTrees) : Pick(NatureDead), p,
+                    pine ? Range(10f, 15f) : Range(7f, 11f), 0.15f);
+                if (r < 70f) AddTrunkMetres(tree, 0.5f, 6f);
             }
             for (int i = 0; i < 60; i++)
             {
