@@ -524,8 +524,25 @@ namespace Sealbound.Core
                     float a = i * (360f / 26f) + Range(-5f, 5f);
                     Vector3 p = new Vector3(-20f, 0f, 55f) + Quaternion.Euler(0f, a, 0f) * Vector3.forward * Range(190f, 260f);
                     if (!InWorld(p, 10f)) continue;
-                    var cliff = PlaceScan(horizon, Pick("rock_face_01", "rock_face_02", "boulder_01", "namaqualand_boulder_02"), p, Range(25f, 55f), Range(4f, 10f), 0.3f);
-                    if (cliff != null) cliff.transform.rotation = Quaternion.Euler(0f, a + 180f + Range(-30f, 30f), 0f);
+                    // The cliff scans are open shells, made to be seen from the front: from behind they break up
+                    // into black slivers. Leave out the ones the town would see from behind.
+                    string slug = Pick("rock_face_01", "rock_face_02", "boulder_01", "namaqualand_boulder_02");
+                    float size = Range(25f, 55f), sink = Range(4f, 10f);
+                    Vector3 faceDir = Quaternion.Euler(0f, a + 180f, 0f) * Vector3.forward, toTown = TownSquare.Centre - p;
+                    toTown.y = 0f;
+                    if (toTown.magnitude < 440f && Vector3.Dot(faceDir, toTown.normalized) < 0.25f) continue;
+                    var cliff = PlaceScan(horizon, slug, p, size, sink, 0.3f);
+                    if (cliff == null) continue;
+                    cliff.transform.rotation = Quaternion.Euler(0f, a + 180f + Range(-30f, 30f), 0f);
+                    // On a hillside, rest it on the lowest ground under it so no edge hangs in the air.
+                    var b = ArtLibrary.WorldBounds(cliff);
+                    float low = float.MaxValue;
+                    for (int k = 0; k < 9; k++)
+                    {
+                        Vector3 q = new Vector3(b.center.x + b.extents.x * ((k % 3) - 1) * 0.8f, 0f, b.center.z + b.extents.z * ((k / 3) - 1) * 0.8f);
+                        low = Mathf.Min(low, Landscape.HeightAt(q));
+                    }
+                    ArtLibrary.SetBottom(cliff, low - sink);
                 }
                 return;
             }
