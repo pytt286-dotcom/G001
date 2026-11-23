@@ -25,7 +25,7 @@ namespace Sealbound.Core
         static Material _stone, _paving, _plaster, _roof, _dark, _timber, _water, _glass, _red, _blue, _gold, _parchment;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _stone = _paving = _plaster = _roof = _dark = _timber = _water = _glass = _red = _blue = _gold = _parchment = null; }
+        static void ResetStatics() { _stone = _paving = _plaster = _roof = _dark = _timber = _water = _glass = _red = _blue = _gold = _parchment = _ink = null; }
 
         public static Transform Build(Transform parent)
         {
@@ -58,13 +58,14 @@ namespace Sealbound.Core
         {
             bool real = RealArt.Has;
             _stone = real ? RealArt.Surface(RealArt.CastleStone, 2.5f, 0.08f) : Shapes.Material(new Color(0.58f, 0.56f, 0.52f), false);
-            _paving = real ? RealArt.Surface(RealArt.Blocks, 2.2f, 0f, new Color(0.85f, 0.83f, 0.8f)) : Shapes.Material(new Color(0.5f, 0.48f, 0.45f), false);
-            _roof = real ? RealArt.Surface(RealArt.DarkRock, 1.4f, 0f, new Color(0.62f, 0.55f, 0.52f)) : Shapes.Material(new Color(0.32f, 0.23f, 0.2f), false);
+            // Grey flagstones underfoot (the warm block texture read as orange clay), and slate roofs.
+            _paving = real ? RealArt.Surface(RealArt.CastleStone, 1.3f, 0.04f, new Color(0.78f, 0.78f, 0.8f)) : Shapes.Material(new Color(0.5f, 0.49f, 0.48f), false);
+            _roof = real ? RealArt.Surface(RealArt.CastleStone, 0.9f, 0.12f, new Color(0.42f, 0.43f, 0.48f)) : Shapes.Material(new Color(0.3f, 0.3f, 0.33f), false);
             _plaster = Lit("Plaster", new Color(0.78f, 0.72f, 0.62f), 0.1f);
             _dark = Lit("Dark wood", new Color(0.16f, 0.11f, 0.08f), 0.15f);
-            _glass = Lit("Window", new Color(0.06f, 0.07f, 0.08f), 0.85f);
+            _glass = Lit("Window", new Color(0.13f, 0.15f, 0.17f), 0.88f);
             _timber = ForgedWeapons.Timber();
-            _water = Lit("Water", new Color(0.1f, 0.17f, 0.2f), 0.96f);
+            _water = Lit("Water", new Color(0.24f, 0.36f, 0.38f), 0.75f);
             _red = Lit("Red cloth", new Color(0.42f, 0.07f, 0.06f), 0.1f);
             _blue = Lit("Blue cloth", new Color(0.09f, 0.14f, 0.33f), 0.1f);
             _gold = Lit("Gold thread", new Color(0.78f, 0.6f, 0.25f), 0.4f, 0.7f);
@@ -160,8 +161,10 @@ namespace Sealbound.Core
                 Box(t, "Banner Pole", new Vector3(s * 4.3f, 6.25f, -e + 1.46f), new Vector3(1.5f, 0.08f, 0.08f), _timber);
             }
             Box(t, "Gate Arch", new Vector3(0f, 6.2f, -e), new Vector3(6.0f, 2.0f, 2.4f), _stone, true);
-            Box(t, "Gate Door", new Vector3(-1.5f, 2.6f, -e - 0.2f), new Vector3(3f, 5.2f, 0.3f), _dark, true);
-            Box(t, "Gate Door", new Vector3(1.5f, 2.6f, -e - 0.2f), new Vector3(3f, 5.2f, 0.3f), _dark, true);
+            Box(t, "Gate Door", new Vector3(-1.5f, 2.6f, -e - 0.2f), new Vector3(3f, 5.2f, 0.3f), _timber, true);
+            Box(t, "Gate Door", new Vector3(1.5f, 2.6f, -e - 0.2f), new Vector3(3f, 5.2f, 0.3f), _timber, true);
+            for (int pl = -2; pl <= 2; pl++)
+                Box(t, "Door Plank Line", new Vector3(pl * 1.15f, 2.6f, -e - 0.04f), new Vector3(0.05f, 5.1f, 0.04f), _dark);
             for (int b = 0; b < 3; b++)
                 Box(t, "Door Band", new Vector3(0f, 0.9f + b * 1.7f, -e - 0.02f), new Vector3(5.8f, 0.14f, 0.06f), Shapes.Material(new Color(0.2f, 0.2f, 0.21f), false));
         }
@@ -197,6 +200,7 @@ namespace Sealbound.Core
 
             const float baseH = 3.2f;
             Box(h, "Ground Floor", new Vector3(0f, baseH / 2f, 0f), new Vector3(w, baseH, d), _stone, true);
+            Box(h, "Plinth", new Vector3(0f, 0.25f, 0f), new Vector3(w + 0.16f, 0.5f, d + 0.16f), _roof);
             float front = d / 2f;
             // A door and a window or two.
             float doorX = (float)(rng.NextDouble() - 0.5) * (w - 3f);
@@ -206,6 +210,8 @@ namespace Sealbound.Core
             {
                 if (Mathf.Abs(x - doorX) < 1.5f) continue;
                 Box(h, "Window", new Vector3(x, 1.65f, front + 0.04f), new Vector3(0.8f, 1f, 0.08f), _glass);
+                Box(h, "Window Head", new Vector3(x, 2.2f, front + 0.08f), new Vector3(1f, 0.12f, 0.14f), _timber);
+                Box(h, "Mullion", new Vector3(x, 1.65f, front + 0.09f), new Vector3(0.06f, 1f, 0.04f), _timber);
                 Box(h, "Sill", new Vector3(x, 1.1f, front + 0.1f), new Vector3(1f, 0.1f, 0.16f), _timber);
                 Box(h, "Shutter", new Vector3(x - 0.62f, 1.65f, front + 0.06f), new Vector3(0.42f, 1.05f, 0.06f), _dark);
             }
@@ -226,7 +232,14 @@ namespace Sealbound.Core
                     float x = -w / 2f - 0.05f + i * (w + 0.1f) / posts;
                     Box(h, "Post", new Vector3(x, baseH + upH / 2f, f2), new Vector3(0.18f, upH, 0.1f), _timber);
                     if (i < posts && i % 2 == 1)
-                        Box(h, "Window", new Vector3(x + (w + 0.1f) / posts / 2f, baseH + 1.45f, f2 - 0.02f), new Vector3(0.7f, 0.9f, 0.06f), _glass);
+                    {
+                        float wx = x + (w + 0.1f) / posts / 2f;
+                        Box(h, "Window", new Vector3(wx, baseH + 1.45f, f2 - 0.02f), new Vector3(0.7f, 0.9f, 0.06f), _glass);
+                        Box(h, "Window Frame", new Vector3(wx, baseH + 1.93f, f2 + 0.01f), new Vector3(0.86f, 0.1f, 0.1f), _timber);
+                        Box(h, "Window Frame", new Vector3(wx, baseH + 0.97f, f2 + 0.03f), new Vector3(0.95f, 0.1f, 0.16f), _timber);
+                        Box(h, "Mullion", new Vector3(wx, baseH + 1.45f, f2 + 0.01f), new Vector3(0.06f, 0.9f, 0.06f), _timber);
+                        Box(h, "Transom", new Vector3(wx, baseH + 1.5f, f2 + 0.01f), new Vector3(0.7f, 0.05f, 0.06f), _timber);
+                    }
                 }
                 for (int s = -1; s <= 1; s += 2)
                 {
@@ -250,6 +263,14 @@ namespace Sealbound.Core
             {
                 var gable = Box(h, "Gable", new Vector3(s * (w / 2f - 0.12f), top, zc), new Vector3(0.24f, g, g), twoStorey ? _plaster : _stone);
                 gable.transform.localRotation = Quaternion.Euler(45f, 0f, 0f);
+                if (twoStorey)
+                {
+                    // Timber framing on the side walls too, so the plaster isn't a blank slab.
+                    Box(h, "King Post", new Vector3(s * (w / 2f + 0.02f), top + hd * 0.42f, zc), new Vector3(0.1f, hd * 0.84f, 0.16f), _timber);
+                    Box(h, "Side Rail", new Vector3(s * (w / 2f + 0.17f), top - 0.1f, 0.15f), new Vector3(0.1f, 0.2f, body + 0.05f), _timber);
+                    for (int k = -1; k <= 1; k++)
+                        Box(h, "Side Post", new Vector3(s * (w / 2f + 0.17f), top - 1.4f, 0.15f + k * body * 0.42f), new Vector3(0.1f, 2.8f, 0.16f), _timber);
+                }
             }
             if (rng.NextDouble() < 0.6)
                 Box(h, "Chimney", new Vector3((float)(rng.NextDouble() - 0.5) * (w - 2f), top + hd * 0.75f, zc - hd * 0.35f), new Vector3(0.75f, hd * 1.2f, 0.75f), _stone, true);
@@ -338,6 +359,8 @@ namespace Sealbound.Core
         internal static Material ParchmentMaterial { get { if (_parchment == null) MakeMaterials(); return _parchment; } }
         internal static Material TimberMaterial => ForgedWeapons.Timber();
         internal static Material DarkMaterial { get { if (_dark == null) MakeMaterials(); return _dark; } }
+        internal static Material InkMaterial => _ink != null ? _ink : (_ink = Lit("Ink", new Color(0.12f, 0.09f, 0.07f), 0.05f));
+        static Material _ink;
         internal static Material RedMaterial { get { if (_red == null) MakeMaterials(); return _red; } }
         internal static Material StoneMaterial { get { if (_stone == null) MakeMaterials(); return _stone; } }
         internal static GameObject MakeBox(Transform parent, string name, Vector3 pos, Vector3 size, Material m, bool solid = false) => Box(parent, name, pos, size, m, solid);
@@ -384,7 +407,7 @@ namespace Sealbound.Core
             var wood = TownSquare.TimberMaterial;
             for (int s = -1; s <= 1; s += 2)
                 TownSquare.MakeBox(t, "Board Post", new Vector3(s * 1.35f, 1.35f, 0f), new Vector3(0.18f, 2.7f, 0.18f), wood, true);
-            TownSquare.MakeBox(t, "Board", new Vector3(0f, 1.6f, 0f), new Vector3(2.6f, 1.5f, 0.1f), TownSquare.DarkMaterial, true);
+            TownSquare.MakeBox(t, "Board", new Vector3(0f, 1.6f, 0f), new Vector3(2.6f, 1.5f, 0.1f), wood, true);
             TownSquare.MakeBox(t, "Board Frame", new Vector3(0f, 2.38f, 0.02f), new Vector3(2.8f, 0.12f, 0.16f), wood);
             TownSquare.MakeBox(t, "Board Frame", new Vector3(0f, 0.83f, 0.02f), new Vector3(2.8f, 0.12f, 0.16f), wood);
             for (int s = -1; s <= 1; s += 2)
@@ -396,6 +419,15 @@ namespace Sealbound.Core
             var paper = TownSquare.ParchmentMaterial;
             var main = TownSquare.MakeBox(t, "Mission Notice", new Vector3(-0.35f, 1.62f, 0.065f), new Vector3(0.62f, 0.8f, 0.01f), paper);
             main.transform.localRotation = Quaternion.Euler(0f, 0f, -2f);
+            var ink = TownSquare.InkMaterial;
+            TownSquare.MakeBox(t, "Notice Heading", new Vector3(-0.35f, 1.9f, 0.072f), new Vector3(0.42f, 0.05f, 0.004f), ink);
+            for (int l = 0; l < 6; l++)
+                TownSquare.MakeBox(t, "Notice Writing", new Vector3(-0.35f + (l % 3 == 2 ? -0.06f : 0f), 1.8f - l * 0.065f, 0.072f), new Vector3(l % 3 == 2 ? 0.36f : 0.48f, 0.018f, 0.004f), ink);
+            // A rough sketch of the golem: a big body, two arms, a head.
+            TownSquare.MakeBox(t, "Notice Sketch", new Vector3(-0.35f, 1.45f, 0.072f), new Vector3(0.14f, 0.16f, 0.004f), ink);
+            TownSquare.MakeBox(t, "Notice Sketch", new Vector3(-0.35f, 1.56f, 0.072f), new Vector3(0.06f, 0.05f, 0.004f), ink);
+            TownSquare.MakeBox(t, "Notice Sketch", new Vector3(-0.45f, 1.43f, 0.072f), new Vector3(0.04f, 0.14f, 0.004f), ink);
+            TownSquare.MakeBox(t, "Notice Sketch", new Vector3(-0.25f, 1.43f, 0.072f), new Vector3(0.04f, 0.14f, 0.004f), ink);
             var seal = Shapes.Make(PrimitiveType.Sphere, t, "Wax Seal", new Vector3(-0.35f, 1.32f, 0.075f), new Vector3(0.11f, 0.11f, 0.02f), Color.white);
             seal.GetComponent<Renderer>().sharedMaterial = TownSquare.RedMaterial;
             Vector3[] small = { new Vector3(0.45f, 1.85f, 0.065f), new Vector3(0.85f, 1.45f, 0.065f), new Vector3(0.35f, 1.25f, 0.065f), new Vector3(-0.95f, 1.9f, 0.065f), new Vector3(-0.9f, 1.25f, 0.065f) };
@@ -403,9 +435,22 @@ namespace Sealbound.Core
             {
                 var n = TownSquare.MakeBox(t, "Notice", small[i], new Vector3(0.36f, 0.46f, 0.008f), paper);
                 n.transform.localRotation = Quaternion.Euler(0f, 0f, (i % 2 == 0 ? 1f : -1f) * (2f + i * 1.3f));
+                for (int l = 0; l < 4; l++)
+                {
+                    var line = TownSquare.MakeBox(n.transform, "Writing", new Vector3(0f, 0.3f - l * 0.17f, 0.9f), new Vector3(l == 3 ? 0.5f : 0.8f, 0.04f, 0.4f), ink);
+                    line.transform.localRotation = Quaternion.identity;
+                }
             }
             // A small lantern hanging from the roof, lit even by day.
             Glow.Make(t, new Vector3(1.15f, 2.45f, 0.35f), 0.5f, new Color(2.2f, 1.3f, 0.5f, 0.8f));
+            var lamp = new GameObject("Board Lamp").AddComponent<Light>(); // so the notices can be read in the board's shade
+            lamp.transform.SetParent(t, false);
+            lamp.transform.localPosition = new Vector3(0f, 2.3f, 0.9f);
+            lamp.type = LightType.Point;
+            lamp.color = new Color(1f, 0.86f, 0.65f);
+            lamp.range = 3.2f;
+            lamp.intensity = 1.4f;
+            lamp.shadows = LightShadows.None;
             return b;
         }
     }

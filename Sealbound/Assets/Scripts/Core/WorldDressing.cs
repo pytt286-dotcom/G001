@@ -390,6 +390,28 @@ namespace Sealbound.Core
                 if (!InWorld(p, 4f) || !IsClear(p, 5f, worldEdge: false)) continue;
                 PlaceTree(forest, p, r < 120f);
             }
+            // Woods round the town square, thinning toward the walls, with a clear road out of the gate.
+            Vector3 town = TownSquare.Centre;
+            var fieldRng = _rng;
+            _rng = new System.Random(5150); // its own dice, so the field's forest stays as it was
+            for (int i = 0; i < 260; i++)
+            {
+                float r = Mathf.Lerp(TownSquare.ClearRadius + 3f, 140f, Mathf.Pow(Range(0f, 1f), 0.8f));
+                Vector3 p = town + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
+                if (p.z < town.z - TownSquare.WallHalf && Mathf.Abs(p.x - town.x) < 9f) continue; // the road
+                if (!InWorld(p, 4f) || !IsClear(p, 2f, worldEdge: false)) continue;
+                PlaceTree(forest, p, r < 70f);
+            }
+            for (int i = 0; i < 60; i++)
+            {
+                float r = Range(TownSquare.ClearRadius, 70f);
+                Vector3 p = town + Quaternion.Euler(0f, Range(0f, 360f), 0f) * Vector3.forward * r;
+                if (p.z < town.z - TownSquare.WallHalf && Mathf.Abs(p.x - town.x) < 6f) continue;
+                if (!InWorld(p, 2f) || !IsClear(p, 1f, worldEdge: false)) continue;
+                PlaceNature(forest, Pick(NatureBushes), p, Range(0.6f, 1.4f), 0.05f);
+            }
+            _rng = fieldRng;
+
             // Clumps of trees closer in, so the field has shape.
             for (int c = 0; c < 9; c++)
             {

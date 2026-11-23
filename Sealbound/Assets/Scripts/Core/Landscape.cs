@@ -156,6 +156,12 @@ namespace Sealbound.Core
                     if (w.z > -44f && w.z < 124f) trail = Mathf.Clamp01((3.4f - Mathf.Abs(w.x - wobble)) / 1.6f);
                     float arena = Mathf.Clamp01((16f - new Vector2(w.x, w.z - 70f).magnitude) / 4f) * (0.55f + 0.45f * patches);
                     float yard = (w.x > -3f && w.x < 17f && w.z > -17f && w.z < 1f) ? 0.85f : 0f;
+                    // The road out of the town gate, and the trodden ground round the walls.
+                    float roadWobble = (Mathf.PerlinNoise(w.z * 0.05f, 11f) - 0.5f) * 3f;
+                    if (w.z < TownSquare.Centre.z - TownSquare.WallHalf && w.z > TownSquare.Centre.z - 150f)
+                        yard = Mathf.Max(yard, Mathf.Clamp01((3f - Mathf.Abs(w.x - TownSquare.Centre.x - roadWobble)) / 1.4f));
+                    float townRing = Mathf.Max(Mathf.Abs(w.x - TownSquare.Centre.x), Mathf.Abs(w.z - TownSquare.Centre.z));
+                    if (townRing < TownSquare.WallHalf + 4f) yard = Mathf.Max(yard, Mathf.Clamp01((TownSquare.WallHalf + 4f - townRing) / 3f) * (0.5f + 0.4f * patches));
                     trail = Mathf.Max(trail, Mathf.Max(arena, yard));
                     float warren = Mathf.Clamp01((18f - new Vector2(w.x + 45f, w.z + 15f).magnitude) / 5f);
                     forest = Mathf.Max(forest, warren);

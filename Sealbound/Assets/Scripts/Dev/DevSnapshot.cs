@@ -561,6 +561,7 @@ namespace Sealbound.Dev
             while (Time.realtimeSinceStartup - t0 < 2f) { frames++; yield return null; }
             Line($"Frame rate in town with the squad: {frames / 2f:0} fps");
             Shot("31_town_square", c + new Vector3(0f, 9f, -21f), c + new Vector3(0f, 1.5f, 4f), 62f);
+            DescribeSkyline(c + new Vector3(0f, 9f, -21f), c + new Vector3(0f, 1.5f, 4f), 62f);
             Shot("31b_town_north_side", c + new Vector3(-5f, 2.2f, -3f), c + new Vector3(5f, 3.5f, 19f), 60f);
             Shot("31c_town_toward_gate", c + new Vector3(3f, 2.4f, 8f), c + new Vector3(-2f, 2.2f, -20f), 60f);
             Shot("31d_town_from_above", c + new Vector3(34f, 30f, -40f), c + Vector3.up * 2f, 50f);
@@ -617,7 +618,7 @@ namespace Sealbound.Dev
             if (d.Circle != null)
             {
                 Vector3 cp = d.Circle.transform.position;
-                Shot("34_return_circle", cp + new Vector3(5f, 3f, -7f), cp + Vector3.up * 1.2f, 55f);
+                Shot("34_return_circle", Unblocked(cp + new Vector3(5f, 3f, -7f), cp + Vector3.up * 1.2f), cp + Vector3.up * 1.2f, 55f);
                 Shot("34b_return_circle_and_ruins", cp + new Vector3(-3f, 2.2f, -10f), cp + new Vector3(0f, 2f, 10f), 60f);
                 motor.Teleport(cp + Vector3.up * 0.2f);
                 wait = 0f;
@@ -763,6 +764,43 @@ namespace Sealbound.Dev
         {
             var m = target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             if (m != null) m.Invoke(target, args);
+        }
+
+        /// <summary>Lists what stands high in a picture's sky (outside the town), to track down odd dark shapes there.</summary>
+        void DescribeSkyline(Vector3 from, Vector3 lookAt, float fov)
+        {
+            var go = new GameObject("Skyline Probe");
+            var cam = go.AddComponent<Camera>();
+            cam.enabled = false;
+            cam.transform.position = from;
+            cam.transform.rotation = Quaternion.LookRotation(lookAt - from);
+            cam.fieldOfView = fov;
+            cam.aspect = 16f / 9f;
+            var planes = GeometryUtility.CalculateFrustumPlanes(cam);
+            var hits = new List<KeyValuePair<float, string>>();
+            foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
+                var b = r.bounds;
+                if (b.max.y < 11f || !GeometryUtility.TestPlanesAABB(planes, b)) continue;
+                if (IsUnder(r.transform, "Town Square")) continue;
+                if (r is ParticleSystemRenderer || r is TrailRenderer) { hits.Add(new KeyValuePair<float, string>(0f, $"{r.GetType().Name} {r.name}")); continue; }
+                float dist = Vector3.Distance(from, b.center);
+                Vector3 sp = cam.WorldToViewportPoint(b.center);
+                var m = r.sharedMaterial;
+                hits.Add(new KeyValuePair<float, string>(dist, $"{r.name} (parent {r.transform.parent?.name}, {dist:0} m, top {b.max.y:0} m, at screen {sp.x:0.00},{sp.y:0.00}, material {(m != null ? m.name + "/" + m.shader.name : "none")})"));
+            }
+            hits.Sort((a, b2) => a.Key.CompareTo(b2.Key));
+            var sb = new StringBuilder();
+            for (int i = 0; i < hits.Count && i < 25; i++) sb.Append(hits[i].Value).Append(" | ");
+            Line($"Tall things in the town picture's view ({hits.Count}): {sb}");
+            Destroy(go);
+        }
+
+        static bool IsUnder(Transform t, string name)
+        {
+            for (var x = t; x != null; x = x.parent) if (x.name == name) return true;
+            return false;
         }
 
         /// <summary>Moves a camera spot in toward what it looks at until no wall or ruin is in the way.</summary>
