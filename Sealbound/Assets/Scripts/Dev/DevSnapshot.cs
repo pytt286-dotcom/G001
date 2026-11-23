@@ -72,6 +72,7 @@ namespace Sealbound.Dev
             DescribeMaterials(p.gameObject, "Weapon Model");
             Line("Sword equipped from the save: \"" + Sealbound.Loot.Inventory.EquippedWeapon(true) + "\", staff: \"" + Sealbound.Loot.Inventory.EquippedWeapon(false) + "\"");
             foreach (var part in new[] { "Blade", "Rune Channel", "Rune Cut", "Crossguard" }) DescribeMaterials(p.gameObject, part);
+            Line("Sword cue: whole weapon flashes " + (combat != null && combat.swordCueIsWeapon));
             ShotMain("02_gameplay_view");
 
             // Mid-swing of the first sword attack.
@@ -279,6 +280,9 @@ namespace Sealbound.Dev
             if (combat != null) CallPrivate(combat, "EquipKit", combat.swordKit, false);
             yield return new WaitForSeconds(0.6f);
             DescribeMaterials(p.gameObject, "Weapon Model");
+            Line("Runestone Blade in hand: whole weapon flashes " + (combat != null && combat.swordCueIsWeapon) + " (should be False)");
+            DescribeMaterials(p.gameObject, "Rune Channel");
+            Shot("21a_runestone_hero_front", p.position + p.forward * 3.2f + Vector3.up * 1.5f, p.position + Vector3.up * 0.95f, 40f);
             Shot("21_runestone_blade", p.position + p.forward * 1.9f + p.right * 0.9f + Vector3.up * 1.4f, p.position + p.right * 0.25f + Vector3.up * 1.05f, 45f);
             if (combat != null)
             {
@@ -496,8 +500,9 @@ namespace Sealbound.Dev
                     Vector3 away = c - golem.transform.position; away.y = 0f;
                     away = away.sqrMagnitude > 0.01f ? away.normalized : -golem.transform.forward;
                     Vector3 from = c + away * 9f + Quaternion.Euler(0f, 90f, 0f) * away * 3f;
-                    from.y = c.y + 5f;
-                    Shot("29_squad_vs_golem", from, Vector3.Lerp(c, golem.transform.position, 0.35f) + Vector3.up * 1.5f, 60f);
+                    from.y = c.y + 6f;
+                    Vector3 look = Vector3.Lerp(c, golem.transform.position, 0.35f) + Vector3.up * 1.5f;
+                    Shot("29_squad_vs_golem", Unblocked(from, look), look, 60f);
                     shotFight = true;
                 }
                 if (!shotWarning && watch > 3f && Sealbound.Combat.GroundWarning.ActiveCount > 0 && warningFrames > 10)
@@ -648,6 +653,22 @@ namespace Sealbound.Dev
         {
             var m = target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             if (m != null) m.Invoke(target, args);
+        }
+
+        /// <summary>Moves a camera spot in toward what it looks at until no wall or ruin is in the way.</summary>
+        static Vector3 Unblocked(Vector3 from, Vector3 lookAt)
+        {
+            Vector3 d = from - lookAt;
+            float dist = d.magnitude;
+            if (dist < 0.1f) return from;
+            d /= dist;
+            float best = dist;
+            foreach (var h in Physics.RaycastAll(lookAt, d, dist, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (h.collider.GetComponentInParent<PlayerMotor>() != null || h.collider.GetComponentInParent<BastionGolem>() != null) continue;
+                best = Mathf.Min(best, h.distance - 0.6f);
+            }
+            return lookAt + d * Mathf.Max(1.5f, best);
         }
 
         void ShotMain(string name)

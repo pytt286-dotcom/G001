@@ -204,7 +204,7 @@ namespace Sealbound.Core
             if (avatar != null)
             {
                 combat.swordCueRenderer = avatar.CueRenderer(true);
-                combat.swordCueIsWeapon = true;
+                combat.swordCueIsWeapon = avatar.CueIsWholeWeapon(true); // a forged blade glows along its rune instead
                 combat.staffCueRenderer = avatar.CueRenderer(false);
             }
             else

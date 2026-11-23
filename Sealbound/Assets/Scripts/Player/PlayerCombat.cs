@@ -96,7 +96,8 @@ namespace Sealbound.Player
         Transform _weapon;
         TrailRenderer _trail;
         Material _cueMaterial;
-        Color _cueBase;
+        readonly System.Collections.Generic.Dictionary<Material, Color> _cueRestGlow = new System.Collections.Generic.Dictionary<Material, Color>();
+        Color _cueBase, _cueGlow; // the cue's own colour and glow at rest (a forged rune keeps its blue light)
         bool _cueWhole;
         float _cueFlash;
 
@@ -160,6 +161,11 @@ namespace Sealbound.Player
             {
                 _cueMaterial = cue.material;
                 _cueBase = _cueMaterial.color;
+                if (!_cueRestGlow.TryGetValue(_cueMaterial, out _cueGlow))
+                {
+                    _cueGlow = _cueMaterial.HasProperty("_EmissionColor") ? _cueMaterial.GetColor("_EmissionColor") : Color.black;
+                    _cueRestGlow[_cueMaterial] = _cueGlow; // remembered once, before any beat flash changes it
+                }
                 _cueMaterial.EnableKeyword("_EMISSION");
             }
             if (announce) Feedback?.Invoke(kit.className.ToUpperInvariant(), LinkColor);
@@ -618,7 +624,8 @@ namespace Sealbound.Player
             }
             Color glow = FocusFull ? PerfectColor : _cueBase;
             _cueMaterial.color = Color.Lerp(glow, Color.white, _cueFlash);
-            _cueMaterial.SetColor("_EmissionColor", Color.Lerp(glow * 0.45f, Color.white * 1.6f, _cueFlash)); // strong enough to read, not a blinding blob
+            Color rest = !FocusFull && _cueGlow.maxColorComponent > 0.05f ? _cueGlow : glow * 0.45f;
+            _cueMaterial.SetColor("_EmissionColor", Color.Lerp(rest, Color.white * 1.6f, _cueFlash)); // strong enough to read, not a blinding blob
         }
     }
 }

@@ -154,6 +154,9 @@ namespace Sealbound.Loot
             if (_counts != null) return;
             _counts = new Dictionary<string, int>();
             _pity = new Dictionary<string, int>();
+            // A play check starts with an empty pack, whatever the real save holds, so every run is the same.
+            if (!InMemoryOnly && Array.IndexOf(Environment.GetCommandLineArgs(), "-executeMethod") >= 0
+                && Array.IndexOf(Environment.GetCommandLineArgs(), "Sealbound.EditorTools.PlayCheck.Run") >= 0) InMemoryOnly = true;
             if (InMemoryOnly) return;
             try
             {

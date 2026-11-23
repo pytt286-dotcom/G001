@@ -166,7 +166,7 @@ namespace Sealbound.Player
             if (b.root != null) Shapes.SetLayerRecursive(b.pivot.gameObject, 2);
             if (_combat != null)
             {
-                if (sword) _combat.swordCueRenderer = CueRenderer(true);
+                if (sword) { _combat.swordCueRenderer = CueRenderer(true); _combat.swordCueIsWeapon = CueIsWholeWeapon(true); }
                 else _combat.staffCueRenderer = CueRenderer(false);
                 _combat.RefreshWeapon();
             }
@@ -261,6 +261,13 @@ namespace Sealbound.Player
         }
 
         /// <summary>The renderer that flashes on the beat: the sword itself, or the staff's ember.</summary>
+        /// <summary>Does the whole weapon flash on the beat (a plain sword), or only a glowing part of it (a forged blade's rune)?</summary>
+        public bool CueIsWholeWeapon(bool sword)
+        {
+            var b = sword ? _swordBody : _mageBody;
+            return b != null && b.weapon != null && b.weapon.Find("Rune Channel") == null && b.weapon.Find("Ember Orb") == null;
+        }
+
         public Renderer CueRenderer(bool sword)
         {
             var b = sword ? _swordBody : _mageBody;
