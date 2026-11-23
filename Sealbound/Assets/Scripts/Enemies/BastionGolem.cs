@@ -1217,8 +1217,15 @@ namespace Sealbound.Enemies
         Vector3 _at;
         float _yaw, _wait;
 
+        /// <summary>Off while missions are in charge: each mission sets out with a fresh golem instead.</summary>
+        public static bool Enabled = true;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { Enabled = true; }
+
         public static void Schedule(Vector3 at, float yaw, float seconds)
         {
+            if (!Enabled) return;
             var r = new GameObject("Golem Respawner").AddComponent<GolemRespawner>();
             r._at = at;
             r._yaw = yaw;

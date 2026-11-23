@@ -142,6 +142,7 @@ namespace Sealbound.Dev
             yield return ForgeTour(motor);
             yield return SoulMergeTour(motor);
             yield return SquadTour(motor);
+            yield return MissionTour(motor);
             DescribeAmbientOcclusion();
             Finish();
         }
@@ -534,6 +535,115 @@ namespace Sealbound.Dev
                 counts.Append($"{n}: {SquadBot.All.Count} listed, {live} in the world ({names}) | ");
             }
             Line("Squad sizes: " + counts);
+        }
+
+
+        /// <summary>The town square, the mission board, setting out, sealing the golem, going home through the circle; then giving a mission up at the waystone.</summary>
+        IEnumerator MissionTour(PlayerMotor motor)
+        {
+            var d = Sealbound.Core.MissionDirector.Instance;
+            Line("Mission director found: " + (d != null) + ", board: " + (Sealbound.Core.MissionBoard.Instance != null) + ", waystone: " + (Sealbound.Core.Waystone.Instance != null));
+            if (d == null || Sealbound.Core.MissionBoard.Instance == null || Sealbound.Core.Waystone.Instance == null) yield break;
+            var p = motor.transform;
+            var health = motor.GetComponent<Sealbound.Combat.Health>();
+            if (health != null) health.InvulnerableCheck = () => true;
+            if (SquadBot.All.Count < SquadBot.MaxSquad) SquadBot.SetSquadSize(SquadBot.MaxSquad);
+
+            // Town.
+            Vector3 c = Sealbound.Core.TownSquare.Centre;
+            motor.Teleport(Sealbound.Core.TownSquare.SpawnPoint);
+            motor.FaceDirection(Vector3.forward);
+            SquadBot.GatherAround(motor);
+            Sealbound.CameraRig.ThirdPersonCamera.SnapToTarget();
+            yield return new WaitForSeconds(1.5f);
+            Line($"In town: {d.PlayerInTown}, state {d.Current}, ground height {Sealbound.Core.Landscape.HeightAt(c):0.00}, player height {p.position.y:0.00}; {SquadState()}");
+            int frames = 0; float t0 = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - t0 < 2f) { frames++; yield return null; }
+            Line($"Frame rate in town with the squad: {frames / 2f:0} fps");
+            Shot("31_town_square", c + new Vector3(0f, 9f, -21f), c + new Vector3(0f, 1.5f, 4f), 62f);
+            Shot("31b_town_north_side", c + new Vector3(-5f, 2.2f, -3f), c + new Vector3(5f, 3.5f, 19f), 60f);
+            Shot("31c_town_toward_gate", c + new Vector3(3f, 2.4f, 8f), c + new Vector3(-2f, 2.2f, -20f), 60f);
+            Shot("31d_town_from_above", c + new Vector3(34f, 30f, -40f), c + Vector3.up * 2f, 50f);
+            Shot("31e_town_forge_shrine", c + new Vector3(0f, 3f, -9f), c + new Vector3(0f, 1.5f, 3f), 75f);
+            yield return null;
+            ShotMain("31f_town_gameplay_view");
+
+            // The board.
+            var board = Sealbound.Core.MissionBoard.Instance;
+            Vector3 bp = board.transform.position, bf = board.transform.forward, br = board.transform.right;
+            motor.Teleport(bp + bf * 2f + Vector3.up * 0.15f);
+            motor.FaceDirection(-bf);
+            yield return new WaitForSeconds(0.5f);
+            Line($"At the board: in reach {board.InReach}");
+            Shot("32_mission_board", bp + bf * 2.8f + br * 0.9f + Vector3.up * 1.7f, bp + Vector3.up * 1.6f, 45f);
+            Shot("32b_board_close", bp + bf * 1.5f + Vector3.up * 1.6f, bp + Vector3.up * 1.6f, 45f);
+
+            // Set out.
+            var oldGolem = FindAnyObjectByType<BastionGolem>();
+            Line($"Before setting out: golem {(oldGolem != null ? oldGolem.CurrentState + " " + oldGolem.HealthFraction.ToString("P0") : "none")}");
+            bool first = d.SetOut(), second = d.SetOut();
+            Line($"Set out: {first}, again at once: {second} (should be False)");
+            float wait = 0f;
+            while (d.Current != Sealbound.Core.MissionDirector.State.Active && wait < 5f) { wait += Time.deltaTime; yield return null; }
+            yield return new WaitForSeconds(1.2f);
+            var golem = FindAnyObjectByType<BastionGolem>();
+            Line($"After setting out ({wait:0.0}s): state {d.Current}, in town {d.PlayerInTown}, {Vector3.Distance(p.position, Sealbound.Core.MissionDirector.Camp):0.0} m from camp, fade {d.Fade:0.00}; " +
+                 $"golem {(golem != null ? golem.CurrentState + " " + golem.HealthFraction.ToString("P0") : "none")}, old golem replaced {oldGolem == null || oldGolem != golem}; {SquadState()}");
+            var stone = Sealbound.Core.Waystone.Instance;
+            Vector3 wp = stone.transform.position;
+            Shot("33_camp_waystone", wp + stone.transform.forward * 4f + stone.transform.right * 2f + Vector3.up * 2f, wp + Vector3.up * 1.3f, 50f);
+
+            // Seal the golem (quickly, as the golem tour does).
+            if (golem != null)
+            {
+                motor.Teleport(new Vector3(0f, 0.2f, 52f));
+                wait = 0f;
+                while (wait < 12f && !golem.CanBeHurt) { wait += Time.deltaTime; yield return null; }
+                Line($"Mission golem awake: {golem.CurrentState}, objective sealed {d.GolemSealed}, elapsed {d.Elapsed:0.0}s");
+                Vector3 centre = golem.transform.position;
+                golem.Health.TryDamage(new Sealbound.Combat.DamageInfo { Amount = 1e6f, Point = centre + Vector3.up * 6f }, out _);
+                yield return new WaitForSeconds(2f);
+                Vector3 side = Vector3.ProjectOnPlane(p.position - centre, Vector3.up).normalized;
+                if (side.sqrMagnitude < 0.01f) side = Vector3.back;
+                motor.Teleport(centre + side * 8f + Vector3.up * 0.2f);
+                yield return new WaitForSeconds(0.4f);
+                GolemSeal.DevHold = true;
+                wait = 0f;
+                while (golem != null && wait < 8f) { wait += Time.deltaTime; yield return null; }
+                GolemSeal.DevHold = false;
+                yield return new WaitForSeconds(0.5f);
+            }
+            Line($"After sealing: state {d.Current}, golem sealed {d.GolemSealed}, warren cleared {d.WarrenCleared}, goblins beaten {d.GoblinsBeaten}, time {d.Elapsed:0.0}s, return circle {(d.Circle != null ? d.Circle.transform.position.ToString() : "none")}, loot on the ground {Sealbound.Loot.LootDrop.Active.Count}");
+            if (d.Circle != null)
+            {
+                Vector3 cp = d.Circle.transform.position;
+                Shot("34_return_circle", cp + new Vector3(5f, 3f, -7f), cp + Vector3.up * 1.2f, 55f);
+                Shot("34b_return_circle_and_ruins", cp + new Vector3(-3f, 2.2f, -10f), cp + new Vector3(0f, 2f, 10f), 60f);
+                motor.Teleport(cp + Vector3.up * 0.2f);
+                wait = 0f;
+                while (d.Current != Sealbound.Core.MissionDirector.State.Idle && wait < 6f) { wait += Time.deltaTime; yield return null; }
+                yield return new WaitForSeconds(1f);
+                Line($"Home through the circle ({wait:0.0}s): state {d.Current}, in town {d.PlayerInTown}, loot left in the ruins {Sealbound.Loot.LootDrop.Active.Count}, circle gone {d.Circle == null}");
+                Line("Results: " + (d.Results ?? "none").Replace("\n", " | "));
+                ShotMain("35_home_again");
+                d.HideResults();
+            }
+
+            // Giving up: set out again and touch the waystone straight away.
+            d.SetOut();
+            wait = 0f;
+            while (d.Current != Sealbound.Core.MissionDirector.State.Active && wait < 5f) { wait += Time.deltaTime; yield return null; }
+            yield return new WaitForSeconds(0.5f);
+            golem = FindAnyObjectByType<BastionGolem>();
+            Line($"Second mission: state {d.Current}, golem {(golem != null ? golem.CurrentState.ToString() : "none")}");
+            motor.Teleport(wp + stone.transform.forward * 1.6f + Vector3.up * 0.15f);
+            yield return new WaitForSeconds(0.4f);
+            Line($"At the waystone: in reach {stone.InReach}; going home: {d.ReturnHome()}");
+            wait = 0f;
+            while (d.Current != Sealbound.Core.MissionDirector.State.Idle && wait < 5f) { wait += Time.deltaTime; yield return null; }
+            yield return new WaitForSeconds(0.9f);
+            Line($"Gave up: state {d.Current}, in town {d.PlayerInTown}, results: " + (d.Results ?? "none").Replace("\n", " | "));
+            d.HideResults();
         }
 
         /// <summary>Reports whether the ambient occlusion pass is really on the renderer the game uses.</summary>

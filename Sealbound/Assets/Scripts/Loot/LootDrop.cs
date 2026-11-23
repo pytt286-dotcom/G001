@@ -211,7 +211,8 @@ namespace Sealbound.Loot
             transform.localScale = Vector3.one * Mathf.Clamp(to.magnitude / 1.5f, 0.35f, 1f);
         }
 
-        void Collect()
+        /// <summary>Puts the drop in the pack (also used when the squad gathers leftovers on the way home).</summary>
+        public void Collect()
         {
             Inventory.Add(_def.id, _count);
             PlayPickup(_def);

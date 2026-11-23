@@ -57,6 +57,17 @@ namespace Sealbound.CameraRig
             if (_instance != null) _instance._bossTarget = Mathf.Clamp01(weight);
         }
 
+        /// <summary>Jumps straight to the target (after a teleport), looking the way it faces.</summary>
+        public static void SnapToTarget()
+        {
+            var c = _instance;
+            if (c == null || c.target == null) return;
+            c._yaw = c.target.eulerAngles.y;
+            c._pitch = 12f;
+            c._pivot = c.target.position + c.targetOffset;
+            c._pivotVelocity = Vector3.zero;
+        }
+
         /// <summary>Shake the camera. 0.1 = small tap, 1 = huge impact.</summary>
         public static void Shake(float amount)
         {

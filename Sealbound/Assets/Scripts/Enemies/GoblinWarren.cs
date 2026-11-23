@@ -44,6 +44,9 @@ namespace Sealbound.Enemies
             }
         }
 
+        public bool IsCleared => _phase == Phase.Cleared;
+        public int Wave => _wave + 1;
+        public int WaveCount => waves.Length;
         public bool InFight => _phase == Phase.Spawning || _phase == Phase.Fighting || _phase == Phase.BetweenWaves;
 
         void Start()

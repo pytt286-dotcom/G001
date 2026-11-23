@@ -89,7 +89,9 @@ namespace Sealbound.Core
             // The play field (start, yard, course, warren, ruins) and the Legend tower's clearing.
             float field = RectDistance(p, -115f, -70f, 75f, 175f);
             float tower = Mathf.Max(0f, new Vector2(p.x + 90f, p.z - 160f).magnitude - 30f);
-            return Mathf.Min(field, tower);
+            // The town square, out past the hills to the south-east.
+            float town = Mathf.Max(0f, new Vector2(p.x - TownSquare.Centre.x, p.z - TownSquare.Centre.z).magnitude - TownSquare.FlatRadius);
+            return Mathf.Min(Mathf.Min(field, tower), town);
         }
 
         static float RectDistance(Vector3 p, float minX, float minZ, float maxX, float maxZ)

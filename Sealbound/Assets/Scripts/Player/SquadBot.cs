@@ -123,6 +123,18 @@ namespace Sealbound.Player
             }
         }
 
+        /// <summary>Puts every bot back in formation around the leader at once (after travelling).</summary>
+        public static void GatherAround(PlayerMotor leader)
+        {
+            if (leader == null) return;
+            foreach (var b in All)
+            {
+                if (b == null) continue;
+                b._motor.Teleport(SlotPosition(leader, b.slot));
+                b._target = null;
+            }
+        }
+
         static int FreeSlot()
         {
             for (int s = 0; s < MaxSquad; s++)

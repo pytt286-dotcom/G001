@@ -106,7 +106,9 @@ namespace Sealbound.UI
             else if (boss != null) DrawBossHint();
             DrawBanner();
 
-            if (warren != null && !BossEngaged)
+            var director = Sealbound.Core.MissionDirector.Instance;
+            bool inTown = director != null && director.PlayerInTown;
+            if (warren != null && !BossEngaged && !inTown)
             {
                 string status = warren.StatusText;
                 if (!string.IsNullOrEmpty(status))
@@ -167,13 +169,15 @@ namespace Sealbound.UI
                 "<b>Golem</b> (ruins to the north): jump its ground wave,\n" +
                 "break the glowing runes, then hit the exposed core.\n" +
                 "Beaten creatures: hold G (d-pad up) to SEAL. Pack: I\n" +
-                "Forge (by the start): G to open, craft golem weapons\n" +
-                "Soul shrine (west of the start): G to bind a spirit.\n" +
+                "<b>Town:</b> mission board by the gate: G, then G to set out\n" +
+                "Forge (east side): G to open, craft golem weapons\n" +
+                "Soul shrine (west side): G to bind a spirit\n" +
+                "Go home: the circle of light, or the waystone at camp (G)\n" +
                 "Full Soul Gauge: V / R3 = SOUL MERGE, then V = Rune Quake\n" +
                 "Squad of bot Sealers: B (d-pad left) = 3 / 0 / 1 / 2\n" +
                 "Free mouse: Esc · Hide this help: H";
-            DrawRect(new Rect(16f, 16f, 470f, 434f), new Color(0f, 0f, 0f, 0.45f));
-            GUI.Label(new Rect(28f, 24f, 460f, 430f), text, _label);
+            DrawRect(new Rect(16f, 16f, 470f, 478f), new Color(0f, 0f, 0f, 0.45f));
+            GUI.Label(new Rect(28f, 24f, 460f, 474f), text, _label);
         }
 
         /// <summary>A name tag and health bar over each bot, and a small squad list above your own bars.</summary>

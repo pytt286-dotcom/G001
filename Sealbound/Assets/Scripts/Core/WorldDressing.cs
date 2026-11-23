@@ -20,7 +20,8 @@ namespace Sealbound.Core
             new Vector3(-45f, -15f, 18f),  // goblin warren
             new Vector3(-90f, 160f, 13f),  // Legend tower marker
             new Vector3(0f, -6f, 7f),      // start point
-            new Vector3(-10f, -12f, 5f),   // soul shrine
+            new Vector3(-10f, -12f, 5f),   // the old shrine spot by the start
+            new Vector3(TownSquare.Centre.x, TownSquare.Centre.z, TownSquare.ClearRadius), // the town square
         };
         // Rectangles (min x, min z, max x, max z).
         static readonly Vector4[] ClearRects =

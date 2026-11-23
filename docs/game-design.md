@@ -300,6 +300,8 @@ Each force gets its own story missions in its own battlefield, and a shared fina
 ### 9.2 Mission mode (hunts)
 
 Repeatable missions chosen from a **mission board** in the hub.
+
+**In the test field now (Milestone 10):** you start in a small walled town square, out past the hills: houses, a fountain, market stalls, the forge on the east side and the soul shrine on the west. The **mission board** stands by the gate. Press **G** to read *The Runestone Ruins*, and **G** again to set out with your squad. At the camp, a tracker shows the goal (seal the Bastion Golem) and a bonus (clear the goblin warren). When the golem is sealed, a circle of light opens by the ruins: step in to go home, or touch the **waystone** at camp (G), which also lets you give up a mission. Back in town you see your time, the reward (40 Sealing Essence, plus 20 for the bonus) and everything you brought home; your squad picks up any loot you left behind.
 - Each shows the creature, its tier, the battlefield and the recommended force.
 - Missions have difficulty levels; higher difficulty means better drops and higher spirit chances.
 - Extra goals ("break both wings", "finish in under 10 minutes") give bonus rewards.

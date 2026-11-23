@@ -40,7 +40,7 @@ namespace Sealbound.Core
             BuildScaleMarkers(root);
             BuildTrainingYard(root);
 
-            var player = BuildPlayer(new Vector3(0f, 0.1f, -6f));
+            var player = BuildPlayer(TownSquare.SpawnPoint); // you start in town, by the fountain
             SetupCamera(player);
             LookSettings.Apply(Camera.main);
             var heroAvatar = player.GetComponent<PlayerAvatar>();
@@ -50,8 +50,10 @@ namespace Sealbound.Core
                     ToonOutline.Add(d.GetComponentsInChildren<Renderer>());
             var warren = BuildGoblinWarren(root, new Vector3(-45f, 0f, -15f), player.transform);
             WorldDressing.Dress(root); // free KayKit trees, rocks and ruins, when the art is in the project
-            ForgeStation.Build(root, new Vector3(-9f, 0f, -3f), 90f); // the Sealers' forge, near where you start
-            SoulShrine.Build(root, new Vector3(-10f, 0f, -12f), 59f); // the soul shrine, where spirits are bound
+            // The town square (with the mission board, the forge and the soul shrine), and the waystone at camp
+            // that carries you back to it.
+            TownSquare.Build(root);
+            Waystone.Build(root, new Vector3(-5.5f, 0f, -7f), 90f);
             // Built after the scenery so the grey-box reskin leaves the golem's own stone alone.
             var golem = BastionGolem.Create(new Vector3(0f, 0f, 70f), 180f);
             var hud = Object.FindAnyObjectByType<DebugHud>();
@@ -61,6 +63,10 @@ namespace Sealbound.Core
             SquadBot.Factory = (at, mage) => BuildSealer("Bot Sealer", at, true);
             player.AddComponent<SquadCaller>();
             SquadBot.SetSquadSize(SquadBot.MaxSquad);
+            player.GetComponent<PlayerMotor>().FaceDirection(TownSquare.SpawnFacing);
+
+            // The mission: take it from the board in town, seal the golem, come home with the loot.
+            MissionDirector.Create(player.GetComponent<PlayerMotor>(), warren);
         }
 
         // ---------- World ----------
@@ -156,6 +162,8 @@ namespace Sealbound.Core
             hud.vitals = player.GetComponent<PlayerVitals>();
             var loot = hud.gameObject.AddComponent<Sealbound.UI.LootHud>();
             loot.input = player.GetComponent<PlayerInputReader>();
+            var mission = hud.gameObject.AddComponent<Sealbound.UI.MissionHud>();
+            mission.input = loot.input;
             return player;
         }
 

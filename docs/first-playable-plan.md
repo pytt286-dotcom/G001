@@ -37,7 +37,7 @@ Each milestone ends with something you can play. Rough times assume steady work 
 | 7 | **Forge** | Craft the Runestone Blade (Sword) or Golem Core Staff (Mage) from golem parts, and see it in your hands. | 1 week |
 | 8 | **Soul merge** | Bind the Golem Spirit at the shrine, fill the Soul Gauge in a fight, and transform: stone skin, Rune Quake, Fortress Stance. | 2 weeks |
 | 9 | **Bot companions** | Bring up to 3 computer-controlled Sealers who follow you, fight, and avoid the golem's big attacks. | 2 weeks |
-| 10 | **Hub and mission** | A small square in Valdremor with a mission board, forge and soul shrine. Start the mission, finish it, come back with loot. | 1 to 2 weeks |
+| 10 | **Hub and mission** | A small town square with a mission board, forge and soul shrine. Start the mission, finish it, come back with loot. | 1 to 2 weeks |
 | 11 | **Polish and test** | Sound, effects, menus, a simple tutorial, and a version you can send to a few friends to try. | 2 weeks |
 
 **Total:** roughly 4 to 5 months to a first version friends can play. The early milestones go faster; the boss, merge and bots take the most tuning.
